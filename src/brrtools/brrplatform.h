@@ -120,6 +120,10 @@
 # endif
 #endif
 
+#if defined(__GNUC__)
+# define BRRPLATFORMTYPE_GNU
+#endif
+
 /* ---------- Detect system endianness */
 #define BRRLITTLE_ENDIAN  0x00010203UL
 #define BRRBIG_ENDIAN     0x03020100UL

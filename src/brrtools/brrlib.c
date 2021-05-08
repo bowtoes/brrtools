@@ -7,11 +7,101 @@
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 # include <windows.h>
 # include <malloc.h>
+# include <conio.h>
 #else
+# include <stdio.h>
+# include <termios.h>
+# include <sys/select.h>
+# if defined(BRRPLATFORM_AIX)
+#  // https://cr.yp.to/docs/unixport.html
+#  include <time.h>
+# endif // BRRPLATFORM_AIX
 # include <sys/time.h>
 #endif
 
 #include "brrtools/brrtypes.h"
+
+brrb1 BRRCALL
+brrlib_pause(void)
+{
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	getch();
+	return true;
+#elif defined(BRRPLATFORMTYPE_UNIX)
+	struct termios new, before;
+	/* https://stackoverflow.com/a/18806671/13528679 */
+	tcgetattr(0, &before);       /* get current terminal attirbutes; 0 is the file descriptor for stdin */
+	new = before;
+	new.c_lflag &= ~ICANON;      /* disable canonical mode */
+	new.c_lflag &= ~ECHO;        /* don't echo */
+	new.c_cc[VMIN] = 1;          /* wait until at least one keystroke available */
+	new.c_cc[VTIME] = 0;         /* no timeout */
+	tcsetattr(0, TCSANOW, &new); /* set immediately */
+	getc(stdin);
+	tcsetattr(0, TCSANOW, &before);
+	return true;
+#else
+	return false;
+#endif
+}
+
+brrb1 BRRCALL
+brrlib_clear(void)
+{
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	// https://cboard.cprogramming.com/cplusplus-programming/93806-conio-h-functions-mingw-post672795.html#post672795
+	COORD a = {0,0};
+	DWORD nwrite;
+	FillConsoleOutputAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07, 2000, a, &nwrite);
+	return true;
+#elif defined(BRRPLATFORMTYPE_UNIX)
+	printf("\x1b[1;1H\x1b[2J");
+	return true;
+#else
+	return false;
+#endif
+}
+
+brru8 BRRCALL
+brrlib_utime(void)
+{
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	FILETIME time;
+	ULARGE_INTEGER lrg;
+	GetSystemTimeAsFileTime(&time);
+	lrg.u.LowPart = time.dwLowDateTime;
+	lrg.u.HighPart = time.dwHighDateTime;
+	// Convert windows FILETIME (100ns precision) to usec precision
+	lrg.QuadPart /= 10;
+	// Offset windows epoch to be UNIX epoch
+	return lrg.QuadPart - 11644473838000000;
+#else
+	// TODO gettimeofday deprecated.
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec * 1000000 + tv.tv_usec;
+#endif // BRRPLATFORMTYPE_WINDOWS
+}
+
+void BRRCALL
+brrlib_usleep(brru8 usec)
+{
+	if (usec) {
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+		HANDLE timer;
+		LARGE_INTEGER ft;
+		// Convert usec precision to windows FILETIME (100ns precision).
+		ft.QuadPart = -(10 * (__int64)usec);
+		timer = CreateWaitableTimer(NULL, TRUE, NULL);
+		SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+		WaitForSingleObject(timer, INFINITE);
+		CloseHandle(timer);
+#else
+		struct timeval tv = {usec / 1000000, usec % 1000000};
+		select(0, NULL, NULL, NULL, &tv);
+#endif
+	}
+}
 
 brrb1 BRRCALL
 brrlib_alloc(void **current, brrsz size, brrb1 zero)
@@ -74,49 +164,31 @@ brrlib_wrap(brrs8 number, brru8 wrap, brrs8 offset)
 	}
 }
 
-brru8 BRRCALL
-brrlib_mutime(void)
-{
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-	FILETIME time;
-	ULARGE_INTEGER lrg;
-	GetSystemTimeAsFileTime(&time);
-	lrg.u.LowPart = time.dwLowDateTime;
-	lrg.u.HighPart = time.dwHighDateTime;
-	return lrg.QuadPart;
-#else
-	// TODO gettimeofday deprecated.
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return tv.tv_sec * 1000000 + tv.tv_usec;
-#endif
-}
-
-#define ROTL(x,k) (((x)<<(k)) | ((x)>>(64-(k))))
 /* Written in 2015 by Sebastiano Vigna (vigna@acm.org)
  * Source: https://xorshift.di.unimi.it/splitmix64.c
  * Wayback: https://web.archive.org/web/20210430193320/https://prng.di.unimi.it/ */
 #define SPLITMIX64(_sd,_res) do {\
-	_res[0]=_sd;\
+	(_res)[0]=(_sd);\
 	for (unsigned char i=1;i<4;++i) {\
-		_res[i]=(_res[i-1]+0x9e3779b97f4a7c15);\
-		_res[i]=(_res[i]^(_res[i]>>30))*0xbf58476d1ce4e5b9;\
-		_res[i]=(_res[i]^(_res[i]>>27))*0x94d049bb133111eb;\
-		_res[i]= _res[i]^(_res[i]>>31);\
+		(_res)[i]=((_res)[i-1]+=0x9e3779b97f4a7c15);\
+		(_res)[i]=((_res)[i]^((_res)[i]>>30))*0xbf58476d1ce4e5b9;\
+		(_res)[i]=((_res)[i]^((_res)[i]>>27))*0x94d049bb133111eb;\
+		(_res)[i]= (_res)[i]^((_res)[i]>>31);\
 	}\
 } while (0)
+#define ROTL(x,k) (((x)<<(k)) | ((x)>>(64-(k))))
 /* Written in 2018 by David Blackman and Sebastiano Vigna (vigna@acm.org)
  * Source:  https://prng.di.unimi.it/xoshiro256plus.c
  * Wayback: https://web.archive.org/web/20210430193320/https://prng.di.unimi.it/ */
 #define XOSHIRO256(_sd,_res) do {\
-	const brru8 t = _sd[1] << 17;\
-	_res=_sd[0]+_sd[3];\
-	_sd[2]^=_sd[0];\
-	_sd[3]^=_sd[1];\
-	_sd[1]^=_sd[2];\
-	_sd[0]^=_sd[3];\
-	_sd[2]^=t;\
-	_sd[3]=ROTL(_sd[3],45);\
+	const brru8 _t = (_sd)[1] << 17;\
+	_res=(_sd)[0]+(_sd)[3];\
+	(_sd)[2]^=(_sd)[0];\
+	(_sd)[3]^=(_sd)[1];\
+	(_sd)[1]^=(_sd)[2];\
+	(_sd)[0]^=(_sd)[3];\
+	(_sd)[2]^=_t;\
+	(_sd)[3]=ROTL((_sd)[3],45);\
 } while (0)
 /* Starting value determined from executing splitmix64 on '0' */
 static brru8 randseed[4] = {0x0, 0xe220a8397b1dcdaf, 0xa706dd2f4d197e6f, 0x238275bc38fcbe91};
@@ -139,10 +211,12 @@ brrlib_srand(brru8 seed)
 brru8 BRRCALL
 brrlib_trand(void)
 {
+	static brru8 cur;
 	static brru8 preseed[4];
 	static brru8 res;
+	cur = brrlib_utime();
 	CPYSEED(randseed, preseed);
-	res = brrlib_srand(brrlib_mutime());
+	res = brrlib_srand(cur);
 	CPYSEED(preseed, randseed);
 	return res;
 }

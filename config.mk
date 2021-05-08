@@ -213,6 +213,7 @@ $(PROJECT)_PCPPFLAGS:=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
 $(PROJECT)_PLDFLAGS:=$(PRF) $(LDFLAGS)
 
 ### Linker arguments
+LNK:=
 ifeq ($(TARGET),LINUX)
  ifeq ($(MODE),SHARED)
   ifdef PIC2
@@ -226,10 +227,11 @@ ifeq ($(TARGET),LINUX)
   TARGETNAME:=$(LINSTANAME)
  endif ## MODE
 else # Windows target
+ DEFS:=-DWIN32_LEAN_AND_MEAN $(DEFS)
  LNK:=-Wl,--subsystem,windows
  ifeq ($(MODE),SHARED)
   DEFS:=-DBRRTOOLS_SHARED -DBRRTOOLS_EXPORTS $(DEFS)
-  LNK:=-shared
+  LNK:=$(LNK) -shared
   TARGETNAME:=$(WINSHRNAME)
  else # Static
   TARGETNAME:=$(WINSTANAME)

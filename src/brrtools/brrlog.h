@@ -165,10 +165,6 @@ BRRAPI brru8 BRRCALL brrlog_count(void);
 /* Resets log count to 0. */
 BRRAPI void BRRCALL brrlog_resetcount(void);
 
-/* Pause console until a character is pushed to stdin.
- * Returns true. */
-BRRAPI brrb1 BRRCALL brrlog_pause(void);
-
 BRRAPI brrb1 BRRCALL brrlog_init(void);
 BRRAPI void BRRCALL brrlog_deinit(void);
 #define LOG_PARAMS \

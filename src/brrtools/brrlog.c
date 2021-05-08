@@ -189,35 +189,6 @@ static brru8 logcount = 0;
 brru8 BRRCALL brrlog_count(void) {return logcount;}
 void BRRCALL brrlog_resetcount(void) {logcount = 0;}
 
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-#include <conio.h>
-#elif defined(BRRPLATFORMTYPE_UNIX)
-#include <termios.h>
-#endif
-brrb1 BRRCALL
-brrlog_pause()
-{
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-	getch();
-	return true;
-#elif defined(BRRPLATFORMTYPE_UNIX)
-	struct termios new, before;
-	/* https://stackoverflow.com/a/18806671/13528679 */
-	tcgetattr(0, &before);       /* get current terminal attirbutes; 0 is the file descriptor for stdin */
-	new = before;
-	new.c_lflag &= ~ICANON;      /* disable canonical mode */
-	new.c_lflag &= ~ECHO;        /* don't echo */
-	new.c_cc[VMIN] = 1;          /* wait until at least one keystroke available */
-	new.c_cc[VTIME] = 0;         /* no timeout */
-	tcsetattr(0, TCSANOW, &new); /* set immediately */
-	getc(stdin);
-	tcsetattr(0, TCSANOW, &before);
-	return true;
-#else
-	return false;
-#endif
-}
-
 static brrsz logmax = 2048;
 static char *buffer = NULL;
 
@@ -432,8 +403,9 @@ brrlog_bits(LOG_PARAMS, brrb1 reverse_bytes, brrb1 reverse_bits, brrsz bits_to_p
 	char *text = NULL;
 	static const brrsz byte_width = 8;
 	brrsz nbytes = 0, nnormalbytes = 0, residue = 0, seps = 0, bits_parsed = 0;
-	if (!data || !bits_to_print)
-		return 0;
+	if (!data || !bits_to_print) {
+		return brrlog_text(LOG_ARGS, "");
+	}
 
 	if (!bit_separator) bit_separator = ' ';
 	if (!separator_spacing) separator_spacing = -1;
