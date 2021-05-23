@@ -3,6 +3,9 @@
 
 #include <brrtools/brrlog.h>
 #include <brrtools/brrlib.h>
+#include <brrtools/brrmem.h>
+#include <brrtools/brrpath.h>
+#include <brrtools/brrbuffer.h>
 
 static void logtext(void) {
 	BRRLOG_CRI("%zu>%zu: %zu CRI", brrlog_minpriority(), brrlog_maxpriority(), brrlog_format_critical.level.priority);
@@ -31,7 +34,7 @@ static void testlogtext(void) {
 static void logdigits(char sep, brrsz spc, brrb1 sgn, brrb1 neg) {
 	for (brru8 i = 0, num = 0; i < 10;num = num * 10 + ++i) {
 		BRRLOG_NORNP("OTHR : ");
-		BRRLOGD_NORNP(sep, spc, sgn, (1-(2*neg))*num);
+		BRRLOGD_NORNP(sep, spc, sgn, (1-(2*neg))*num, 10);
 		BRRLOG_NORNP("\tCORR : ");
 		BRRLOG_NORP(sgn?"%-10lld":"%-10llu", (1-(2*neg))*num);
 	}
@@ -56,7 +59,7 @@ static void testlogbits(void) {
 	BRRLOG_NORP("BITS TEST");
 	brru8 num = brrlib_rand();
 	BRRLOG_NORNP("NUM: ");
-	BRRLOGD_NORP(',', 3, false, num);
+	BRRLOGD_NORP(',', 3, false, num, 10);
 	BRRLOG_NORNP("BITS : ");
 	for (brru8 i = 0; i < 64; ++i) {
 		if (i&&(i%8==0)) BRRLOG_NORNP(".");
@@ -103,11 +106,101 @@ static void testrand(void) {
 	}
 }
 
+static void testbases(void) {
+	struct temp {
+		brrb1 issigned;
+		brru8 num;
+	};
+	static const struct temp nums[] = {
+		{0,          0}, {1,          0},
+		{0,        877}, {1,        877},
+		{0,       -877}, {1,       -877},
+		{0,      19391}, {1,      19391},
+		{0,     -19391}, {1,     -19391},
+		{0,     -19391}, {1,     -19391},
+		{0, -(INT64_MIN+1)}, {1, -(INT64_MIN+1)},
+		{0,  INT64_MIN}, {1,  INT64_MIN},
+	};
+	static char str[8 * sizeof(brru8) + 1 + 1] = {0};
+	for (brru2 base = 0; base <= brrlib_max_base(); ++base) {
+		BRRLOG_NORP("<-------- BASE   %zu", base);
+		BRRLOG_NORNP("<-------- DIGITS ");
+		for (brru1 b = 0; b < base; ++b)
+			BRRLOG_NORNP("%c", brrlib_bases[b]);
+		BRRLOG_NORP("");
+		for (brru8 i = 0; i < (sizeof(nums) / sizeof(struct temp)); ++i) {
+			brrsz print = brrlib_print_base(str, sizeof(str), nums[i].num, nums[i].issigned, base);
+			BRRLOG_NORNP("%s NUM ", nums[i].issigned?"SIGN":"    ");
+			BRRLOG_NORNP(nums[i].issigned?"%21lli":"%21llu", nums[i].issigned?(brrs8)nums[i].num:nums[i].num);
+			BRRLOG_NORP(", PRINTED %2zu :%65s", print, str);
+		}
+	}
+}
+
+static void testuntilfrom(void) {
+	static const char data[] = "Some test data, I think.";
+	static const brrsz ds = sizeof(data);
+	static brrsz ft,st,tt,Ft,pt,fc,nt,nc,lt;
+	ft = brrmem_next(data, ds-1, 't', 0);
+	st = brrmem_next(data, ds-1, 't', ft+1);
+	tt = brrmem_next(data, ds-1, 't', st+1);
+	Ft = brrmem_next(data, ds-1, 't', tt+1);
+	pt = brrmem_prev(data, ds-1, 't', Ft-1);
+	fc = brrmem_prev(data, ds-1, ',', Ft+1);
+	nt = brrmem_next(data, ds-1, 't', Ft+1);
+	nc = brrmem_next(data, ds-1, ',', fc+1);
+	lt = brrmem_prev(data, ds-1, 't', ds-1);
+	BRRLOG_NORP("Data: '%s' (%2zu)", data, ds);
+	BRRLOG_NORP("First  't' : %2zu '%s'", ft, data+ft);
+	BRRLOG_NORP("Second 't' : %2zu '%s'", st, data+st);
+	BRRLOG_NORP("Third  't' : %2zu '%s'", tt, data+tt);
+	BRRLOG_NORP("Fourth 't' : %2zu '%s'", Ft, data+Ft);
+	BRRLOG_NORP("Prev   't' : %2zu '%s'", pt, data+pt);
+	BRRLOG_NORP("Last   't' : %2zu '%s'", lt, data+lt);
+	BRRLOG_NORP("Before ',' : %2zu '%s'", fc, data+fc);
+	BRRLOG_NORP("No     't' : %2zu '%s'", nt, data+nt);
+	BRRLOG_NORP("No     ',' : %2zu '%s'", nc, data+nc);
+}
+
+static void testbuffer(void) {
+	static const char ma[] = "persnickity";
+	static const char mb[] = "|nice";
+	brrbufferT buff = brrbuffer_new(100);
+	if (buff.opaque) {
+		BRRLOG_NOR("NEW BUFFER: SIZE %zu", buff.size);
+		while (buff.position < buff.size) {
+			brrby d = 69;
+			brrbuffer_read(&buff, &d, 1);
+			buff.position--;
+			BRRLOG_NORN("BUFF[%02zu]: BEF = %3zu ", buff.position, d);
+			d = 69;
+			brrbuffer_write(&buff, &d, 1);
+			buff.position--;
+			brrbuffer_read(&buff, &d, 1);
+			BRRLOG_NORP("AFT = %3zu", d);
+		}
+	}
+	brrbuffer_del(&buff);
+}
+
 int main(void)
 {
 	brrlog_setlogmax(0);
-	brrlog_styleon = true;
+	brrlog_styleon = false;
 	brrlog_debugon = true;
+	brrlog_flushon = true;
+	testbuffer();
+#if 0
+	brrlib_use_extended_bases = true;
+	testbases();
+#endif
+#if 0
+	brrlib_clear();
+	testuntilfrom();
+	brrlib_pause();
+	brrlib_clear();
+	testmemapppre();
+#endif
 #if 0 // Lib/Log tests
 	testlogtext();
 	brrlib_pause();

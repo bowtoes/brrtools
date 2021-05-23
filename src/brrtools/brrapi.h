@@ -2,16 +2,16 @@
 #define BRRTOOLS_BRRAPI_H
 
 #if defined(_WIN32)
-# if defined(BRRTOOLS_SHARED)
-#  if defined(BRRTOOLS_EXPORTS)
+# define BRRCALL __cdecl
+# if defined(BRRTOOLS_EXPORTS) || defined(BRRTOOLS_IMPORTS)
+#  if defined(BRRTOOLS_EXPORTS) && !defined(BRRTOOLS_IMPORTS)
 #   define BRRAPI __declspec(dllexport)
 #  else
 #   define BRRAPI __declspec(dllimport)
-#  endif // BRRTOOLS_EXPORT
+#  endif // BRRTOOLS_EXPORTS && !BRRTOOLS_IMPORTS
 # else // Static library
 #  define BRRAPI
-# endif // !BRRTOOLS_STATIC
-# define BRRCALL __cdecl
+# endif // BRRTOOLS_EXPORTS || BRRTOOLS_IMPORTS
 #else // UNIX target
 # define BRRAPI
 # define BRRCALL

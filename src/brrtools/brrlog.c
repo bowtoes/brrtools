@@ -95,44 +95,67 @@ static char *BRRCALL updatefmtstr(brrlog_colorT fg, brrlog_colorT bg, brrlog_sty
 	TOKEN(warning) \
 	TOKEN(debug)
 
-static const char *const fgcolor_strs[brrlog_color_count] = {
+#define RET_CLP_LST(x, s) return s[BRRLIB_DUM_CLAMP(x, brrlog_##x##_last, brrlog_##x##_count) + 1]
+static const char *const fgcolor_strs[brrlog_color_count + 2] = {
+	"last",
 	#define TOKEN(x) #x,
 	ENUM_COLORS
 	#undef TOKEN
-};
-static const char *const bgcolor_strs[brrlog_color_count] = {
-	#define TOKEN(x) #x,
-	ENUM_COLORS
-	#undef TOKEN
+	"invalid",
 };
 const char *BRRCALL brrlog_fgcolor_str(brrlog_colorT color)
-{return fgcolor_strs[color == brrlog_color_last?brrlog_format_last.foreground:color];}
+{RET_CLP_LST(color, fgcolor_strs);}
+static const char *const bgcolor_strs[brrlog_color_count + 2] = {
+	"last",
+	#define TOKEN(x) #x,
+	ENUM_COLORS
+	#undef TOKEN
+	"invalid",
+};
 const char *BRRCALL brrlog_bgcolor_str(brrlog_colorT color)
-{return bgcolor_strs[color == brrlog_color_last?brrlog_format_last.background:color];}
+{RET_CLP_LST(color, bgcolor_strs);}
 
-static const char *const font_strs[brrlog_font_count] = {
+static const char *const font_strs[brrlog_font_count + 2] = {
+	"last",
 	#define TOKEN(x) #x,
 	ENUM_FONTS
 	#undef TOKEN
+	"invalid",
 };
 const char *BRRCALL brrlog_font_str(brrlog_fontT font)
-{return font_strs[font == brrlog_font_last?brrlog_format_last.font:font];}
+{RET_CLP_LST(font, font_strs);}
 
-static const char *const style_strs[brrlog_style_count] ={
+static const char *const style_strs[brrlog_style_count + 2] = {
+	"last",
 	#define TOKEN(x) #x,
 	ENUM_STYLES
 	#undef TOKEN
+	"invalid",
 };
 const char *BRRCALL brrlog_style_str(brrlog_styleT style)
-{return style_strs[style == brrlog_style_last?brrlog_format_last.style:style];}
+{RET_CLP_LST(style, style_strs);}
 
-static const char *const priority_strs[brrlog_priority_count] ={
+static const char *const priority_strs[brrlog_priority_count + 2] = {
+	"last",
 	#define TOKEN(x) #x,
 	ENUM_LEVELS
 	#undef TOKEN
+	"invalid",
 };
 const char *BRRCALL brrlog_priority_str(brrlog_priorityT priority)
-{return priority_strs[priority == brrlog_priority_last?brrlog_format_last.level.priority:priority];}
+{RET_CLP_LST(priority, priority_strs);}
+static const char *const priority_dbgstrs[brrlog_priority_count + 2] = {
+	"LST",
+	"NON",
+	"CRI",
+	"ERR",
+	"NOR",
+	"WAR",
+	"DEB",
+	"INV",
+};
+const char *BRRCALL brrlog_priority_dbgstr(brrlog_priorityT priority)
+{RET_CLP_LST(priority, priority_dbgstrs);}
 
 #define criformat {{brrlog_priority_critical, brrlog_destination_stderr, "CRITICAL: "}, brrlog_color_red,    brrlog_color_normal, brrlog_style_reverse,   brrlog_font_normal}
 #define errformat {{brrlog_priority_error,    brrlog_destination_stderr, "Error: "   }, brrlog_color_red,    brrlog_color_normal, brrlog_style_bold,      brrlog_font_normal}
@@ -268,9 +291,12 @@ brrlog_text(LOG_PARAMS, const char *const format, ...)
 		priority = brrlog_format_last.level.priority;
 
 	if (!format ||
-	    (!brrlog_debugon && priority == brrlog_priority_debug) ||
 	    (priority < minpri || priority > maxpri))
 		return 0;
+#ifndef BRRTOOLS_DEBUG
+	if (!brrlog_debugon && priority == brrlog_priority_debug)
+		return 0;
+#endif // If defined, never quit on debug priority;
 
 	if (destination <= brrlog_destination_last) destination = brrlog_format_last.level.destination;
 	if (foreground  <= brrlog_color_last)       foreground  = brrlog_format_last.foreground;
@@ -354,7 +380,7 @@ brrlog_text(LOG_PARAMS, const char *const format, ...)
 }
 
 brrsz BRRCALL
-brrlog_digits(LOG_PARAMS, char digit_separator, brrsz separator_spacing, brrb1 is_signed, brru8 number)
+brrlog_digits(LOG_PARAMS, char digit_separator, brrsz separator_spacing, brrb1 is_signed, brru8 number, brru1 base)
 {
 	brrsz inputlength = 0, outputlength = 0, sepcount = 0;
 	char *stringin = NULL, *stringout = NULL;
@@ -362,7 +388,7 @@ brrlog_digits(LOG_PARAMS, char digit_separator, brrsz separator_spacing, brrb1 i
 	if (!digit_separator) digit_separator = ',';
 	if (!separator_spacing) separator_spacing = -1;
 
-	inputlength = brrlib_ndigits(is_signed, number);
+	inputlength = brrlib_ndigits(is_signed, number, base);
 	if (is_signed && (brrs8)number < 0) {
 		inputlength++;
 		isneg = 1;
@@ -375,11 +401,9 @@ brrlog_digits(LOG_PARAMS, char digit_separator, brrsz separator_spacing, brrb1 i
 		brrlib_alloc((void **)&stringin, 0, false);
 		return 0;
 	}
+	brrlib_print_base(stringin, inputlength + 1, number, is_signed, base);
 	if (isneg) {
-		snprintf(stringin, inputlength + 1, "%lli", (brrs8)number);
 		stringout[0] = stringin[0];
-	} else {
-		snprintf(stringin, inputlength + 1, "%llu", number);
 	}
 
 	for(brru8 i = 0, c = 0; i < inputlength-isneg; ++i) {

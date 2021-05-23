@@ -26,15 +26,26 @@ typedef uint64_t    brru8;
 #define BRRTOOLS_BRRS8_MIN  INT64_MIN
 #define BRRTOOLS_BRRU8_MAX  UINT64_MAX
 
-typedef brru8   brrsz; // Byte count.
+// Byte count or absolute byte offset.
+typedef brru8   brrsz;
 #define BRRTOOLS_BRRSZ_MAX BRRTOOLS_BRRU8_MAX
-typedef brrs8   brrof; // Relative byte offset.
+// Relative byte offset.
+typedef brrs8   brrof;
 #define BRRTOOLS_BRROF_MAX BRRTOOLS_BRRS8_MAX
-#define BRRTOOLS_BRROF_MIN BRRTOOLS_BRRS8_MAX
-typedef brru1   brrby; // Byte.
+#define BRRTOOLS_BRROF_MIN BRRTOOLS_BRRS8_MIN
+// Byte.
+typedef brru1   brrby;
 #define BRRTOOLS_BRRBY_MAX 255
-typedef bool    brrb1; // Bool.
+// Bool.
+typedef bool    brrb1;
 
+// Array element count.
+typedef brru2   brrct;
+#define BRRTOOLS_BRRCT_MAX BRRTOOLS_BRRU2_MAX
+
+/* Elements:
+ *  * char fourcc[4];
+ *  * brru4 code; */
 typedef union brrfcc {
 	char fourcc[4]; // Four-character char code.
 	brru4 code; // Numeric code.

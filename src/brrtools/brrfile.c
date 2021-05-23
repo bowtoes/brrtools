@@ -1,9 +1,19 @@
 #include "brrtools/brrfile.h"
 
-#include <stdio.h>
+#include "brrtools/noinstall/utils.h"
+#include "brrtools/brrplatform.h"
+#include "brrtools/brrpath.h"
 
-int
-brrfile_test(const char *const file)
+brru8 BRRCALL
+brrfile_size(const char *const file)
 {
-	return printf("Filetools test '%s'.\n", file);
+	brrpath_statT st = brrpath_stat(file, true);
+	return st.size;
+}
+
+brru8 BRRCALL
+brrfile_fsize(int fd)
+{
+	brrpath_statT st = brrpath_fstat(fd);
+	return st.size;
 }

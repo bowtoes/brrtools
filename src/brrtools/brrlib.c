@@ -2,6 +2,7 @@
 
 #include "brrtools/brrapi.h"
 #include "brrtools/brrplatform.h"
+#include "brrtools/brrmem.h"
 
 #include <stdlib.h>
 #if defined(BRRPLATFORMTYPE_WINDOWS)
@@ -20,6 +21,60 @@
 #endif
 
 #include "brrtools/brrtypes.h"
+
+#define BRRBASES \
+    "0123456789"\
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
+
+#define BRREXTBASES \
+    "abcdefghijklmnopqrstuvwxyz"\
+    "([{</\"'?!@#$%^&*|,.`~=+-_;:\\>}])"\
+
+brrb1 brrlib_use_extended_bases = false;
+const char brrlib_bases[] = BRRBASES BRREXTBASES;
+
+static const brrsz maxnormalbase = sizeof(BRRBASES)-1;
+static const brrsz maxextbase = (sizeof(BRREXTBASES)-1)/2;
+static const brrsz maxbase = maxnormalbase + maxextbase;
+brrsz BRRCALL
+brrlib_max_base(void)
+{
+	return brrlib_use_extended_bases?maxbase:maxnormalbase;
+}
+
+brrsz BRRCALL
+brrlib_print_base(char *const dst, brru8 max_length,
+	    brru8 number, brrb1 is_signed, brru1 base)
+{
+	brrsz ns = 0;
+	brrb1 isneg = false;
+	if (!max_length || base < 2 || base > (brrlib_use_extended_bases?maxbase:maxnormalbase)) {
+		return 0;
+	} else if (!number) {
+		dst[0]='0';
+		dst[1]=0;
+		return 1;
+	} else if (is_signed && (brrs8)number < 0) {
+		isneg = true;
+		number = -(brrs8)number;
+		dst[ns] = '-';
+		ns++;
+	}
+	for (;ns < max_length && number; number /= base) {
+		brrsz idx = number % base;
+		if (idx > maxnormalbase) {
+			idx = (idx - maxnormalbase) * 2 + maxnormalbase;
+			dst[ns++] = brrlib_bases[idx];
+			dst[ns++] = brrlib_bases[idx+1];
+		} else {
+			dst[ns++] = brrlib_bases[idx];
+		}
+	}
+	brrmem_static_reverse(dst + isneg, ns - isneg);
+	dst[ns] = 0;
+
+	return ns;
+}
 
 brrb1 BRRCALL
 brrlib_pause(void)
@@ -141,14 +196,14 @@ brrlib_alloc(void **current, brrsz size, brrb1 zero)
 }
 
 brrsz BRRCALL
-brrlib_ndigits(brrb1 is_signed, brru8 number)
+brrlib_ndigits(brrb1 is_signed, brru8 number, brru1 base)
 {
 	brrsz c = 1;
 	if (is_signed && (brrs8)number < 0)
 		number = (brru8)(-(brrs8)number);
 	if (number == 0)
 		return c;
-	while (number/=10) c++; /* teehee */
+	while (number/=base) c++; /* teehee */
 	return c;
 }
 
@@ -220,3 +275,16 @@ brrlib_trand(void)
 	CPYSEED(preseed, randseed);
 	return res;
 }
+
+brru8 BRRCALL brrlib_umax(brru8 a, brru8 b)
+{return a>b?a:b;}
+brru8 BRRCALL brrlib_umin(brru8 a, brru8 b)
+{return a<b?a:b;}
+brru8 BRRCALL brrlib_uclamp(brru8 x, brru8 min, brru8 max)
+{return x<min?min:x>max?max:x;}
+brrs8 BRRCALL brrlib_smax(brrs8 a, brrs8 b)
+{return a>b?a:b;}
+brrs8 BRRCALL brrlib_smin(brrs8 a, brrs8 b)
+{return a<b?a:b;}
+brrs8 BRRCALL brrlib_sclamp(brrs8 x, brrs8 min, brrs8 max)
+{return x<min?min:x>max?max:x;}

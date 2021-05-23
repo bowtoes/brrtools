@@ -87,7 +87,7 @@
 #  else
 #   error Unknown BSD distribution
 #  endif
-# // end (BSD || __bsdi__)
+// end (BSD || __bsdi__)
 # elif defined(linux) || defined(__linux) || defined(__linux__)
 #  define BRRPLATFORMNAME "Linux"
 #  define BRRPLATFORM BRRPLATFORM_Linux
