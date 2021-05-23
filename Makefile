@@ -3,7 +3,6 @@
 
 include config.mk
 
-# Makefiles are stupidly finicky good god
 ASS:=$(addprefix $(OUTDIR)/$(ASSDIR)/,$(patsubst $(SRCDIR)/%,%,$(SRC:.c=.s)))
 INT:=$(addprefix $(OUTDIR)/$(INTDIR)/,$(patsubst $(SRCDIR)/%,%,$(SRC:.c=.e)))
 OBJ:=$(addprefix $(OUTDIR)/$(OBJDIR)/,$(patsubst $(SRCDIR)/%,%,$(SRC:.c=.o)))
@@ -14,14 +13,23 @@ setup:
 	@mkdir -pv $(dir $(INT)) 2>/dev/null || :
 	@mkdir -pv $(dir $(OBJ)) 2>/dev/null || :
 options:
-	@echo "$(PROJECT) Build options:"
-	@echo "CFLAGS        = $(CFLAGS)"
-	@echo "CPPFLAGS      = $(CPPFLAGS)"
-	@echo "STCPPFLAGS    = $(STCPPFLAGS)"
-	@echo "$(PROJECT)_CFLAGS   = $($(PROJECT)_CFLAGS)"
-	@echo "$(PROJECT)_CPPFLAGS = $($(PROJECT)_CPPFLAGS)"
-	@echo "$(PROJECT)_LDFLAGS  = $($(PROJECT)_LDFLAGS)"
-	@echo "CC            = $(CC)"
+	@echo "<------------------------------------->"
+	@echo ""
+	@echo "$(PROJECT) BUILD options:"
+	@echo "TARGETNAME : $(TARGETNAME)"
+	@echo "HOST       : $(HOST)"
+	@echo "TARGET     : $(TARGET)"
+	@echo "MODE       : $(MODE)"
+	@echo ""
+	@echo "$(PROJECT)_CFLAGS   =$($(PROJECT)_CFLAGS)"
+	@echo "$(PROJECT)_CPPFLAGS =$($(PROJECT)_CPPFLAGS)"
+	@echo "$(PROJECT)_LDFLAGS  =$($(PROJECT)_LDFLAGS)"
+	@echo "CFLAGS            =$(CFLAGS)"
+	@echo "CPPFLAGS          =$(CPPFLAGS)"
+	@echo "LDFLAGS           =$(LDFLAGS)"
+	@echo "CC                =$(CC)"
+	@echo ""
+	@echo "<------------------------------------->"
 
 $(OUTDIR)/$(ASSDIR)/%.s: $(SRCDIR)/%.c
 	$(CC) $($(PROJECT)_CPPFLAGS) $($(PROJECT)_CFLAGS) -S $< -o $@
@@ -36,7 +44,7 @@ $(OBJ): $(HDR) Makefile config.mk
 
 $(PROJECT): options setup $(OBJ)
 ifeq ($(MODE),SHARED)
- ifeq ($(TARGET),LINUX)
+ ifeq ($(TARGET),UNIX)
 	$(CC) -o $(OUTDIR)/$(TARGETNAME) $(OBJ) $($(PROJECT)_LDFLAGS)
  else # Windows target
 	$(CC) -o $(OUTDIR)/$(TARGETNAME) $(OBJ) $($(PROJECT)_LDFLAGS) -Wl,--output-def,$(OUTDIR)/$(WINDEFNAME)
@@ -50,9 +58,9 @@ endif ## MODE
 ass: setup options $(ASS) ;
 int: setup options $(INT) ;
 obj: setup options $(OBJ) ;
+aio: setup options $(ASS) $(INT) $(OBJ) ;
 
 clean:
-	make -f Make.check clean
 	$(RM) $(ASS)
 	$(RM) $(INT)
 	$(RM) $(OBJ)
@@ -61,7 +69,7 @@ ifeq ($(TARGET),WINDOWS)
 	$(RM) $(OUTDIR)/$(WINDEFNAME)
 	$(RM) $(OUTDIR)/$(WINIMPNAME)
 endif
-ifeq ($(HOST),LINUX)
+ifeq ($(HOST),UNIX)
 	find $(OUTDIR)/$(ASSDIR) -type d -exec rmdir -v --ignore-fail-on-non-empty {} + 2>/dev/null || :
 	find $(OUTDIR)/$(INTDIR) -type d -exec rmdir -v --ignore-fail-on-non-empty {} + 2>/dev/null || :
 	find $(OUTDIR)/$(OBJDIR) -type d -exec rmdir -v --ignore-fail-on-non-empty {} + 2>/dev/null || :
@@ -73,34 +81,39 @@ else
 	$(RMDIR) $(OUTDIR) 2>$(NULL) || :
 endif
 
+again: clean all
+
 check: all ; make -f Make.check LIBNAME=$(TARGETNAME)
-check-ass: ; make -f Make.check ass
-check-int: ; make -f Make.check int
-check-obj: ; make -f Make.check obj
+check-options: ; make -f Make.check LIBNAME=$(TARGETNAME) options
+check-ass: ; make -f Make.check LIBNAME=$(TARGETNAME) ass
+check-int: ; make -f Make.check LIBNAME=$(TARGETNAME) int
+check-obj: ; make -f Make.check LIBNAME=$(TARGETNAME) obj
+check-aio: ; make -f Make.check LIBNAME=$(TARGETNAME) aio
 check-clean: ; make -f Make.check clean
 ifeq ($(MODE),STATIC)
 check-again: all ; make -f Make.check again LIBNAME=$(TARGETNAME)
 else
 check-again: ; make -f Make.check again LIBNAME=$(TARGETNAME)
 endif
-again: clean all
+
 install: all
-ifeq ($(HOST),LINUX)
- ifeq ($(TARGET),LINUX)
+ifeq ($(HOST),UNIX)
+ ifeq ($(TARGET),UNIX)
 	mkdir -pv $(prefix)/lib
 	cp -fv $(OUTDIR)/$(TARGETNAME) $(prefix)/lib/
 	mkdir -pv $(prefix)/include/$(PROJECT)
 	cp -fv $(HDR) $(prefix)/include/$(PROJECT)
 	ldconfig
  else
-  # Nowhere to install when target is windows on linux host
+	@echo Nowhere to install when target is windows on unix host
  endif
 else
 	@echo NOTICE: Windows installation is manual for now.
 endif
+
 uninstall:
-ifeq ($(HOST),LINUX)
- ifeq ($(TARGET),LINUX)
+ifeq ($(HOST),UNIX)
+ ifeq ($(TARGET),UNIX)
 	rm -fv $(prefix)/lib/$(TARGETNAME)
 	rm -fv $(addprefix $(prefix)/include/$(PROJECT)/,$(patsubst $(HDRDIR)/%,%,$(HDR)))
 	ldconfig
@@ -110,4 +123,4 @@ else
  # Nothing installed
 endif
 
-.PHONY: setup options ass int obj all again check clean install uninstall
+.PHONY: setup options ass int obj aio all clean again check check-ass check-int check-obj check-aio check-clean check-again install uninstall

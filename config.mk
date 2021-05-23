@@ -1,29 +1,37 @@
 CURDIR:=$(PWD)
 # Name of project (or overwrite it if you prefer)
+PROJECT:=brrtools
 ifndef PROJECT
 PROJECT:=$(notdir $(CURDIR))
+endif
+ifndef UPROJECT
+ UPROJECT:=$(shell echo '$(PROJECT)' | tr '[:lower:]' '[:upper:]')
+endif
+# Default installation prefix
+ifndef prefix
+prefix=/usr/local
 endif
 
 $(PROJECT)_MAJOR:=0
 $(PROJECT)_MINOR:=0
 $(PROJECT)_REVIS:=0
 
-# Assume linux host
+# Assume unix host
 ifndef HOST
- HOST:=LINUX
-else ifneq ($(HOST),LINUX)
+ HOST:=UNIX
+else ifneq ($(HOST),UNIX)
  ifneq ($(HOST),WINDOWS)
-  HOST:=LINUX
+  HOST:=UNIX
  else # Windows host always compiles windows target
   TARGET:=WINDOWS
  endif
 endif ## HOST
-# Assume linux target
+# Assume unix target
 ifndef TARGET
- TARGET:=LINUX
-else ifneq ($(TARGET),LINUX)
+ TARGET:=UNIX
+else ifneq ($(TARGET),UNIX)
  ifneq ($(TARGET),WINDOWS)
-  TARGET:=LINUX
+  TARGET:=UNIX
  endif
 endif ## TARGET
 # Assume dynamic linkage
@@ -43,6 +51,15 @@ else ifneq ($(BITS),32)
  endif
 endif ## BITS
 
+ifeq ($(HOST),UNIX)
+ NULL:=/dev/null
+ RM:=rm -fv
+else
+ NULL:=nul
+ RM:=del /F
+ RMDIR:=rmdir
+endif ## HOST
+
 ### Directory locations relative to $(CURDIR)
 ifndef SRCDIR
 SRCDIR:=src
@@ -53,8 +70,8 @@ endif
 ifndef BLDDIR
 BLDDIR:=build
 endif
-ifndef LINDIR
-LINDIR:=lin
+ifndef UNIDIR
+UNIDIR:=uni
 endif
 ifndef WINDIR
 WINDIR:=win
@@ -82,11 +99,11 @@ ifndef OBJDIR
 OBJDIR:=obj
 endif
 
-ifndef LINSHRNAME
-LINSHRNAME:=lib$(PROJECT).so
+ifndef UNISHRNAME
+UNISHRNAME:=lib$(PROJECT).so
 endif
-ifndef LINSTANAME
-LINSTANAME:=lib$(PROJECT).a
+ifndef UNISTANAME
+UNISTANAME:=lib$(PROJECT).a
 endif
 ifndef WINSHRNAME
 WINSHRNAME:=$(PROJECT).dll
@@ -105,7 +122,7 @@ endif
 ifeq ($(TARGET),WINDOWS)
  OUTDIR:=$(BLDDIR)/$(WINDIR)
 else
- OUTDIR:=$(BLDDIR)/$(LINDIR)
+ OUTDIR:=$(BLDDIR)/$(UNIDIR)
 endif ## TARGET
 ifeq ($(MODE),SHARED)
  OUTDIR:=$(OUTDIR)/$(SHRDIR)
@@ -121,8 +138,8 @@ endif ## BITS
 ### Toolchain
 ## Compiler
 ifndef CC_CUSTOM
- ifeq ($(HOST),LINUX)
-  ifeq ($(TARGET),LINUX)
+ ifeq ($(HOST),UNIX)
+  ifeq ($(TARGET),UNIX)
    CC:=gcc
   else # Windows target, must have mingw
    ifeq ($(BITS),32)
@@ -139,8 +156,8 @@ else
 endif ## CC
 ## Archiver
 ifndef AR_CUSTOM
- ifeq ($(HOST),LINUX)
-  ifeq ($(TARGET),LINUX)
+ ifeq ($(HOST),UNIX)
+  ifeq ($(TARGET),UNIX)
    AR:=gcc-ar
   else # Windows target, must have mingw
    ifeq ($(BITS),32)
@@ -156,9 +173,9 @@ else
  AR:=$(AR_CUSTOM)
 endif ## AR
 ifndef DLLTOOL
- ifeq ($(HOST),LINUX)
-  ifeq ($(TARGET),LINUX)
-   DLLTOOL:=echo There is no dlltool for linux
+ ifeq ($(HOST),UNIX)
+  ifeq ($(TARGET),UNIX)
+   DLLTOOL:=echo There is no dlltool for unix
   else # Windows target, must have mingw
    ifeq ($(BITS),32)
     DLLTOOL:=i686-w64-mingw32-dlltool
@@ -172,18 +189,19 @@ ifndef DLLTOOL
 endif ## DLLTOOL
 
 ### Compiler arguments
-## Includes
+# Includes
 INCS:=-I$(SRCDIR)
-## Warnings/errors
+# Warnings/errors
 WRNS:=-Wall -Wextra -Wpedantic -pedantic -Werror=pedantic -pedantic-errors\
       -Werror=implicit-function-declaration -Werror=missing-declarations\
       -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter
-## Defines
-DEFS:=-D$(PROJECT)_MAJOR=$($(PROJECT)_MAJOR)\
-      -D$(PROJECT)_MINOR=$($(PROJECT)_MINOR)\
-      -D$(PROJECT)_REVIS=$($(PROJECT)_REVIS)\
-      -D$(PROJECT)_VERSION='$($(PROJECT)_MAJOR).$($(PROJECT)_MINOR).$($(PROJECT)_REVIS)'
-## Binary bitness
+# Defines
+DEFS:=-D$(UPROJECT)_MAJOR=$($(PROJECT)_MAJOR)\
+      -D$(UPROJECT)_MINOR=$($(PROJECT)_MINOR)\
+      -D$(UPROJECT)_REVIS=$($(PROJECT)_REVIS)\
+      -D$(UPROJECT)_VERSION='$($(PROJECT)_MAJOR).$($(PROJECT)_MINOR).$($(PROJECT)_REVIS)'
+
+# Binary bitness
 ifeq ($(BITS),32)
  BARG:=-m32
 else
@@ -211,10 +229,25 @@ PRF:=$(PRF) $(BARG)
 $(PROJECT)_PCFLAGS:=-std=c99 $(WRNS) $(INCS) $(OPT) $(PRF) $(CFLAGS)
 $(PROJECT)_PCPPFLAGS:=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
 $(PROJECT)_PLDFLAGS:=$(PRF) $(LDFLAGS)
+ifeq ($(TARGET),WINDOWS)
+ ifeq ($(MODE),SHARED)
+  $(PROJECT)_PCPPFLAGS:=-D$(PROJECT)_IMPORTS $($(PROJECT)_PCPPFLAGS)
+ endif
+endif
+
+ifeq ($(BITS),64)
+ DEFS:=-D$(UPROJECT)_TARGET_BIT=64 $(DEFS)
+ ifeq ($(TARGET),UNIX)
+  DEFS:=$(DEFS) -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+ endif
+else
+ DEFS:=-D$(UPROJECT)_TARGET_BIT=32 $(DEFS)
+endif
 
 ### Linker arguments
 LNK:=
-ifeq ($(TARGET),LINUX)
+ifeq ($(TARGET),UNIX)
+ DEFS:=$(DEFS) -D_XOPEN_SOURCE=500
  ifeq ($(MODE),SHARED)
   ifdef PIC2
    OPT:=$(OPT) -fPIC
@@ -222,15 +255,15 @@ ifeq ($(TARGET),LINUX)
    OPT:=$(OPT) -fpic
   endif ## PIC2
   LNK:=-shared
-  TARGETNAME:=$(LINSHRNAME)
+  TARGETNAME:=$(UNISHRNAME)
  else # Static
-  TARGETNAME:=$(LINSTANAME)
+  TARGETNAME:=$(UNISTANAME)
  endif ## MODE
 else # Windows target
  DEFS:=-DWIN32_LEAN_AND_MEAN $(DEFS)
  LNK:=-Wl,--subsystem,windows
  ifeq ($(MODE),SHARED)
-  DEFS:=-DBRRTOOLS_SHARED -DBRRTOOLS_EXPORTS $(DEFS)
+  DEFS:=-D$(PROJECT)_EXPORTS $(DEFS)
   LNK:=$(LNK) -shared
   TARGETNAME:=$(WINSHRNAME)
  else # Static
@@ -246,29 +279,22 @@ $(PROJECT)_LDFLAGS=$(PRF) $(LNK) $(LDFLAGS)
 SRC:=\
 	src/brrtools/brrlib.c\
 	src/brrtools/brrlog.c\
+	src/brrtools/brrmem.c\
+	src/brrtools/brrbuffer.c\
+	src/brrtools/brrpath.c\
 
 HDR:=\
+	src/brrtools/brrapi.h\
+	src/brrtools/brrdebug.h\
 	src/brrtools/brrplatform.h\
 	src/brrtools/brrtypes.h\
 	src/brrtools/brrlib.h\
 	src/brrtools/brrlog.h\
+	src/brrtools/brrmem.h\
+	src/brrtools/brrbuffer.h\
+	src/brrtools/brrpath.h\
 
 PSRC:=\
 	src/main.c\
 
 PHDR:=\
-
-
-ifeq ($(HOST),LINUX)
- NULL:=/dev/null
- RM:=rm -fv
-else
- NULL:=nul
- RM:=del /F
- RMDIR:=rmdir
-endif ## HOST
-
-# Default installation prefix
-ifndef prefix
-prefix=/usr/local
-endif

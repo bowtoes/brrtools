@@ -6,13 +6,12 @@ include config.mk
 ifndef LIBNAME
  LIBNAME:=$(TARGETNAME)
 endif
-ifeq ($(TARGET),LINUX)
+ifeq ($(TARGET),UNIX)
  TARGETNAME:=$(PROJECT)check
 else
  TARGETNAME:=$(PROJECT)check.exe
 endif
 
-# Makefiles are stupidly finicky good god
 ASS:=$(addprefix $(OUTDIR)/$(ASSDIR)/,$(patsubst $(SRCDIR)/%,%,$(PSRC:.c=.s)))
 INT:=$(addprefix $(OUTDIR)/$(INTDIR)/,$(patsubst $(SRCDIR)/%,%,$(PSRC:.c=.e)))
 OBJ:=$(addprefix $(OUTDIR)/$(OBJDIR)/,$(patsubst $(SRCDIR)/%,%,$(PSRC:.c=.o)))
@@ -23,14 +22,23 @@ setup:
 	@mkdir -pv $(dir $(INT)) 2>/dev/null || :
 	@mkdir -pv $(dir $(OBJ)) 2>/dev/null || :
 options:
-	@echo "$(PROJECT) Check Build options:"
-	@echo "CFLAGS        = $(CFLAGS)"
-	@echo "CPPFLAGS      = $(CPPFLAGS)"
-	@echo "STCPPFLAGS    = $(STCPPFLAGS)"
-	@echo "$(PROJECT)_PCFLAGS   = $($(PROJECT)_PCFLAGS)"
-	@echo "$(PROJECT)_PCPPFLAGS = $($(PROJECT)_PCPPFLAGS)"
-	@echo "$(PROJECT)_PLDFLAGS  = $($(PROJECT)_PLDFLAGS)"
-	@echo "CC            = $(CC)"
+	@echo "<------------------------------------->"
+	@echo ""
+	@echo "$(PROJECT) CHECK options:"
+	@echo "LIBNAME : $(LIBNAME)"
+	@echo "HOST    : $(HOST)"
+	@echo "TARGET  : $(TARGET)"
+	@echo "MODE    : $(MODE)"
+	@echo ""
+	@echo "$(PROJECT)_PCFLAGS   =$($(PROJECT)_PCFLAGS)"
+	@echo "$(PROJECT)_PCPPFLAGS =$($(PROJECT)_PCPPFLAGS)"
+	@echo "$(PROJECT)_PLDFLAGS  =$($(PROJECT)_PLDFLAGS)"
+	@echo "CFLAGS             =$(CFLAGS)"
+	@echo "CPPFLAGS           =$(CPPFLAGS)"
+	@echo "LDFLAGS            =$(LDFLAGS)"
+	@echo "CC                 =$(CC)"
+	@echo ""
+	@echo "<------------------------------------->"
 
 $(OUTDIR)/$(ASSDIR)/%.s: $(SRCDIR)/%.c
 	$(CC) $($(PROJECT)_PCPPFLAGS) $($(PROJECT)_PCFLAGS) -S $< -o $@
@@ -53,13 +61,14 @@ endif ## MODE
 ass: setup options $(ASS) ;
 int: setup options $(INT) ;
 obj: setup options $(OBJ) ;
+aio: setup options $(ASS) $(INT) $(OBJ) ;
 
 clean:
 	$(RM) $(ASS)
 	$(RM) $(INT)
 	$(RM) $(OBJ)
 	$(RM) $(OUTDIR)/$(TARGETNAME)
-ifeq ($(HOST),LINUX)
+ifeq ($(HOST),UNIX)
 	find $(OUTDIR)/$(ASSDIR) -type d -exec rmdir -v --ignore-fail-on-non-empty {} + 2>/dev/null || :
 	find $(OUTDIR)/$(INTDIR) -type d -exec rmdir -v --ignore-fail-on-non-empty {} + 2>/dev/null || :
 	find $(OUTDIR)/$(OBJDIR) -type d -exec rmdir -v --ignore-fail-on-non-empty {} + 2>/dev/null || :
@@ -73,4 +82,4 @@ endif
 
 again: clean all
 
-.PHONY: setup options ass int obj all again clean
+.PHONY: all setup options ass int obj aio again clean
