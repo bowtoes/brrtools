@@ -2,6 +2,7 @@
 A custom C library with the goal to have a single place for multiple miscellaneous
 utilities that are generally useful. Also with the goal of having them be cross-platform.
 
+Has absolutely no relation to [BRRtools](https://github.com/Optiroc/BRRtools)
 ## Contents
 [Contents](#contents)
 
@@ -55,6 +56,11 @@ to install the library to the custom prefix. `prefix` defaults to `/usr/local`.
 [Contents](#contents)  
 There are many settings/variables that can be edited/set to customize build settings.
 They are all listed with their default values in `config.mk`.
+
+The environment variables `DEBUG` and `MEMCHECK` can be set before compilation
+to change the compilation commands respectively.  
+  * `DEBUG` enables compiling with debugging symbols, and does little-to-no optimization.  
+  * `MEMCHECK` changes the options changed by `DEBUG` to make them `valgrind`-compatible.  
 
 ## Usage
 [Contents](#contents)  
