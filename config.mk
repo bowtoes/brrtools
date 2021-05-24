@@ -124,16 +124,16 @@ ifeq ($(TARGET),WINDOWS)
 else
  OUTDIR:=$(BLDDIR)/$(UNIDIR)
 endif ## TARGET
-ifeq ($(MODE),SHARED)
- OUTDIR:=$(OUTDIR)/$(SHRDIR)
-else
- OUTDIR:=$(OUTDIR)/$(STADIR)
-endif ## MODE
 ifeq ($(BITS),32)
  OUTDIR:=$(OUTDIR)/$(B32DIR)
 else
  OUTDIR:=$(OUTDIR)/$(B64DIR)
 endif ## BITS
+ifeq ($(MODE),SHARED)
+ OUTDIR:=$(OUTDIR)/$(SHRDIR)
+else
+ OUTDIR:=$(OUTDIR)/$(STADIR)
+endif ## MODE
 
 ### Toolchain
 ## Compiler
