@@ -173,13 +173,13 @@ brrlog_formatT brrlog_format_clear    = clrformat;
 brrlog_formatT brrlog_format_last     = {{brrlog_priority_normal, brrlog_destination_stdout, "" }, brrlog_color_normal, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal };
 
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-brrb1 brrlog_styleon = false;
+brrb1 brrlogctl_styleon = false;
 #else
-brrb1 brrlog_styleon = true;
+brrb1 brrlogctl_styleon = true;
 #endif
-brrb1 brrlog_debugon = false;
-brrb1 brrlog_flushon = true;
-brrb1 brrlog_verbose = false;
+brrb1 brrlogctl_debugon = false;
+brrb1 brrlogctl_flushon = true;
+brrb1 brrlogctl_verbose = false;
 
 static FILE *lastlocation = NULL;
 
@@ -294,7 +294,7 @@ brrlog_text(LOG_PARAMS, const char *const format, ...)
 	    (priority < minpri || priority > maxpri))
 		return 0;
 #ifndef BRRTOOLS_DEBUG
-	if (!brrlog_debugon && priority == brrlog_priority_debug)
+	if (!brrlogctl_debugon && priority == brrlog_priority_debug)
 		return 0;
 #endif // If defined, never quit on debug priority;
 
@@ -325,7 +325,7 @@ brrlog_text(LOG_PARAMS, const char *const format, ...)
 		default:prifmt = brrlog_format_clear;
 	}
 
-	if (brrlog_flushon) {
+	if (brrlogctl_flushon) {
 		if (lastlocation != dst) {
 			fflush(lastlocation);
 			lastlocation = dst;
@@ -336,27 +336,27 @@ brrlog_text(LOG_PARAMS, const char *const format, ...)
 		if (prefix == NULL)
 			prefix = brrlog_format_last.level.prefix;
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-		if (brrlog_styleon)
+		if (brrlogctl_styleon)
 			print(&write, dst, "%s", updatefmtstr(prifmt.foreground, prifmt.background, prifmt.style, prifmt.font));
 #endif
 		print(&write, dst, "%s", prefix);
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-		if (brrlog_styleon)
+		if (brrlogctl_styleon)
 			print(&write, dst, "%s", clrstyle);
 #endif
 	}
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-	if (brrlog_styleon)
+	if (brrlogctl_styleon)
 		print(&write, dst, "%s", updatefmtstr(foreground, background, style, font));
 #endif
 	va_start(lptr, format);
 	vprint(&write, dst, format, lptr);
 	va_end(lptr);
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-	if (brrlog_styleon)
+	if (brrlogctl_styleon)
 		print(&write, dst, "%s", clrstyle);
 #endif
-	if (brrlog_verbose) {
+	if (brrlogctl_verbose) {
 		print(&write, dst, " : '%s' @ %s:%llu", file, function, line);
 	}
 	if (print_newline) {

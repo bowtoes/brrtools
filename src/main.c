@@ -186,9 +186,9 @@ static void testbuffer(void) {
 int main(void)
 {
 	brrlog_setlogmax(0);
-	brrlog_styleon = false;
-	brrlog_debugon = true;
-	brrlog_flushon = true;
+	brrlogctl_styleon = false;
+	brrlogctl_debugon = true;
+	brrlogctl_flushon = true;
 	testbuffer();
 #if 0
 	brrlib_use_extended_bases = true;

@@ -140,13 +140,13 @@ extern BRRAPI brrlog_formatT brrlog_format_clear;
 extern BRRAPI brrlog_formatT brrlog_format_last;
 
 /* Whether log output is styled. */
-extern BRRAPI brrb1 brrlog_styleon;
+extern BRRAPI brrb1 brrlogctl_styleon;
 /* Whether debug logs are enabled. */
-extern BRRAPI brrb1 brrlog_debugon;
+extern BRRAPI brrb1 brrlogctl_debugon;
 /* Whether automatic log flushing is done. */
-extern BRRAPI brrb1 brrlog_flushon;
+extern BRRAPI brrb1 brrlogctl_flushon;
 /* Whether file, function, and line information should also be logged. */
-extern BRRAPI brrb1 brrlog_verbose;
+extern BRRAPI brrb1 brrlogctl_verbose;
 
 /* Get maximum number of bytes that can be logged at once. */
 BRRAPI brrsz BRRCALL brrlog_logmax(void);

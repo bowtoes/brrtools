@@ -30,7 +30,7 @@ typedef struct _stat32 pathstT;
 typedef struct __stat32 pathstT;
 #  endif // BRRPLATFORMTYPE_MINGW
 # endif // BRRTOOLS_TARGET_BIT
-#define lstatpath statpath
+# define lstatpath statpath
 
 # define TYPEDIR(md) (HASFLAG((md), _S_IFDIR))
 # define TYPEFIL(md) (HASFLAG((md), _S_IFREG))
@@ -47,13 +47,13 @@ typedef struct stat pathstT;
 #endif
 
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-#define PATHSEPCHR '\\'
-#define PATHSEPSTR "\\"
-#define ROOTSTR "C:"
+# define PATHSEPCHR '\\'
+# define PATHSEPSTR "\\"
+# define ROOTSTR "C:"
 #else
-#define PATHSEPCHR '/'
-#define PATHSEPSTR "/"
-#define ROOTSTR "/"
+# define PATHSEPCHR '/'
+# define PATHSEPSTR "/"
+# define ROOTSTR "/"
 #endif
 #define MAXNAME 255
 
