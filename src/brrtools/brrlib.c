@@ -304,3 +304,35 @@ brrs8 BRRCALL brrlib_smin(brrs8 a, brrs8 b)
 {return a<b?a:b;}
 brrs8 BRRCALL brrlib_sclamp(brrs8 x, brrs8 min, brrs8 max)
 {return x<min?min:x>max?max:x;}
+
+brru8 BRRCALL
+brrlib_ugcf(brru8 a, brru8 b)
+{
+	if (a == b)
+		return a;
+	if (!a || !b)
+		return 0;
+
+	while (b != 0) {
+		brru8 t = b;
+		b = a % t;
+		a = t;
+	}
+	return a;
+}
+
+brrs8 BRRCALL
+brrlib_sgcf(brrs8 a, brrs8 b)
+{
+	if (a == b)
+		return a;
+	if (!a || !b)
+		return 0;
+
+	while (b != 0) {
+		brrs8 t = b;
+		b = a % t;
+		a = t;
+	}
+	return a;
+}

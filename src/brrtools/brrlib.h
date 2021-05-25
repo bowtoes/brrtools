@@ -71,6 +71,9 @@ BRRAPI brrs8 BRRCALL brrlib_sclamp(brrs8 x, brrs8 min, brrs8 max);
 #define BRRLIB_DUM_MIN(a, b) ((a)<(b)?(a):(b))
 #define BRRLIB_DUM_CLAMP(x, min, max) ((x)<(min)?(min):(x)>(max)?(max):(x))
 
+BRRAPI brru8 BRRCALL brrlib_ugcf(brru8 a, brru8 b);
+BRRAPI brrs8 BRRCALL brrlib_sgcf(brrs8 a, brrs8 b);
+
 BRRCPPEND
 
 #endif /* BRRTOOLS_BRRLIB_H */

@@ -272,7 +272,7 @@ else # Windows target
 endif ## TARGET
 
 # Basic, platform-indenpendent flags
-$(PROJECT)_CFLAGS=-std=c99 $(WRNS) $(INCS) $(OPT) $(PRF) $(CFLAGS)
+$(PROJECT)_CFLAGS=-std=c99 -pedantic $(WRNS) $(INCS) $(OPT) $(PRF) $(CFLAGS)
 $(PROJECT)_CPPFLAGS=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
 $(PROJECT)_LDFLAGS=$(PRF) $(LNK) $(LDFLAGS)
 
