@@ -202,3 +202,22 @@ brrmem_reverse_elements(const void *const data, brrsz element_size, brrct elemen
 	}
 	return r;
 }
+
+brrsz BRRCALL
+brrmem_slice(const void *const data, brrsz data_size,
+    void *const destination, brrsz destination_length, brrsz start, brrsz end)
+{
+	brrsz wt = 0;
+	if (!BFVALID(data, data_size) || !BFVALID(destination, destination_length) || start == end)
+		return 0;
+	if (start > end) {
+		for (brrsz mx = start - end; wt < mx; ++wt) {
+			((brrby *)destination)[wt] = ((brrby *)data)[start - wt];
+		}
+	} else {
+		for (brrsz mx = end - start; wt < mx; ++wt) {
+			((brrby *)destination)[wt] = ((brrby *)data)[start + wt];
+		}
+	}
+	return wt;
+}

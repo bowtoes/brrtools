@@ -31,7 +31,7 @@ limitations under the License.
 # include <unistd.h>
 #endif
 
-#define BUFFER_CAPACITY_INCREMENT 101
+brrsz brrbuffer_capacity_increment = 2048;
 
 typedef struct {
 	void *data;
@@ -39,11 +39,11 @@ typedef struct {
 } buffint;
 
 static brrsz buffcap(brrsz size) {
-	brrsz mul = size / BUFFER_CAPACITY_INCREMENT;
-	if (BUFFER_CAPACITY_INCREMENT * mul == size) {
+	brrsz mul = size / brrbuffer_capacity_increment;
+	if (brrbuffer_capacity_increment * mul == size) {
 		return size;
 	} else {
-		return BUFFER_CAPACITY_INCREMENT * (mul + 1);
+		return brrbuffer_capacity_increment * (mul + 1);
 	}
 }
 
@@ -60,7 +60,6 @@ brrbuffer_new(brrsz size)
 		brrlib_alloc((void **)&INT, 0, 0);
 		buff.size = 0;
 	}
-	BRRLOG_DEB("Buffer Capacity %zu", INT->capacity);
 	buff.opaque = INT;
 	return buff;
 }
@@ -86,7 +85,7 @@ brrbuffer_copy(const brrbufferT *const other)
 }
 
 void BRRCALL
-brrbuffer_del(brrbufferT *const buffer)
+brrbuffer_delete(brrbufferT *const buffer)
 {
 	if (buffer) {
 		buffint *INT = (buffint *)buffer->opaque;
@@ -114,6 +113,17 @@ brrbuffer_resize(brrbufferT *const buffer, brrsz new_size)
 		} else {
 			r = true;
 		}
+	}
+	return r;
+}
+
+const void *BRRCALL
+brrbuffer_data(const brrbufferT *const buffer)
+{
+	const void *r = NULL;
+	if (buffer && buffer->opaque) {
+		buffint *INT = (buffint *)buffer->opaque;
+		r = INT->data;
 	}
 	return r;
 }
@@ -163,6 +173,57 @@ brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_siz
 	return np;
 }
 
+/* TODO needs testing */
+brrb1 BRRCALL
+brrbuffer_find_next(brrbufferT *const buffer, const void *const key, brrsz key_length)
+{
+	if (!buffer || !buffer->opaque || !buffer->size ||
+        !key    || !key_length     || key_length > (buffer->size - buffer->position)) {
+		return false;
+	} else {
+		buffint *INT = (buffint *)buffer->opaque;
+		if (INT->data) {
+			brrby *block = NULL;
+			if (!brrlib_alloc((void **)&block, key_length, 1))
+				return false;
+			for (brrsz pos = buffer->position, len = buffer->size - key_length; pos < len; ++pos) {
+				memcpy(block, (brrby *)INT->data + pos, key_length);
+				if (0 == memcmp(block, key, key_length)) {
+					buffer->position = pos;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+/* TODO needs testing */
+brrb1 BRRCALL
+brrbuffer_find_previous(brrbufferT *const buffer, const void *const key, brrsz key_length)
+{
+	if (!buffer || !buffer->opaque || !buffer->size ||
+        !key    || !key_length     || key_length > (buffer->size - buffer->position)) {
+		return false;
+	} else {
+		buffint *INT = (buffint *)buffer->opaque;
+		if (INT->data) {
+			brrby *block = NULL;
+			if (!brrlib_alloc((void **)&block, key_length, 1))
+				return false;
+			for (brrsz pos = 0; pos <= buffer->position; ++pos) {
+				memcpy(block, (brrby *)INT->data + buffer->position - pos, key_length);
+				if (0 == memcmp(block, key, key_length)) {
+					buffer->position = pos;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+#if 0
 brrbufferT BRRCALL
 brrbuffer_fromfile(int fd)
 {
@@ -209,14 +270,4 @@ brrbuffer_tofile(const brrbufferT *const buffer, int fd)
 	}
 	return r;
 }
-
-void *BRRCALL
-brrbuffer_data(const brrbufferT *const buffer)
-{
-	void *r = NULL;
-	if (buffer && buffer->opaque) {
-		buffint *INT = (buffint *)buffer->opaque;
-		r = INT->data;
-	}
-	return r;
-}
+#endif
