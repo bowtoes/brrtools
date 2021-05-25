@@ -54,11 +54,9 @@ brrbuffer_new(brrsz size)
 	buffint *INT = NULL;
 	if (!brrlib_alloc((void **)&INT, sizeof(buffint), 1))
 		return buff;
-	buff.size = size;
-	INT->capacity = buffcap(buff.size);
+	INT->capacity = buffcap(size);
 	if (!brrlib_alloc(&INT->data, INT->capacity, 1)) {
 		brrlib_alloc((void **)&INT, 0, 0);
-		buff.size = 0;
 	}
 	buff.opaque = INT;
 	return buff;
@@ -120,12 +118,28 @@ brrbuffer_resize(brrbufferT *const buffer, brrsz new_size)
 const void *BRRCALL
 brrbuffer_data(const brrbufferT *const buffer)
 {
-	const void *r = NULL;
 	if (buffer && buffer->opaque) {
-		buffint *INT = (buffint *)buffer->opaque;
-		r = INT->data;
+		return ((buffint *)buffer->opaque)->data;
 	}
-	return r;
+	return NULL;
+}
+
+brrsz BRRCALL
+brrbuffer_capacity(const brrbufferT *const buffer)
+{
+	if (buffer && buffer->opaque) {
+		return ((buffint *)buffer->opaque)->capacity;
+	}
+	return 0;
+}
+
+const void *BRRCALL
+brrbuffer_stream(const brrbufferT *const buffer)
+{
+	if (buffer && buffer->opaque) {
+		return (brrby *)(((buffint *)buffer->opaque)->data) + buffer->position;
+	}
+	return NULL;
 }
 
 brrsz BRRCALL
@@ -150,7 +164,7 @@ brrbuffer_write(brrbufferT *const buffer, const void *const data, brrsz data_siz
 		buffer->size = np;
 	memmove((brrby *)INT->data + buffer->position, data, data_size);
 	buffer->position = np;
-	return np;
+	return data_size;
 }
 
 brrsz BRRCALL
@@ -173,7 +187,6 @@ brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_siz
 	return np;
 }
 
-/* TODO needs testing */
 brrb1 BRRCALL
 brrbuffer_find_next(brrbufferT *const buffer, const void *const key, brrsz key_length)
 {
@@ -198,7 +211,6 @@ brrbuffer_find_next(brrbufferT *const buffer, const void *const key, brrsz key_l
 	return false;
 }
 
-/* TODO needs testing */
 brrb1 BRRCALL
 brrbuffer_find_previous(brrbufferT *const buffer, const void *const key, brrsz key_length)
 {
@@ -214,7 +226,7 @@ brrbuffer_find_previous(brrbufferT *const buffer, const void *const key, brrsz k
 			for (brrsz pos = 0; pos <= buffer->position; ++pos) {
 				memcpy(block, (brrby *)INT->data + buffer->position - pos, key_length);
 				if (0 == memcmp(block, key, key_length)) {
-					buffer->position = pos;
+					buffer->position -= pos;
 					return true;
 				}
 			}

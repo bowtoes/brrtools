@@ -7,6 +7,9 @@
 #include <brrtools/brrpath.h>
 #include <brrtools/brrbuffer.h>
 
+#include <errno.h>
+#include <string.h>
+
 static void logtext(void) {
 	BRRLOG_CRI("%zu>%zu: %zu CRI", brrlog_minpriority(), brrlog_maxpriority(), brrlog_format_critical.level.priority);
 	BRRLOG_ERR("%zu>%zu: %zu ERR", brrlog_minpriority(), brrlog_maxpriority(), brrlog_format_error.level.priority);
@@ -167,20 +170,39 @@ static void testbuffer(void) {
 	static const char mb[] = "|nice";
 	brrbufferT buff = brrbuffer_new(100);
 	if (buff.opaque) {
-		BRRLOG_NOR("NEW BUFFER: SIZE %zu", buff.size);
-		while (buff.position < buff.size) {
-			brrby d = 69;
-			brrbuffer_read(&buff, &d, 1);
+		brrsz wt = 0;
+		BRRLOG_NOR("NEW BUFFER: size %zu cap %zu", buff.size, brrbuffer_capacity(&buff));
+		wt = brrbuffer_write(&buff, ma, sizeof(ma));
+		BRRLOG_NOR("Wrote %zu to buffer, new size %zu cap %zu : '%s'", wt, buff.size, brrbuffer_capacity(&buff), brrbuffer_data(&buff));
+		for (brrsz i = 0; i < 20; ++i) {
 			buff.position--;
-			BRRLOG_NORN("BUFF[%02zu]: BEF = %3zu ", buff.position, d);
-			d = 69;
-			brrbuffer_write(&buff, &d, 1);
-			buff.position--;
-			brrbuffer_read(&buff, &d, 1);
-			BRRLOG_NORP("AFT = %3zu", d);
+			wt = brrbuffer_write(&buff, mb, sizeof(mb));
+			BRRLOG_NOR("Wrote %zu to buffer, new size %zu cap %zu : '%s'", wt, buff.size, brrbuffer_capacity(&buff), brrbuffer_data(&buff));
 		}
+	} else {
+		BRRLOG_ERR("Error creating buffer: %s", strerror(errno));
 	}
-	brrbuffer_del(&buff);
+	brrbuffer_delete(&buff);
+}
+static void testbufffind(void) {
+	static const char ma[] = "There are a lot of a's in this sentence.a";
+	static const char key[] = "a";
+	brrbufferT buffer = brrbuffer_new(sizeof(ma));
+	if (buffer.opaque) {
+		brrbuffer_write(&buffer, ma, sizeof(ma));
+		buffer.position = 0;
+		BRRLOG_NOR("Wrote to buffer : '%s'", brrbuffer_stream(&buffer));
+		while (brrbuffer_find_next(&buffer, key, sizeof(key) - 1)) {
+			BRRLOG_NOR("Found forward  key : '%s'", brrbuffer_stream(&buffer));
+			buffer.position++;
+		}
+		while (brrbuffer_find_previous(&buffer, key, sizeof(key) - 1)) {
+			BRRLOG_NOR("Found backward key : '%s'", brrbuffer_stream(&buffer));
+			buffer.position--;
+		}
+	} else {
+		BRRLOG_ERR("Error creating buffer: %s", strerror(errno));
+	}
 }
 
 int main(void)
@@ -189,7 +211,7 @@ int main(void)
 	brrlogctl_styleon = false;
 	brrlogctl_debugon = true;
 	brrlogctl_flushon = true;
-	testbuffer();
+	testbufffind();
 #if 0
 	brrlib_use_extended_bases = true;
 	testbases();

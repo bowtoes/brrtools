@@ -51,13 +51,21 @@ BRRAPI void BRRCALL brrbuffer_delete(brrbufferT *const buffer);
  * */
 BRRAPI brrb1 BRRCALL brrbuffer_resize(brrbufferT *const buffer, brrsz new_size);
 
-/* Returns a pointer to the start of the buffer data.
- * If 'buffer' is invalid (NULL or 'opaque' is NULL), returns NULL.
+/* Returns a pointer to the start of the buffer data stored in a buffer's 'opaque' member.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL), NULL is returned.
  * */
 BRRAPI const void *BRRCALL brrbuffer_data(const brrbufferT *const buffer);
+/* Returns the current actual capacity of a buffer stored in its 'opaque' member.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL), 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_capacity(const brrbufferT *const buffer);
+/* Returns a pointer to the data of 'buffer' at the current buffer position.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL), NULL is returned.
+ * */
+BRRAPI const void *BRRCALL brrbuffer_stream(const brrbufferT *const buffer);
 
 /* Writes 'data_size' bytes of 'data' into the buffer at the current position
- * and returns the new position.
+ * and returns the number of bytes written.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL), nothing is done and 0 is returned.
  * If 'data' is NULL or 'data_size' is 0, nothing is done and the current buffer position
  * is returned.
