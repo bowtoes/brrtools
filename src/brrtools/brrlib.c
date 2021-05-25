@@ -59,7 +59,7 @@ brrlib_max_base(void)
 }
 
 brrsz BRRCALL
-brrlib_print_base(char *const dst, brru8 max_length,
+brrlib_print_base(char *const destination, brru8 max_length,
 	    brru8 number, brrb1 is_signed, brru1 base)
 {
 	brrsz ns = 0;
@@ -67,27 +67,27 @@ brrlib_print_base(char *const dst, brru8 max_length,
 	if (!max_length || base < 2 || base > (brrlib_use_extended_bases?maxbase:maxnormalbase)) {
 		return 0;
 	} else if (!number) {
-		dst[0]='0';
-		dst[1]=0;
+		destination[0]='0';
+		destination[1]=0;
 		return 1;
 	} else if (is_signed && (brrs8)number < 0) {
 		isneg = true;
 		number = -(brrs8)number;
-		dst[ns] = '-';
+		destination[ns] = '-';
 		ns++;
 	}
 	for (;ns < max_length && number; number /= base) {
 		brrsz idx = number % base;
 		if (idx > maxnormalbase) {
 			idx = (idx - maxnormalbase) * 2 + maxnormalbase;
-			dst[ns++] = brrlib_bases[idx];
-			dst[ns++] = brrlib_bases[idx+1];
+			destination[ns++] = brrlib_bases[idx];
+			destination[ns++] = brrlib_bases[idx+1];
 		} else {
-			dst[ns++] = brrlib_bases[idx];
-		}
+			destination[ns++] = brrlib_bases[idx];
 	}
-	brrmem_static_reverse(dst + isneg, ns - isneg);
-	dst[ns] = 0;
+	}
+	brrmem_static_reverse(destination + isneg, ns - isneg);
+	destination[ns] = 0;
 
 	return ns;
 }

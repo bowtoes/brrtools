@@ -145,11 +145,11 @@ static void testuntilfrom(void) {
 	st = brrmem_next(data, ds-1, 't', ft+1);
 	tt = brrmem_next(data, ds-1, 't', st+1);
 	Ft = brrmem_next(data, ds-1, 't', tt+1);
-	pt = brrmem_prev(data, ds-1, 't', Ft-1);
-	fc = brrmem_prev(data, ds-1, ',', Ft+1);
+	pt = brrmem_previous(data, ds-1, 't', Ft-1);
+	fc = brrmem_previous(data, ds-1, ',', Ft+1);
 	nt = brrmem_next(data, ds-1, 't', Ft+1);
 	nc = brrmem_next(data, ds-1, ',', fc+1);
-	lt = brrmem_prev(data, ds-1, 't', ds-1);
+	lt = brrmem_previous(data, ds-1, 't', ds-1);
 	BRRLOG_NORP("Data: '%s' (%2zu)", data, ds);
 	BRRLOG_NORP("First  't' : %2zu '%s'", ft, data+ft);
 	BRRLOG_NORP("Second 't' : %2zu '%s'", st, data+st);

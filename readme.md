@@ -41,6 +41,7 @@ make HOST=WINDOWS TARGET=WINDOWS
 There are other environment variables that can be set to control the type of binary that is produced.
   * Set `BITS` to `32` or `64` to customize bit-width of compiled binary; defaults to `64`.
   * Set `MODE` to `SHARED` or `STATIC` to compile either a dynamic library or static library, respectively; defaults to `SHARED`.
+
 All these settings are case-sensitive.
 
 ## Installation

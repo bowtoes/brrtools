@@ -31,12 +31,17 @@ BRRAPI brrsz BRRCALL brrmem_next(const void *const data, brrsz data_size, brrby 
  * returns the found offset.
  * If 'key' is not found in 'data', 'data_size' is returned.
  * If 'data' is invalid (NULL or size == 0), 'offset' is returned. */
-BRRAPI brrsz BRRCALL brrmem_prev(const void *const data, brrsz data_size, brrby key, brrsz offset);
+BRRAPI brrsz BRRCALL brrmem_previous(const void *const data, brrsz data_size, brrby key, brrsz offset);
 //BRRAPI void *BRRCALL brrmem_after(const void *const data, brrsz data_size, brrsz start, brrsz *new_size);
 /* Allocates and creates a copy of 'data' and returns a pointer to the new memory.
  * If 'data' is invalid (NULL or size == 0), nothing is done and NULL is returned.
  * If an error occurs, 'NULL' is returned. */
-BRRAPI void *BRRCALL brrmem_dup(const void *const data, brrsz data_size);
+BRRAPI void *BRRCALL brrmem_duplicate(const void *const data, brrsz data_size);
+/* Copies at most 'destination_length' bytes from 'source', of 'source_length' bytes, into
+ * 'destination' and returns the number of bytes copied.
+ * If either 'source' or 'destination' are invalid (NULL or size == 0), nothing is done and 0 is returned. */
+BRRAPI brrsz BRRCALL brrmem_copy(const void *const source, brrsz source_length,
+    void *const destination, brrsz destination_length);
 /* Concatenates the two memory regions 'data_a' and 'data_b' together into new
  * memory and returns a pointer to the newly allocated region.
  * The size of the new region is optionally returned in 'new_length'.

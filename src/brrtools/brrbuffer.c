@@ -77,7 +77,7 @@ brrbuffer_copy(const brrbufferT *const other)
 			buffint *INT = NULL;
 			if (brrlib_alloc((void **)&INT, sizeof(buffint), 1)) {
 				INT->capacity = oth->capacity;
-				INT->data = brrmem_dup(oth->data, oth->capacity);
+				INT->data = brrmem_duplicate(oth->data, oth->capacity);
 			}
 			buff.opaque = INT;
 		}

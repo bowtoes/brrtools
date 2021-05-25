@@ -35,7 +35,7 @@ brrmem_next(const void *const data, brrsz data_size, brrby key, brrsz offset)
 }
 
 brrsz BRRCALL
-brrmem_prev(const void *const data, brrsz data_size, brrby key, brrsz offset)
+brrmem_previous(const void *const data, brrsz data_size, brrby key, brrsz offset)
 {
 	if (offset > data_size) {
 		return data_size;
@@ -46,7 +46,7 @@ brrmem_prev(const void *const data, brrsz data_size, brrby key, brrsz offset)
 }
 
 void *BRRCALL
-brrmem_dup(const void *const data, brrsz data_size)
+brrmem_duplicate(const void *const data, brrsz data_size)
 {
 	void *r = NULL;
 	if (BFVALID(data, data_size)) {
@@ -55,6 +55,18 @@ brrmem_dup(const void *const data, brrsz data_size)
 		}
 	}
 	return r;
+}
+
+brrsz BRRCALL
+brrmem_copy(const void *const source, brrsz source_length,
+    void *const destination, brrsz destination_length)
+{
+	brrsz m = 0;
+	if (!BFVALID(source, source_length) || !BFVALID(destination, destination_length))
+		return 0;
+	m = BRRLIB_DUM_MIN(source_length, destination_length);
+	memmove(destination, source, m);
+	return m;
 }
 
 void *BRRCALL
@@ -66,9 +78,9 @@ brrmem_join(const void *const data_a, brrsz data_a_size,
 	if (!BFVALID(data_a,data_a_size) && !BFVALID(data_b,data_b_size)) {
 		r = NULL;
 	} else if (!BFVALID(data_a,data_a_size)) {
-		r = brrmem_dup(data_b, data_b_size);
+		r = brrmem_duplicate(data_b, data_b_size);
 	} else if (!BFVALID(data_b,data_b_size)) {
-		r = brrmem_dup(data_a, data_a_size);
+		r = brrmem_duplicate(data_a, data_a_size);
 	} else {
 		l = data_a_size + data_b_size;
 		if (brrlib_alloc(&r, l, true)) {
