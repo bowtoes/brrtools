@@ -65,6 +65,5 @@ to change the compilation commands respectively.
 ## Usage
 [Contents](#contents)  
 When linking dynamically in Windows, define `BRRTOOLS_IMPORTS` before including any of the library headers.
-It isn't necessary, but better to be safe.
 
 Otherwise, linking however you usually do it on your platform should work.

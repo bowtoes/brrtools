@@ -61,13 +61,22 @@ BRRAPI void *BRRCALL brrmem_append(void *data, brrsz data_size,
 BRRAPI void *BRRCALL brrmem_prepend(void *data, brrsz data_size,
     const void *const prefix, brrsz prefix_size, brrsz *const new_length);
 
-/* Reverse 'data' in-place and returns 'data'.
+/* Reverses 'data_size' bytes of 'data' in-place and returns 'data'.
  * If 'data' is invalid (NULL or size == 0), nothing is done and NULL is returned. */
 BRRAPI void *BRRCALL brrmem_static_reverse(void *const data, brrsz data_size);
-/* Creates a reversed copy of 'data' and returns a pointer to the copy.
+/* Creates a reversed copy of 'data' and returns the copy.
  * If 'data' is invalid (NULL or size == 0), nothing is done and NULL is returned.
  * If an error occurs, nothing is done and NULL is returned. */
 BRRAPI void *BRRCALL brrmem_reverse(const void *const data, brrsz data_size);
+/* Reverses 'element_count' elements of 'element_size' bytes in 'data' in place, and returns 'data'.
+ * If 'data' is NULL or 'element_size' is 0, nothing is done and NULL is returned.
+ * If 'element_count' is 0, nothing is done and 'data' is returned. */
+BRRAPI void *BRRCALL brrmem_static_reverse_elements(void *const data, brrsz element_size, brrct element_count);
+/* Creates a copy of 'data' with 'element_count' elements of 'element_size' bytes in reversed order,
+ * and returns the copy.
+ * If 'data' is NULL or 'element_size' is 0 or 'element_count' is 0, nothing is done and NULL is returned.
+ * If an error occurs, nothing is done and NULL is returned. */
+BRRAPI void *BRRCALL brrmem_reverse_elements(const void *const data, brrsz element_size, brrct element_count);
 
 // Splits 'data' on each occurrence of 'separator', starting at 'offset', into a
 //  list of heap-allocated blocks of memory, returning a pointer to the first

@@ -21,7 +21,7 @@ limitations under the License.
 #include "brrtools/brrapi.h"
 #include "brrtools/brrlib.h"
 
-#define BFVALID(_d,_s) (_d && _s)
+#define BFVALID(_d,_s) ((_d) && (_s))
 
 brrsz BRRCALL
 brrmem_next(const void *const data, brrsz data_size, brrby key, brrsz offset)
@@ -147,6 +147,44 @@ brrmem_reverse(const void *const data, brrsz data_size)
 		if (brrlib_alloc(&r, data_size, 0)) {
 			for (brrsz i = 0; i < data_size; ++i) {
 				((brrby *)r)[i] = ((brrby *)data)[data_size - 1 - i];
+			}
+		}
+	}
+	return r;
+}
+
+#define ELIDX(data, idx, elementsize) (((brrby *)(data)) + ((idx) * (elementsize)))
+void *BRRCALL
+brrmem_static_reverse_elements(void *const data, brrsz element_size, brrct element_count)
+{
+	if (!data || !element_size)
+		return NULL;
+	if (!element_count)
+		return data;
+	for (brrct i = 0; i < element_count / 2; ++i) {
+		brrby *a = ELIDX(data, i, element_size);
+		brrby *b = ELIDX(data, element_count - 1 - i, element_size);
+		for (brrsz j = 0; j < element_size; ++j) {
+			brrby c = a[j];
+			a[j] = b[j];
+			b[j] = c;
+		}
+	}
+	return data;
+}
+
+void *BRRCALL
+brrmem_reverse_elements(const void *const data, brrsz element_size, brrct element_count)
+{
+	void *r = NULL;
+	if (BFVALID(data, element_size && element_count)) {
+		if (brrlib_alloc(&r, element_size * element_count, true)) {
+			for (brrct i = 0; i < element_count; ++i) {
+				brrby *a = ELIDX(r, i, element_size);
+				brrby *b = ELIDX(data, element_count - 1 - i, element_size);
+				for (brrsz j = 0; j < element_size; ++j) {
+					a[j] = b[j];
+				}
 			}
 		}
 	}
