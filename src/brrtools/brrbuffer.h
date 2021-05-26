@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef BRRBUFFER_H
 #define BRRBUFFER_H
 
+#include <stdarg.h>
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
@@ -35,11 +36,11 @@ typedef struct brrbuffer {
 } brrbufferT;
 
 /* Allocates a new buffer of 'size' bytes, set to zero.
- * If an error occures, the returned buffer's 'opaque' member will be NULL.
+ * If an error occurs, the returned buffer's 'opaque' member will be NULL.
  * */
 BRRAPI brrbufferT BRRCALL brrbuffer_new(brrsz size);
 /* Duplicates and returns a copy of 'other'.
- * If an error occures, the returned buffer's 'opaque' member will be NULL.
+ * If an error occurs, the returned buffer's 'opaque' member will be NULL.
  * */
 BRRAPI brrbufferT BRRCALL brrbuffer_copy(const brrbufferT *const other);
 /* Frees all associated memory with buffer.
@@ -80,20 +81,45 @@ BRRAPI brrsz BRRCALL brrbuffer_write(brrbufferT *const buffer, const void *const
  * then at most 'buffer->size - buffer->position' bytes will be read.
  * */
 BRRAPI brrsz BRRCALL brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_size);
-/* Searches 'buffer' for the next occurence of 'key', of length 'key_length', and puts the buffer position
- * at that occurence.
+/* Searches 'buffer' for the next occurrence of 'key', of length 'key_length', and puts the buffer position
+ * at that occurrence.
  * If 'key' is found within 'buffer', true is returned, otherwise buffer is left unchanged and false is returned.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL) or 'key' is invalid (NULL or length == 0), nothing is done
  * and false is returned.
  * */
 BRRAPI brrb1 BRRCALL brrbuffer_find_next(brrbufferT *const buffer, const void *const key, brrsz key_length);
-/* Searches 'buffer' for the previous occurence of 'key', of length 'key_length', and puts the buffer position
- * at that occurence.
+/* Searches 'buffer' for the previous occurrence of 'key', of length 'key_length', and puts the buffer position
+ * at that occurrence.
  * If 'key' is found within 'buffer', true is returned, otherwise buffer is left unchanged and false is returned.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL) or 'key' is invalid (NULL or length == 0), nothing is done
  * and false is returned.
  * */
 BRRAPI brrb1 BRRCALL brrbuffer_find_previous(brrbufferT *const buffer, const void *const key, brrsz key_length);
+
+/* Calls 'vsnprintf', printing to the current buffer position and updating the position accordingly.
+ * Prints at most 'max_size' bytes into 'buffer'.
+ * Returns the result of 'vsnprintf'.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL) or 'max_size' is 0 or 'fmt' is NULL, nothing is done and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_vnprintf(brrbufferT *const buffer, brrsz max_size, const char *const fmt, va_list lptr);
+/* Calls 'snprintf', printing to the current buffer position and updating the position accordingly.
+ * Prints at most 'max_size' bytes into 'buffer'.
+ * Returns the result of 'snprintf'.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL) or 'max_size' is 0 or 'fmt' is NULL, nothing is done and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_nprintf(brrbufferT *const buffer, brrsz max_size, const char *const fmt, ...);
+/* Calls 'vsprintf', printing to the current buffer position and updating the position accordingly.
+ * Will only print to the end of 'buffer'.
+ * Returns the result of 'vsprintf'.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL) or 'max_size' is 0 or 'fmt' is NULL, nothing is done and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_vprintf(brrbufferT *const buffer, const char *const fmt, va_list lptr);
+/* Calls 'sprintf', printing to the current buffer position and updating the position accordingly.
+ * Will only print to the end of 'buffer'.
+ * Returns the result of 'sprintf'.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL) or 'max_size' is 0 or 'fmt' is NULL, nothing is done and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_printf(brrbufferT *const buffer, const char *const fmt, ...);
 
 /*
 BRRAPI brrbufferT BRRCALL brrbuffer_fromfile(int fd);

@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "brrtools/brrbuffer.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "brrtools/brrapi.h"
@@ -233,6 +234,56 @@ brrbuffer_find_previous(brrbufferT *const buffer, const void *const key, brrsz k
 		}
 	}
 	return false;
+}
+
+brrsz BRRCALL
+brrbuffer_vnprintf(brrbufferT *const buffer, brrsz max_size, const char *const fmt, va_list lptr)
+{
+	char *c = NULL;
+	brrsz wt = 0;
+
+	if (!buffer || !buffer->opaque || !max_size || !fmt)
+		return 0;
+
+	if (brrlib_alloc((void **)&c, max_size, 1)) {
+		wt = vsnprintf(c, max_size, fmt, lptr);
+		wt = brrbuffer_write(buffer, c, wt + 1);
+		brrlib_alloc((void **)&c, 0, 0);
+	}
+
+	return wt;
+}
+
+brrsz BRRCALL
+brrbuffer_nprintf(brrbufferT *const buffer, brrsz max_size, const char *const fmt, ...)
+{
+	va_list lptr;
+	brrsz wt = 0;
+	va_start(lptr, fmt);
+	wt = brrbuffer_vnprintf(buffer, max_size, fmt, lptr);
+	va_end(lptr);
+	return wt;
+}
+
+brrsz BRRCALL
+brrbuffer_vprintf(brrbufferT *const buffer, const char *const fmt, va_list lptr)
+{
+	brrsz max_len;
+	if (!buffer || !buffer->opaque || !fmt)
+		return 0;
+	max_len = buffer->size - buffer->position;
+	return brrbuffer_vnprintf(buffer, max_len, fmt, lptr);
+}
+
+brrsz BRRCALL
+brrbuffer_printf(brrbufferT *const buffer, const char *const fmt, ...)
+{
+	va_list lptr;
+	brrsz wt = 0;
+	va_start(lptr, fmt);
+	wt = brrbuffer_vprintf(buffer,fmt, lptr);
+	va_end(lptr);
+	return wt;
 }
 
 #if 0
