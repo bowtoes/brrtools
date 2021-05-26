@@ -59,6 +59,8 @@ brrbuffer_new(brrsz size)
 	INT->capacity = buffcap(size);
 	if (!brrlib_alloc(&INT->data, INT->capacity, 1)) {
 		brrlib_alloc((void **)&INT, 0, 0);
+	} else {
+		INT->size = size;
 	}
 	buff.opaque = INT;
 	return buff;
@@ -111,6 +113,7 @@ brrbuffer_resize(brrbufferT *const buffer, brrsz new_size)
 				INT->capacity = cap;
 			}
 		} else {
+			INT->size = new_size;
 			r = true;
 		}
 	}

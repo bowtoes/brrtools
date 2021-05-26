@@ -45,8 +45,7 @@ brrstrT BRRCALL
 brrstr_new(const char *const cstr, brrstrlen max_strlen)
 {
 	brrsz l = brrstr_cstrlen(cstr, max_strlen);
-	brrstrT s = {0};
-	s = brrbuffer_new(l + 1);
+	brrstrT s = brrbuffer_new(l + 1);
 	if (l)
 		brrbuffer_write(&s, cstr, l);
 	return s;

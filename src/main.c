@@ -223,6 +223,16 @@ static void teststrpresuf(void) {
 
 	brrbuffer_delete(&a), brrbuffer_delete(&b), brrbuffer_delete(&c);
 }
+static void teststrlen(void) {
+	static const char ma[] = "This is a test string";
+	static const char mb[] = "This is a different test string";
+	static const brrsz sa = sizeof(ma), sb = sizeof(mb);
+	brrstrT a = brrstr_new(ma, -1), b = brrstr_new(mb, -1);
+	BRRLOG_NOR("'%s' : sizeof = %zu    strlen = %zu    strtlen = %zu", ma, sa, brrstr_cstrlen(ma, -1), brrstr_strlen(&a));
+	BRRLOG_NOR("'%s' : sizeof = %zu    strlen = %zu    strtlen = %zu", mb, sb, brrstr_cstrlen(mb, -1), brrstr_strlen(&b));
+	brrbuffer_delete(&a);
+	brrbuffer_delete(&b);
+}
 
 int main(void)
 {
@@ -230,6 +240,7 @@ int main(void)
 	brrlogctl_styleon = false;
 	brrlogctl_debugon = true;
 	brrlogctl_flushon = true;
+	teststrlen();
 	teststrpresuf();
 #if 0
 	brrlib_use_extended_bases = true;
