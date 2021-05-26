@@ -281,17 +281,19 @@ SRC:=\
 	src/brrtools/brrlog.c\
 	src/brrtools/brrmem.c\
 	src/brrtools/brrbuffer.c\
+	src/brrtools/brrstr.c\
 	src/brrtools/brrpath.c\
 
 HDR:=\
 	src/brrtools/brrapi.h\
-	src/brrtools/brrdebug.h\
 	src/brrtools/brrplatform.h\
+	src/brrtools/brrdebug.h\
 	src/brrtools/brrtypes.h\
 	src/brrtools/brrlib.h\
 	src/brrtools/brrlog.h\
 	src/brrtools/brrmem.h\
 	src/brrtools/brrbuffer.h\
+	src/brrtools/brrstr.h\
 	src/brrtools/brrpath.h\
 
 PSRC:=\

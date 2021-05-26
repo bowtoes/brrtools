@@ -36,6 +36,7 @@ brrsz brrbuffer_capacity_increment = 2048;
 
 typedef struct {
 	void *data;
+	brrsz size;
 	brrsz capacity;
 } buffint;
 
@@ -70,11 +71,11 @@ brrbuffer_copy(const brrbufferT *const other)
 	if (other) {
 		const buffint *const oth = (buffint *)other->opaque;
 		buff.position = other->position;
-		buff.size = other->size;
 		if (oth) {
 			buffint *INT = NULL;
 			if (brrlib_alloc((void **)&INT, sizeof(buffint), 1)) {
 				INT->capacity = oth->capacity;
+				INT->size = oth->size;
 				INT->data = brrmem_duplicate(oth->data, oth->capacity);
 			}
 			buff.opaque = INT;
@@ -106,7 +107,7 @@ brrbuffer_resize(brrbufferT *const buffer, brrsz new_size)
 		buffint *INT = (buffint *)buffer->opaque;
 		if (cap != INT->capacity) {
 			if ((r = brrlib_alloc(&INT->data, INT->capacity, 0))) {
-				buffer->size = new_size;
+				INT->size = new_size;
 				INT->capacity = cap;
 			}
 		} else {
@@ -123,6 +124,15 @@ brrbuffer_data(const brrbufferT *const buffer)
 		return ((buffint *)buffer->opaque)->data;
 	}
 	return NULL;
+}
+
+brrsz BRRCALL
+brrbuffer_size(const brrbufferT *const buffer)
+{
+	if (buffer && buffer->opaque) {
+		return ((buffint *)buffer->opaque)->size;
+	}
+	return 0;
 }
 
 brrsz BRRCALL
@@ -154,15 +164,16 @@ brrbuffer_write(brrbufferT *const buffer, const void *const data, brrsz data_siz
 		return buffer->position;
 	INT = (buffint *)buffer->opaque;
 	np = buffer->position + data_size;
-	if (np > INT->capacity) {
-		brrsz cap = buffcap(np);
-		// Do nothing on failure.
-		if (!brrlib_alloc(&INT->data, cap, 0))
-			return 0;
-		INT->capacity = cap;
+	if (np > INT->size) {
+		INT->size = np;
+		if (np > INT->capacity) {
+			brrsz cap = buffcap(np);
+			// Do nothing on failure.
+			if (!brrlib_alloc(&INT->data, cap, 0))
+				return 0;
+			INT->capacity = cap;
+		}
 	}
-	if (np > buffer->size)
-		buffer->size = np;
 	memmove((brrby *)INT->data + buffer->position, data, data_size);
 	buffer->position = np;
 	return data_size;
@@ -179,9 +190,9 @@ brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_siz
 		return 0;
 	INT = (buffint *)buffer->opaque;
 	np = buffer->position + read_size;
-	if (np > buffer->size) {
-		read_size = buffer->size - buffer->position;
-		np = buffer->size;
+	if (np > INT->size) {
+		read_size = INT->size - buffer->position;
+		np = INT->size;
 	}
 	memmove(destination, (brrb1 *)INT->data + buffer->position, read_size);
 	buffer->position = np;
@@ -191,16 +202,17 @@ brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_siz
 brrb1 BRRCALL
 brrbuffer_find_next(brrbufferT *const buffer, const void *const key, brrsz key_length)
 {
-	if (!buffer || !buffer->opaque || !buffer->size ||
-        !key    || !key_length     || key_length > (buffer->size - buffer->position)) {
+	if (!buffer || !buffer->opaque || !key || !key_length) {
 		return false;
 	} else {
 		buffint *INT = (buffint *)buffer->opaque;
+		if (!INT->size || key_length > (INT->size - buffer->position))
+			return false;
 		if (INT->data) {
 			brrby *block = NULL;
 			if (!brrlib_alloc((void **)&block, key_length, 1))
 				return false;
-			for (brrsz pos = buffer->position, len = buffer->size - key_length; pos < len; ++pos) {
+			for (brrsz pos = buffer->position, len = INT->size - key_length; pos < len; ++pos) {
 				memcpy(block, (brrby *)INT->data + pos, key_length);
 				if (0 == memcmp(block, key, key_length)) {
 					buffer->position = pos;
@@ -215,11 +227,12 @@ brrbuffer_find_next(brrbufferT *const buffer, const void *const key, brrsz key_l
 brrb1 BRRCALL
 brrbuffer_find_previous(brrbufferT *const buffer, const void *const key, brrsz key_length)
 {
-	if (!buffer || !buffer->opaque || !buffer->size ||
-        !key    || !key_length     || key_length > (buffer->size - buffer->position)) {
+	if (!buffer || !buffer->opaque || !key || !key_length) {
 		return false;
 	} else {
 		buffint *INT = (buffint *)buffer->opaque;
+		if (!INT->size || key_length > (INT->size - buffer->position))
+			return false;
 		if (INT->data) {
 			brrby *block = NULL;
 			if (!brrlib_alloc((void **)&block, key_length, 1))
@@ -271,7 +284,7 @@ brrbuffer_vprintf(brrbufferT *const buffer, const char *const fmt, va_list lptr)
 	brrsz max_len;
 	if (!buffer || !buffer->opaque || !fmt)
 		return 0;
-	max_len = buffer->size - buffer->position;
+	max_len = ((buffint *)buffer->opaque)->size - buffer->position;
 	return brrbuffer_vnprintf(buffer, max_len, fmt, lptr);
 }
 

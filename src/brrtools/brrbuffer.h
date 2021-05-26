@@ -31,7 +31,6 @@ extern brrsz brrbuffer_capacity_increment;
 
 typedef struct brrbuffer {
 	void *opaque;
-	brrsz size;
 	brrsz position;
 } brrbufferT;
 
@@ -52,11 +51,15 @@ BRRAPI void BRRCALL brrbuffer_delete(brrbufferT *const buffer);
  * */
 BRRAPI brrb1 BRRCALL brrbuffer_resize(brrbufferT *const buffer, brrsz new_size);
 
-/* Returns a pointer to the start of the buffer data stored in a buffer's 'opaque' member.
+/* Returns a pointer to the start of the buffer data.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL), NULL is returned.
  * */
 BRRAPI const void *BRRCALL brrbuffer_data(const brrbufferT *const buffer);
-/* Returns the current actual capacity of a buffer stored in its 'opaque' member.
+/* Returns the registered size of a buffe.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL), 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_size(const brrbufferT *const buffer);
+/* Returns the current actual capacity of a buffer.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL), 0 is returned.
  * */
 BRRAPI brrsz BRRCALL brrbuffer_capacity(const brrbufferT *const buffer);
