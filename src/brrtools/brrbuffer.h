@@ -18,6 +18,7 @@ limitations under the License.
 #define BRRBUFFER_H
 
 #include <stdarg.h>
+
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 

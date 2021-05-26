@@ -201,30 +201,36 @@ DEFS:=-D$(UPROJECT)_MAJOR=$($(PROJECT)_MAJOR)\
       -D$(UPROJECT)_REVIS=$($(PROJECT)_REVIS)\
       -D$(UPROJECT)_VERSION='$($(PROJECT)_MAJOR).$($(PROJECT)_MINOR).$($(PROJECT)_REVIS)'
 
-# Binary bitness
-ifeq ($(BITS),32)
- BARG:=-m32
-else
- BARG:=-m64
-endif ## BITS
+ifdef DEBUG
+ DEFS:=$(DEFS) -D$(UPROJECT)_DEBUG
+ ifdef MEMCHECK
+  DEFS:=$(DEFS) -D$(UPROJECT)_MEMCHECK
+ endif
+endif
+
 # PRF: Performance options (applied at compile- & link-time)
 # OPT: Optimization options (applied at compile-time)
 ifdef DEBUG
- ifndef MEMCHECK
-  PRF:=-pg -no-pie
- else
-  PRF:=
- endif ## MEMCHECK
  OPT:=-O0 -g
+ ifdef MEMCHECK
+  PRF:=
+ else
+  PRF:=-pg -no-pie
+ endif ## MEMCHECK
 else
+ OPT:=-O3 -Ofast
  ifeq ($(TARGET),SHARED)
   PRF:=-s
  else
   PRF:=
  endif
- OPT:=-O3 -Ofast
 endif ## DEBUG
-PRF:=$(PRF) $(BARG)
+# Binary bit-ness
+ifeq ($(BITS),32)
+ PRF:=$(PRF) -m32
+else
+ PRF:=$(PRF) -m64
+endif ## BITS
 
 $(PROJECT)_PCFLAGS:=-std=c99 $(WRNS) $(INCS) $(OPT) $(PRF) $(CFLAGS)
 $(PROJECT)_PCPPFLAGS:=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)

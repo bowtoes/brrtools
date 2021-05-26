@@ -1,3 +1,4 @@
+#include "brrtools/brrstr.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -171,13 +172,13 @@ static void testbuffer(void) {
 	brrbufferT buff = brrbuffer_new(100);
 	if (buff.opaque) {
 		brrsz wt = 0;
-		BRRLOG_NOR("NEW BUFFER: size %zu cap %zu", buff.size, brrbuffer_capacity(&buff));
+		BRRLOG_NOR("NEW BUFFER: size %zu cap %zu", brrbuffer_size(&buff), brrbuffer_capacity(&buff));
 		wt = brrbuffer_write(&buff, ma, sizeof(ma));
-		BRRLOG_NOR("Wrote %zu to buffer, new size %zu cap %zu : '%s'", wt, buff.size, brrbuffer_capacity(&buff), brrbuffer_data(&buff));
+		BRRLOG_NOR("Wrote %zu to buffer, new size %zu cap %zu : '%s'", wt, brrbuffer_size(&buff), brrbuffer_capacity(&buff), brrbuffer_data(&buff));
 		for (brrsz i = 0; i < 20; ++i) {
 			buff.position--;
 			wt = brrbuffer_write(&buff, mb, sizeof(mb));
-			BRRLOG_NOR("Wrote %zu to buffer, new size %zu cap %zu : '%s'", wt, buff.size, brrbuffer_capacity(&buff), brrbuffer_data(&buff));
+			BRRLOG_NOR("Wrote %zu to buffer, new size %zu cap %zu : '%s'", wt, brrbuffer_size(&buff), brrbuffer_capacity(&buff), brrbuffer_data(&buff));
 		}
 	} else {
 		BRRLOG_ERR("Error creating buffer: %s", strerror(errno));
@@ -205,13 +206,31 @@ static void testbufffind(void) {
 	}
 }
 
+static void teststrpresuf(void) {
+	static const char does[] = "DOES    ", doesnt[] = "DOES NOT";
+	static const char compa[] = "this", compb[] = ".", compc[] = "tooshort";
+	static const char ma[] = "this string starts and ends with this";
+	static const char mb[] = "this string doesn't start or end with a period";
+	static const char mc[] = "short";
+	brrstrT a = brrstr_new(ma, -1), b = brrstr_new(ma, -1), c = brrstr_new(ma, -1);
+	int as = brrstr_starts_with(&a, compa, 0), ae = brrstr_ends_with(&a, compa, 0),
+	    bs = brrstr_starts_with(&b, compb, 0), be = brrstr_ends_with(&b, compb, 0),
+	    cs = brrstr_starts_with(&c, compc, 0), ce = brrstr_ends_with(&c, compc, 0);
+
+	BRRLOG_NOR("%-50s: %s starts with '%s' and %s end with '%s'", ma, as?does:doesnt, compa, ae?does:doesnt, compa);
+	BRRLOG_NOR("%-50s: %s starts with '%s' and %s end with '%s'", mb, bs?does:doesnt, compb, be?does:doesnt, compb);
+	BRRLOG_NOR("%-50s: %s starts with '%s' and %s end with '%s'", mc, cs?does:doesnt, compc, ce?does:doesnt, compc);
+
+	brrbuffer_delete(&a), brrbuffer_delete(&b), brrbuffer_delete(&c);
+}
+
 int main(void)
 {
 	brrlog_setlogmax(0);
 	brrlogctl_styleon = false;
 	brrlogctl_debugon = true;
 	brrlogctl_flushon = true;
-	testbufffind();
+	teststrpresuf();
 #if 0
 	brrlib_use_extended_bases = true;
 	testbases();

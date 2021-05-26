@@ -16,6 +16,13 @@ limitations under the License.
 
 #include "brrtools/brrstr.h"
 
+#include "brrtools/brrplatform.h"
+
+#include <string.h>
+#if defined(BRRPLATFORMTYPE_UNIX)
+# include <strings.h>
+#endif
+
 brrstrlen BRRCALL
 brrstr_cstrlen(const char *const cstr, brrstrlen max_strlen)
 {
@@ -49,4 +56,105 @@ const char *BRRCALL
 brrstr_cstr(const brrstrT *const str)
 {
 	return (const char *)brrbuffer_data(str);
+}
+
+static int BRRCALL vcstrcompare(const char *const cmp, int cse, va_list lptr) {
+	char *a = NULL;
+	int idx = 0;
+	int match = 0;
+	if (!cmp)
+		return -1;
+	if (cse) {
+		while (1) {
+			a = va_arg(lptr, char *);
+			if (!a || !*a)
+				break;
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+			if ((idx = _stricmp(cmp, a)) == 0)
+#elif defined(BRRPLATFORMTYPE_UNIX)
+			if ((idx = strcasecmp(cmp, a)) == 0)
+#else
+#error How get strcasecmp?
+#endif
+			{
+				match = 1;
+				break;
+			}
+			++idx;
+		}
+	} else {
+		while (1) {
+			a = va_arg(lptr, char *);
+			if (!a || !*a)
+				break;
+			if ((idx = strcmp(cmp, a)) == 0) {
+				match = 1;
+				break;
+			}
+			++idx;
+		}
+	}
+	return match?idx:-1;
+}
+
+int BRRCALL
+brrstr_cstr_compare(const char *const cmp, int cse, ...)
+{
+	va_list lptr;
+	int idx = 0;
+	va_start(lptr, cse);
+	idx = vcstrcompare(cmp, cse, lptr);
+	va_end(lptr);
+	return idx;
+}
+
+int BRRCALL
+brrstr_str_compare(const brrstrT *const cmp, int cse, ...)
+{
+	va_list lptr;
+	int idx = 0;
+	va_start(lptr, cse);
+	idx = vcstrcompare(brrstr_cstr(cmp), cse, lptr);
+	va_end(lptr);
+	return idx;
+}
+
+int BRRCALL
+brrstr_starts_with(const brrstrT *const str, const char *const prefix, int case_insensitive)
+{
+	brrsz sl = brrstr_strlen(str), pl;
+	if (!sl || !prefix || !prefix[0])
+		return 0;
+	pl = brrstr_cstrlen(prefix, sl + 1);
+	if (pl > sl)
+		return 0;
+	if (case_insensitive) {
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+		return 0 == _strnicmp(brrstr_cstr(str), prefix, pl);
+#else
+		return 0 == strncasecmp(brrstr_cstr(str), prefix, pl);
+#endif
+	} else {
+		return 0 == strncmp(brrstr_cstr(str), prefix, pl);
+	}
+}
+
+int BRRCALL
+brrstr_ends_with(const brrstrT *const str, const char *const suffix, int case_insensitive)
+{
+	brrsz sl = brrstr_strlen(str), pl;
+	if (!sl || !suffix || !suffix[0])
+		return 0;
+	pl = brrstr_cstrlen(suffix, sl + 1);
+	if (pl > sl)
+		return 0;
+	if (case_insensitive) {
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+		return 0 == _strnicmp(brrstr_cstr(str) + sl - pl, suffix, pl);
+#else
+		return 0 == strncasecmp(brrstr_cstr(str) + sl - pl, suffix, pl);
+#endif
+	} else {
+		return 0 == strncmp(brrstr_cstr(str) + sl - pl, suffix, pl);
+	}
 }
