@@ -38,4 +38,14 @@
 #define HASFLAG(_x,_f) (((_x)&(_f))!=0)
 #define HASFLAGS(_x,_f) (((_x)&(_f))==(_f))
 
+#if defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
+# define brr_read(_fd, _dst, _sz) _read(_fd, _dst, _sz)
+# define brr_write(_fd, _src, _sz) _write(_fd, _src, _sz)
+# define brr_lseek(_fd, _of, _whn) _lseek(_fd, _of, _whn)
+#else
+# define brr_read(_fd, _dst, _sz) read(_fd, _dst, _sz)
+# define brr_write(_fd, _src, _sz) write(_fd, _src, _sz)
+# define brr_lseek(_fd, _of, _whn) lseek(_fd, _of, _whn)
+#endif
+
 #endif /* BRRUTILS_H */

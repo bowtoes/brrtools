@@ -77,9 +77,9 @@ typedef struct stat pathstT;
 #define PARDIR ".."
 
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-const brrb1 csepaths = true;
+static const brrb1 csepaths = true;
 #else
-const brrb1 csepaths = false;
+static const brrb1 csepaths = false;
 #endif
 
 brrb1 BRRCALL
@@ -113,7 +113,7 @@ static brrb1 isnamechar(char ch) {
 	// Just generally disallow backslashes for now.
 	return !(ch == PATHSEPCHR||ch=='\\');
 #else
-	return !(ch == PATHSEPCHR||ch=='\\');
+	return !(ch == PATHSEPCHR||ch=='\\'||ch=='/');
 #endif
 }
 
@@ -141,43 +141,43 @@ static char *cleanflatpath(const char *const path) {
 	return res;
 }
 brrpath_statT BRRCALL
-brrpath_stat(const char *const path, brrb1 followlink)
+brrpath_stat(const char *const path, int follow_link)
 {
 	brrpath_statT st = {0};
 	if (path && path[0] != 0) {
 		pathstT s = {0};
 		int err = 0;
-		if (followlink)
+		if (follow_link)
 			err = statpath(path, &s);
 		else
 			err = lstatpath(path, &s);
 		if (err != 0) {
 			if (errno != ENOENT) {
 #if defined(GFS_PLATFORMTYPE_UNIX)
-				if (errno == ENOTDIR) st.stat_error |= brrpath_statinvalidtype;
+				if (errno == ENOTDIR) st.error |= brrpath_statinvalidtype;
 				else
 #endif
-				st.stat_error |= brrpath_staterr;
+				st.error |= brrpath_stat_error;
 			} else {
-				st.type |= brrpath_directory;
+				st.type |= brrpath_type_directory;
 			}
 		} else {
 			st.size = s.st_size;
 			if (TYPEDIR(s.st_mode)) {
-				st.type |= brrpath_directory;
+				st.type |= brrpath_type_directory;
 			} else if (TYPEFIL(s.st_mode)) {
-				st.type |= brrpath_file;
+				st.type |= brrpath_type_file;
 			} else if (TYPELNK(s.st_mode)) {
-				st.type |= brrpath_link;
+				st.type |= brrpath_type_link;
 			} else {
-				st.type |= brrpath_irregular;
+				st.type |= brrpath_type_irregular;
 			}
 			st.exists = true;
 		}
 	} else {
-		st.stat_error |= brrpath_statinvalidpath;
+		st.error |= brrpath_stat_invalid_path;
 	}
-	if (!st.stat_error)
+	if (!st.error)
 		st.absolute = brrpath_absolute(path);
 	return st;
 }
@@ -187,17 +187,17 @@ brrpath_fstat(int fd)
 	brrpath_statT st = {0};
 	pathstT s = {0};
 	if (fstatpath(fd, &s) != 0) {
-		st.stat_error |= brrpath_staterr;
+		st.error |= brrpath_stat_error;
 	} else {
 		st.size = s.st_size;
 		if (TYPEDIR(s.st_mode)) {
-			st.type |= brrpath_directory;
+			st.type |= brrpath_type_directory;
 		} else if (TYPEFIL(s.st_mode)) {
-			st.type |= brrpath_file;
+			st.type |= brrpath_type_file;
 		} else if (TYPELNK(s.st_mode)) {
-			st.type |= brrpath_link;
+			st.type |= brrpath_type_link;
 		} else {
-			st.type |= brrpath_irregular;
+			st.type |= brrpath_type_irregular;
 		}
 		st.exists = true;
 	}
@@ -205,16 +205,16 @@ brrpath_fstat(int fd)
 }
 
 brrb1 BRRCALL
-brrpath_exists(const char *const path, brrb1 followlink)
+brrpath_exists(const char *const path, int follow_link)
 {
-	brrpath_statT s = brrpath_stat(path, followlink);
-	return s.stat_error == 0 && s.exists;
+	brrpath_statT s = brrpath_stat(path, follow_link);
+	return s.error == 0 && s.exists;
 }
 
 brrpath_typeT BRRCALL
-brrpath_type(const char *const path, brrb1 followlink)
+brrpath_type(const char *const path, int follow_link)
 {
-	return brrpath_stat(path, followlink).type;
+	return brrpath_stat(path, follow_link).type;
 }
 
 /*
@@ -223,7 +223,7 @@ brrpath_makepath(const char *const path, brrb1 parents, brrb1 clean)
 {
 	brrb1 err = false;
 	brrpath_statT st = brrpath_stat(path, true);
-	if (st.stat_error)
+	if (st.error)
 		return false;
 	// No need to create the current directory.
 	if (!st.exists && path->elementcount > 0) {

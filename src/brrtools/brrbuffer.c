@@ -19,6 +19,7 @@ limitations under the License.
 #include <stdio.h>
 #include <string.h>
 
+#include "brrtools/noinstall/utils.h"
 #include "brrtools/brrapi.h"
 #include "brrtools/brrplatform.h"
 #include "brrtools/brrlib.h"
@@ -123,37 +124,25 @@ brrbuffer_resize(brrbufferT *const buffer, brrsz new_size)
 const void *BRRCALL
 brrbuffer_data(const brrbufferT *const buffer)
 {
-	if (buffer && buffer->opaque) {
-		return ((buffint *)buffer->opaque)->data;
-	}
-	return NULL;
+	return (buffer && buffer->opaque)?((buffint *)buffer->opaque)->data:NULL;
 }
 
 brrsz BRRCALL
 brrbuffer_size(const brrbufferT *const buffer)
 {
-	if (buffer && buffer->opaque) {
-		return ((buffint *)buffer->opaque)->size;
-	}
-	return 0;
+	return (buffer && buffer->opaque)?((buffint *)buffer->opaque)->size:0;
 }
 
 brrsz BRRCALL
 brrbuffer_capacity(const brrbufferT *const buffer)
 {
-	if (buffer && buffer->opaque) {
-		return ((buffint *)buffer->opaque)->capacity;
-	}
-	return 0;
+	return (buffer && buffer->opaque)?((buffint *)buffer->opaque)->capacity:0;
 }
 
 const void *BRRCALL
 brrbuffer_stream(const brrbufferT *const buffer)
 {
-	if (buffer && buffer->opaque) {
-		return (brrby *)(((buffint *)buffer->opaque)->data) + buffer->position;
-	}
-	return NULL;
+	return (buffer && buffer->opaque)?(brrby *)(((buffint *)buffer->opaque)->data) + buffer->position:NULL;
 }
 
 brrsz BRRCALL
@@ -302,51 +291,54 @@ brrbuffer_printf(brrbufferT *const buffer, const char *const fmt, ...)
 	return wt;
 }
 
-#if 0
 brrbufferT BRRCALL
-brrbuffer_fromfile(int fd)
+brrbuffer_from_file(int file_descriptor)
 {
 	brrbufferT buff = {0};
 	buffint *INT = NULL;
-	brrpath_statT st = brrpath_fstat(fd);
-	if (st.stat_error == 0) {
+	brrpath_statT st = brrpath_fstat(file_descriptor);
+	if (st.error == 0) {
 		if (!brrlib_alloc((void **)&INT, sizeof(buffint), 1))
 			return buff;
-		if (st.exists && st.type & brrpath_file) {
+		if (st.type & brrpath_type_file) {
 			int er = 0;
-			buff.size = st.size;
-			INT->capacity = buffcap(buff.size);
+			brrs8 start = 0;
+			INT->capacity = buffcap(st.size);
 			if (!brrlib_alloc((void **)&INT->data, INT->capacity, 1)) {
 				brrlib_alloc((void **)&INT, 0, 0);
-				return buff;
+			} else {
+				/* 32-bit vs 64-bit files, filesystems, operating systems, complicated mess */
+				er = (-1 == (start = brr_lseek(file_descriptor, 0, SEEK_CUR)));
+				if (!er)
+					er = (-1 == brr_lseek(file_descriptor, 0, SEEK_SET));
+				if (!er)
+					er = (-1 == brr_read(file_descriptor, INT->data, st.size));
+				if (!er)
+					er = (-1 == brr_lseek(file_descriptor, start, SEEK_SET));
+				if (!er) {
+					INT->size = st.size;
+				} else {
+					brrlib_alloc((void **)&INT->data, 0, 0);
+					brrlib_alloc((void **)&INT, 0, 0);
+				}
+				buff.opaque = INT;
 			}
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-			er = (-1 == _read(fd, INT->data, buff.size));
-#else
-			er = (-1 == read(fd, INT->data, buff.size));
-#endif
-			if (er) {
-				brrlib_alloc((void **)&INT->data, 0, 0);
-				brrlib_alloc((void **)&INT, 0, 0);
-				buff.size = 0;
-			}
-			buff.opaque = INT;
 		}
 	}
 	return buff;
 }
 
 brrb1 BRRCALL
-brrbuffer_tofile(const brrbufferT *const buffer, int fd)
+brrbuffer_to_file(const brrbufferT *const buffer, int file_descriptor)
 {
 	brrb1 r = false;
 	if (buffer && buffer->opaque) {
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-		r = (-1 != _write(fd, ((buffint *)buffer->opaque)->data, buffer->size));
-#else
-		r = (-1 != write(fd, ((buffint *)buffer->opaque)->data, buffer->size));
-#endif
+		buffint *INT = (buffint *)buffer->opaque;
+		if (INT->data && INT->size) {
+			r = (-1 != brr_write(file_descriptor, INT->data, INT->size));
+		} else {
+			r = true;
+		}
 	}
 	return r;
 }
-#endif

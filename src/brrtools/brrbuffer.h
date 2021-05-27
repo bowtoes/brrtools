@@ -125,10 +125,17 @@ BRRAPI brrsz BRRCALL brrbuffer_vprintf(brrbufferT *const buffer, const char *con
  * */
 BRRAPI brrsz BRRCALL brrbuffer_printf(brrbufferT *const buffer, const char *const fmt, ...);
 
-/*
-BRRAPI brrbufferT BRRCALL brrbuffer_fromfile(int fd);
-BRRAPI brrb1 BRRCALL brrbuffer_tofile(const brrbufferT *const buffer, int fd);
-*/
+/* Read all bytes from the regular file at 'file_descriptor' and return a buffer containing them.
+ * If 'file_descriptor' is an invalid file descriptor or does not reference a regular file, nothing is done and an
+ * empty buffer is returned.
+ * If an error occurs, nothing is done and an empty file descriptor is returned.
+ * */
+BRRAPI brrbufferT BRRCALL brrbuffer_from_file(int file_descriptor);
+/* Write s all bytes in 'buffer' to the file referenced by 'file_descriptor'.
+ * 'true' is returned on success; if an error occurs or 'buffer' is invalid (is NULL or 'opaque' is NULL)
+ * or 'file_descriptor' is invalid, nothing is done and false is returned.
+ * */
+BRRAPI brrb1 BRRCALL brrbuffer_to_file(const brrbufferT *const buffer, int file_descriptor);
 
 BRRCPPEND
 

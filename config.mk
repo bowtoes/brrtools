@@ -207,6 +207,9 @@ ifdef DEBUG
   DEFS:=$(DEFS) -D$(UPROJECT)_MEMCHECK
  endif
 endif
+ifeq ($(TARGET),UNIX)
+ DEFS:=$(DEFS) -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L
+endif
 
 # PRF: Performance options (applied at compile- & link-time)
 # OPT: Optimization options (applied at compile-time)
@@ -243,9 +246,6 @@ endif
 
 ifeq ($(BITS),64)
  DEFS:=-D$(UPROJECT)_TARGET_BIT=64 $(DEFS)
- ifeq ($(TARGET),UNIX)
-  DEFS:=$(DEFS) -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
- endif
 else
  DEFS:=-D$(UPROJECT)_TARGET_BIT=32 $(DEFS)
 endif
@@ -253,7 +253,6 @@ endif
 ### Linker arguments
 LNK:=
 ifeq ($(TARGET),UNIX)
- DEFS:=$(DEFS) -D_XOPEN_SOURCE=500
  ifeq ($(MODE),SHARED)
   ifdef PIC2
    OPT:=$(OPT) -fPIC
@@ -293,6 +292,8 @@ SRC:=\
 HDR:=\
 	src/brrtools/brrapi.h\
 	src/brrtools/brrplatform.h\
+	src/brrtools/brrbitdepth.h\
+	src/brrtools/brrendian.h\
 	src/brrtools/brrdebug.h\
 	src/brrtools/brrtypes.h\
 	src/brrtools/brrlib.h\

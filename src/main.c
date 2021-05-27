@@ -1,4 +1,5 @@
 #include "brrtools/brrstr.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -233,6 +234,35 @@ static void teststrlen(void) {
 	brrbuffer_delete(&a);
 	brrbuffer_delete(&b);
 }
+static void testbufffile(void) {
+	static const char filein[] = "test_file_in.txt";
+	static const char fileout[] = "test_file_out.txt";
+	static const char data[] = "This is some nice data\n";
+	static const char newdata[] = "Some extra data\n";
+	static brrbufferT buffer = {0};
+
+	FILE *fi, *fo;
+	fi = fopen(filein, "w");
+	fwrite(data, 1, sizeof(data)-1, fi);
+	fclose(fi);
+	fi = fopen(filein, "r");
+	fseek(fi, 2, SEEK_SET);
+	buffer = brrbuffer_from_file(fileno(fi));
+	fclose(fi);
+	BRRLOG_NOR("Read: '%s'", brrbuffer_stream(&buffer));
+	buffer.position = brrbuffer_size(&buffer);
+
+	brrbuffer_write(&buffer, newdata, sizeof(newdata)-1);
+	buffer.position = 0;
+	BRRLOG_NOR("Newdata: '%s'", brrbuffer_stream(&buffer));
+
+	fo = fopen(fileout, "w");
+	if (brrbuffer_to_file(&buffer, fileno(fo)))
+		BRRLOG_NOR("Wrote to '%s'", fileout);
+	else
+		BRRLOG_NOR("Failed to write to '%s'", fileout);
+	brrbuffer_delete(&buffer);
+}
 
 int main(void)
 {
@@ -240,8 +270,7 @@ int main(void)
 	brrlogctl_styleon = false;
 	brrlogctl_debugon = true;
 	brrlogctl_flushon = true;
-	teststrlen();
-	teststrpresuf();
+	testbufffile();
 #if 0
 	brrlib_use_extended_bases = true;
 	testbases();
