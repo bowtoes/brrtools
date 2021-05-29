@@ -72,19 +72,51 @@ BRRAPI const void *BRRCALL brrbuffer_stream(const brrbufferT *const buffer);
 /* Writes 'data_size' bytes of 'data' into the buffer at the current position
  * and returns the number of bytes written.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL), nothing is done and 0 is returned.
- * If 'data' is NULL or 'data_size' is 0, nothing is done and the current buffer position
- * is returned.
+ * If 'data' is NULL or 'data_size' is 0, nothing is done and 0 is returned.
  * If an error occurs, 'buffer' is left unaffected and 0 is returned.
  * */
 BRRAPI brrsz BRRCALL brrbuffer_write(brrbufferT *const buffer, const void *const data, brrsz data_size);
+/* Writes all of 'source' into 'destination' at the current buffer position and returns
+ * the number of bytes written.
+ * If 'destination' or 'source' is invalid (NULL or 'opaque' is NULL), nothing is
+ *  done and 0 is returned.
+ * If an error occurs, 'buffer' is left unaffected and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_write_to(brrbufferT *const destination, const brrbufferT *const source);
 /* Reads 'read_size' bytes from the buffer at the current position into 'destination'
  * and returns number of bytes read.
  * If 'buffer' is invalid (NULL or 'opaque' is NULL), nothing is done and 0 is returned.
- * If 'data' is NULL or 'data_size' is 0, nothing is done and 0 is returned.
+ * If 'data' is NULL or 'read_size' is 0, nothing is done and 0 is returned.
  * If reading 'read_size' bytes would bring the buffer position past its size,
  * then at most 'buffer->size - buffer->position' bytes will be read.
  * */
 BRRAPI brrsz BRRCALL brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_size);
+/* Reads 'read_size' bytes from 'source' at the current buffer position and writes into
+ * 'destination' at the current buffer position and returns the number of bytes transferred.
+ * If 'source' or 'destination' is invalid (NULL or 'opaque' is NULL) or 'read_size' is 0, nothing
+ * is done and 0 is returned.
+ * If transferring 'read_size' bytes would bring 'source' buffer position past its size,
+ * then at most 'source->size - source->position' bytes will be transferred.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_read_to(brrbufferT *const source, brrbufferT *const destination, brrsz read_size);
+/* Reads a segment of bytes from 'buffer' in the range [start, end) into 'destination',
+ * without updating buffer position.
+ * Returns the number of bytes read.
+ * If 'buffer' is invalid (NULL or 'opaque' is NULL), nothing is done and 0 is returned.
+ * If 'end' is before 'start', bytes are read in reverse.
+ * 'end' and 'start' are clamped to 'buffer->size'.
+ * If 'end == start', nothing is done and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_segment(brrbufferT *const buffer, void *const destination, brrsz start, brrsz end);
+/* Reads a segment of bytes from 'source' in the range [start, end) into 'destination',
+ * without updating buffer positions.
+ * Returns the number of bytes read.
+ * If 'source' or 'destination' is invalid (NULL or 'opaque' is NULL), nothing is done and 0 is returned.
+ * If 'end' is before 'start', bytes are read in reverse.
+ * 'end' and 'start' are clamped to 'source->size'.
+ * If 'end == start', nothing is done and 0 is returned.
+ * */
+BRRAPI brrsz BRRCALL brrbuffer_segment_to(brrbufferT *const source, brrbufferT *const destination, brrsz start, brrsz end);
 /* Searches 'buffer' for the next occurrence of 'key', of length 'key_length', and puts the buffer position
  * at that occurrence.
  * If 'key' is found within 'buffer', true is returned, otherwise buffer is left unchanged and false is returned.

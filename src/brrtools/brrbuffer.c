@@ -33,7 +33,8 @@ limitations under the License.
 # include <unistd.h>
 #endif
 
-brrsz brrbuffer_capacity_increment = 2048;
+#define BRRBUFFER_CAP_INC_DEFAULT 2048
+brrsz brrbuffer_capacity_increment = BRRBUFFER_CAP_INC_DEFAULT;
 
 typedef struct {
 	void *data;
@@ -41,8 +42,11 @@ typedef struct {
 	brrsz capacity;
 } buffint;
 
-static brrsz buffcap(brrsz size) {
-	brrsz mul = size / brrbuffer_capacity_increment;
+static brrsz BRRCALL buffcap(brrsz size) {
+	brrsz mul = 0;
+	if (!brrbuffer_capacity_increment)
+		brrbuffer_capacity_increment = BRRBUFFER_CAP_INC_DEFAULT;
+	mul = size / brrbuffer_capacity_increment;
 	if (brrbuffer_capacity_increment * mul == size) {
 		return size;
 	} else {
@@ -145,17 +149,9 @@ brrbuffer_stream(const brrbufferT *const buffer)
 	return (buffer && buffer->opaque)?(brrby *)(((buffint *)buffer->opaque)->data) + buffer->position:NULL;
 }
 
-brrsz BRRCALL
-brrbuffer_write(brrbufferT *const buffer, const void *const data, brrsz data_size)
-{
-	buffint *INT = NULL;
-	brrsz np = 0;
-	if (!buffer || !buffer->opaque)
-		return 0;
-	if (!data || !data_size)
-		return buffer->position;
-	INT = (buffint *)buffer->opaque;
-	np = buffer->position + data_size;
+static brrsz BRRCALL buffint_write(brrbufferT *const buffer, const void *const data, brrsz data_size) {
+	buffint *INT = (buffint *)buffer->opaque;
+	brrsz np = buffer->position + data_size;
 	if (np > INT->size) {
 		INT->size = np;
 		if (np > INT->capacity) {
@@ -172,23 +168,127 @@ brrbuffer_write(brrbufferT *const buffer, const void *const data, brrsz data_siz
 }
 
 brrsz BRRCALL
-brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_size)
+brrbuffer_write(brrbufferT *const buffer, const void *const data, brrsz data_size)
 {
-	buffint *INT = NULL;
-	brrsz np = 0;
 	if (!buffer || !buffer->opaque)
 		return 0;
-	if (!destination || !read_size)
+	if (!data || !data_size)
 		return 0;
-	INT = (buffint *)buffer->opaque;
-	np = buffer->position + read_size;
+	return buffint_write(buffer, data, data_size);
+}
+
+brrsz BRRCALL
+brrbuffer_write_to(brrbufferT *const destination, const brrbufferT *const source)
+{
+	buffint *INT;
+	if (!destination || !destination->opaque || !source || !source->opaque)
+		return 0;
+	INT = (buffint *)source->opaque;
+	return buffint_write(destination, INT->data, INT->size);
+}
+
+static brrsz BRRCALL buffint_read(brrbufferT *const buffer, void *const destination, brrsz read_size) {
+	buffint *INT = (buffint *)buffer->opaque;
+	brrsz np = buffer->position + read_size;
 	if (np > INT->size) {
 		read_size = INT->size - buffer->position;
 		np = INT->size;
 	}
 	memmove(destination, (brrb1 *)INT->data + buffer->position, read_size);
 	buffer->position = np;
-	return np;
+	return read_size;
+}
+brrsz BRRCALL
+brrbuffer_read(brrbufferT *const buffer, void *const destination, brrsz read_size)
+{
+	if (!buffer || !buffer->opaque)
+		return 0;
+	if (!destination || !read_size)
+		return 0;
+	return buffint_read(buffer, destination, read_size);
+}
+
+brrsz BRRCALL
+brrbuffer_read_to(brrbufferT *const source, brrbufferT *const destination, brrsz read_size)
+{
+	brrby *tmp = NULL;
+	if (!source || !source->opaque || !destination || !destination->opaque)
+		return 0;
+	if (!read_size)
+		return 0;
+
+	if (!brrlib_alloc((void **)&tmp, read_size, 1))
+		return 0;
+
+	read_size = buffint_read(source, tmp, read_size);
+	read_size = buffint_write(destination, tmp, read_size);
+
+	brrlib_alloc((void **)&tmp, 0, 0);
+
+	return read_size;
+}
+
+static brrsz BRRCALL buffint_segment(buffint *const INT, void *const destination, brrsz start, brrsz end) {
+	brrsz rd = 0;
+	if (end < start) {
+		for (brrsz rv = start - end; rd < rv; ++rd) {
+			((brrby *)destination)[rd] = ((brrby *)(INT->data))[start - 1 - rd];
+		}
+	} else {
+		for (brrsz rv = end - start; rd < rv; ++rd) {
+			((brrby *)destination)[rd] = ((brrby *)(INT->data))[start + rd];
+		}
+	}
+	return rd;
+}
+brrsz BRRCALL
+brrbuffer_segment(brrbufferT *const buffer, void *const destination, brrsz start, brrsz end)
+{
+	buffint *INT = NULL;
+	if (!buffer || !buffer->opaque || !destination)
+		return 0;
+	INT = (buffint *)buffer->opaque;
+	if (start > INT->size)
+		start = INT->size;
+	if (end > INT->size)
+		end = INT->size;
+	if (start == end)
+		return 0;
+
+	return buffint_segment(INT, destination, start, end);
+}
+
+brrsz BRRCALL
+brrbuffer_segment_to(brrbufferT *const source, brrbufferT *const destination, brrsz start, brrsz end)
+{
+	brrsz rd = 0;
+	buffint *INT = NULL;
+	brrby *tmp = NULL;
+	if (!source || !source->opaque || !destination || !destination->opaque)
+		return 0;
+
+	INT = (buffint *)source->opaque;
+	if (start > INT->size)
+		start = INT->size;
+	if (end > INT->size)
+		end = INT->size;
+	if (start == end)
+		return 0;
+
+	if (end < start) {
+		rd = start - end;
+	} else {
+		rd = end - start;
+	}
+
+	if (!brrlib_alloc((void **)&tmp, rd, 1))
+		return 0;
+	rd = buffint_segment(INT, tmp, start, end);
+	rd = buffint_write(destination, tmp, rd);
+	destination->position -= rd;
+	brrlib_alloc((void **)&tmp, 0, 0);
+
+	return rd;
 }
 
 brrb1 BRRCALL

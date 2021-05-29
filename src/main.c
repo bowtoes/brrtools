@@ -263,6 +263,44 @@ static void testbufffile(void) {
 		BRRLOG_NOR("Failed to write to '%s'", fileout);
 	brrbuffer_delete(&buffer);
 }
+static void testbuffseg(void) {
+	static const brrby data[] = "SOME NICE DATA";
+	static const brrsz start = 4, end = 11;
+	static brrbufferT buffera = {0}, bufferb = {0};
+	brrsz rd = 0;
+	buffera = brrbuffer_new(sizeof(data));
+	brrbuffer_write(&buffera, data, sizeof(data));
+	buffera.position = 0;
+	bufferb = brrbuffer_new(2 * sizeof(data));
+
+	BRRLOG_NORN("A: ");
+	while (buffera.position < brrbuffer_size(&buffera)) {
+		char a = 0;
+		brrbuffer_read(&buffera, &a, 1);
+		BRRLOG_NORN("%02X ", a);
+	}
+	BRRLOG_NOR("");
+	BRRLOG_NOR("segmented %zu bytes", (rd = brrbuffer_segment_to(&buffera, &bufferb, start, end)));
+	BRRLOG_NORN("B: ");
+	while (bufferb.position < rd) {
+		char a = 0;
+		brrbuffer_read(&bufferb, &a, 1);
+		BRRLOG_NORN("%02X ", a);
+	}
+	BRRLOG_NOR("");
+	bufferb.position = 0;
+	BRRLOG_NOR("segmented %zu bytes", (rd = brrbuffer_segment_to(&buffera, &bufferb, end, start)));
+	BRRLOG_NORN("B: ");
+	while (bufferb.position < rd) {
+		char a = 0;
+		brrbuffer_read(&bufferb, &a, 1);
+		BRRLOG_NORN("%02X ", a);
+	}
+	BRRLOG_NOR("");
+
+	brrbuffer_delete(&buffera);
+	brrbuffer_delete(&bufferb);
+}
 
 int main(void)
 {
@@ -270,7 +308,7 @@ int main(void)
 	brrlogctl_styleon = false;
 	brrlogctl_debugon = true;
 	brrlogctl_flushon = true;
-	testbufffile();
+	testbuffseg();
 #if 0
 	brrlib_use_extended_bases = true;
 	testbases();

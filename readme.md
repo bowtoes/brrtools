@@ -1,6 +1,6 @@
 # BRRTOOLS
-A custom C99 library with the goal to have a single place for multiple miscellaneous
-utilities that are generally useful. Also with the goal of having them be cross-platform.
+A custom C99 library with the goal to have a single place for multiple cross-platform,
+miscellaneous utilities that are generally useful.
 
 Has absolutely no relation to [BRRtools](https://github.com/Optiroc/BRRtools)
 ## Contents
