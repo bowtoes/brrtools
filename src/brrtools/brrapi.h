@@ -41,6 +41,4 @@ limitations under the License.
 # define BRRCPPEND
 #endif // __cplusplus
 
-#define BRRMISC_TOGGLE(_b) ((_b) = !(_b))
-
 #endif /* BRRTOOLS_BRRAPI_H */
