@@ -2,7 +2,7 @@
 A custom C99 library with the goal to have a single place for multiple cross-platform,
 miscellaneous utilities that are generally useful.
 
-Has absolutely no relation to [BRRtools](https://github.com/Optiroc/BRRtools)
+Has absolutely no relation to [BRRtools][otherbrr]
 ## Contents
 [Contents](#contents)
 
@@ -16,10 +16,10 @@ Has absolutely no relation to [BRRtools](https://github.com/Optiroc/BRRtools)
 
 |Host |Target   |Requirements|
 |:---:|:---:    |:---       |
-|\*NIX|\*NIX    |GNU `make` and `gcc` toolchain|
-|\*NIX|Windows  |GNU `make` and `mingw`|
+|\*NIX|\*NIX    |[GNU `make`][gmake] and [`gcc` toolchain][gcc]|
+|\*NIX|Windows  |[GNU `make`][gmake] and [`mingw` toolchain][mingww64]|
 |Windows|\*NIX  |N/A|
-|Windows|Windows|`mingw` toolchain, or Cygwin with GNU `make` and toolchain|
+|Windows|Windows|[GNU `make`][gmakewin] and [`mingw` toolchain][mingwwin]|
 
 To compile, just run `make` with `HOST` set to either `UNIX` or `WINDOWS`, depending on your host system
 and set `TARGET` likewise. `HOST` and `TARGET` default to `UNIX`.  
@@ -37,34 +37,87 @@ make HOST=UNIX TARGET=WINDOWS
 ```shell
 make HOST=WINDOWS TARGET=WINDOWS
 ```
+To customize the type of binary to generate, there are different environment
+varivariables that can be set before compilation:
+  * `BITS`: Set to `32` to generate a 32-bit binary, or `64` for a 64-bit
+  binary.  
+  Defaults to `64`
+  * `MODE`: Set to `SHARED` to generate a shared library or dll depending on
+  what the target system is.  
+  Defaults to `SHARED`  
 
-There are other environment variables that can be set to control the type of binary that is produced.
-  * Set `BITS` to `32` or `64` to customize bit-width of compiled binary; defaults to `64`.
-  * Set `MODE` to `SHARED` or `STATIC` to compile either a dynamic library or static library, respectively; defaults to `SHARED`.
-
-All these settings are case-sensitive.
+These settings are case-sensitive.
 
 ## Installation
 [Contents](#contents)  
-Installation through make only happens on `UNIX` hosts with `UNIX` targets.  
-Simply run:  
+### Unix:
 ```shell
 make prefix=/custom/install/root
 ```
-to install the library to the custom prefix. `prefix` defaults to `/usr/local`.
+to install the library to the custom prefix.
+The default prefix is `/usr/local`.
 
-## Customization
+### Windows:
+Put the binary of your choosing, together with the headers, into whatever search
+paths you have set for your project.
+
+## Build Customization
 [Contents](#contents)  
-There are many settings/variables that can be edited/set to customize build settings.
-They are all listed with their default values in `config.mk`.
+It's possible to set various environment variables to customize the build
+process:
+  * `DEBUG`: Enables compiling with debugging
+  symbols, and does little-to-no optimization.  
+  * `MEMCHECK`: Changes the behavior of `DEBUG` to so that the compiled binaries
+  are `valgrind`-compatible.  
 
-The environment variables `DEBUG` and `MEMCHECK` can be set before compilation
-to change the compilation commands respectively.  
-  * `DEBUG` enables compiling with debugging symbols, and does little-to-no optimization.  
-  * `MEMCHECK` changes the options changed by `DEBUG` to make them `valgrind`-compatible.  
+Custom compiler/linker/archiver executables can be set:
+  * `CC_CUSTOM`: Set a custom c-compiler. Only useable on Unix.  
+  Defaults to `gcc`, or appropriate mingw version if targeting Windows.
+  * `AR_CUSTOM`: Set a custom archiver for static library generation.  
+  Defaults to `gcc-ar`, or appropriate mingw version if targeting Windows.
+  * `DLLTOOL`: Executable to use for `dlltool` to generate dll files.  
+  Defaults to `dlltool` on Windows, or appropriate mingw version if on Unix and
+  targeting Windows.
+
+Output build directories can be changed:
+
+|Variable         |Default          |Description                              |
+|:---             |:---             |:---                                     |
+|`BLDDIR`         |`build`          |Root                                     |
+|`UNIDIR`/`WINDIR`|`uni`/`win`      |Unix/Windows output                      |
+|`SHRDIR`/`STADIR`|`shared`/`static`|Shared/static output                     |
+|`B32DIR`/`B64DIR`|`x86`/`x64`      |32-/64-bit output                        |
+|`CHKDIR`         |`check`          |Name of check executable output directory|
+|`INTDIR`         |`int`            |Name of intermediates output directory   |
+|`ASSDIR`         |`ass`            |Name of assembly output directory        |
+|`OBJDIR`         |`obj`            |Name of objects output directory         |
 
 ## Usage
 [Contents](#contents)  
-When linking dynamically in Windows, define `BRRTOOLS_IMPORTS` before including any of the library headers.
+### Unix:
+#### Static linkage:
+```shell
+{compiler} /path/to/libbrrtools.a {compilerargs}
+```
+or if you can pass arguments to the linker through the compiler (like with `gcc`):
+```shell
+{compiler} {compilerargs} -Wl,-Bstatic -lbrrtools -Wl,-Bdynamic {moreargs}
+```
+#### Dynamic linkage:
+```shell
+{compiler} [-I/custom/brrtools/prefix/include] {compilerargs} [-L/custom/brrtools/prefix/lib] -lbrrtools
+```
+### Windows:
+First, `/parent/path/of/brrtools/installation` must be added to your includes.  
+#### Static linkage:
+#### Dynamic linkage:
+Add `BRRTOOLS_IMPORTS` to your defines before using.
 
-Otherwise, linking however you usually do it on your platform should work.
+[otherbrr]:https://github.com/Optiroc/BRRtools
+[gawk]:https://www.gnu.org/software/gawk/manual/html_node/index.html
+[gmake]:https://www.gnu.org/software/make/manual/html_node/index.html
+[gcc]:https://gcc.gnu.org/onlinedocs/gcc-11.1.0/gcc/
+[ezwin]:https://sourceforge.net/projects/ezwinports/
+[mingww64]:https://en.wikipedia.org/wiki/Mingw-w64
+[mingwwin]:https://sourceforge.net/projects/mingw-w64/
+[gmakewin]:https://sourceforge.net/projects/ezwinports/

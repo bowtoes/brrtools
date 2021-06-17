@@ -1,23 +1,17 @@
+# { Core configuration.
 CURDIR:=$(PWD)
-# Name of project (or overwrite it if you prefer)
 PROJECT:=brrtools
-ifndef PROJECT
-PROJECT:=$(notdir $(CURDIR))
-endif
-ifndef UPROJECT
- UPROJECT:=$(shell echo '$(PROJECT)' | tr '[:lower:]' '[:upper:]')
-endif
-# Default installation prefix
+UPROJECT:=BRRTOOLS
 ifndef prefix
-prefix=/usr/local
+ prefix=/usr/local
 endif
 
 $(PROJECT)_MAJOR:=0
 $(PROJECT)_MINOR:=0
 $(PROJECT)_REVIS:=0
+# }
 
-# Assume unix host
-ifndef HOST
+ifndef HOST # {
  HOST:=UNIX
 else ifneq ($(HOST),UNIX)
  ifneq ($(HOST),WINDOWS)
@@ -25,154 +19,164 @@ else ifneq ($(HOST),UNIX)
  else # Windows host always compiles windows target
   TARGET:=WINDOWS
  endif
-endif ## HOST
-# Assume unix target
-ifndef TARGET
+endif ### }
+ifndef TARGET # {
  TARGET:=UNIX
 else ifneq ($(TARGET),UNIX)
  ifneq ($(TARGET),WINDOWS)
   TARGET:=UNIX
  endif
-endif ## TARGET
-# Assume dynamic linkage
-ifndef MODE
+endif # }
+ifndef MODE # {
  MODE:=SHARED
 else ifneq ($(MODE),STATIC)
  ifneq ($(MODE),SHARED)
   MODE:=SHARED
  endif
-endif ## MODE
-# Assume 64-bit target
-ifndef BITS
+endif # }
+ifndef BITS # {
  BITS:=64
 else ifneq ($(BITS),32)
  ifneq ($(BITS),64)
   BITS:=64
  endif
-endif ## BITS
+endif # }
 
-ifeq ($(HOST),UNIX)
+ifeq ($(HOST),UNIX) # {
  NULL:=/dev/null
  RM:=rm -fv
 else
  NULL:=nul
  RM:=del /F
  RMDIR:=rmdir
-endif ## HOST
+endif # }
 
-### Directory locations relative to $(CURDIR)
-ifndef SRCDIR
+ifndef SRCDIR # {
 SRCDIR:=src
-endif
-ifndef HDRDIR
+endif # }
+ifndef HDRDIR # {
 HDRDIR:=src/brrtools
-endif
-ifndef BLDDIR
+endif # }
+ifndef BLDDIR # {
 BLDDIR:=build
-endif
-ifndef UNIDIR
+endif # }
+ifndef UNIDIR # {
 UNIDIR:=uni
-endif
-ifndef WINDIR
+endif # }
+ifndef WINDIR # {
 WINDIR:=win
-endif
-ifndef SHRDIR
+endif # }
+ifndef SHRDIR # {
 SHRDIR:=shared
-endif
-ifndef STADIR
+endif # }
+ifndef STADIR # {
 STADIR:=static
-endif
-ifndef B32DIR
+endif # }
+ifndef B32DIR # {
 B32DIR:=x86
-endif
-ifndef B64DIR
+endif # }
+ifndef B64DIR # {
 B64DIR:=x64
-endif
-
-ifndef INTDIR
+endif # }
+ifndef CHKDIR # {
+CHKDIR:=check
+endif # }
+ifndef INTDIR # {
 INTDIR:=int
-endif
-ifndef ASSDIR
+endif # }
+ifndef ASSDIR # {
 ASSDIR:=ass
-endif
-ifndef OBJDIR
+endif # }
+ifndef OBJDIR # {
 OBJDIR:=obj
-endif
+endif # }
 
-ifndef UNISHRNAME
-UNISHRNAME:=lib$(PROJECT).so
-endif
-ifndef UNISTANAME
-UNISTANAME:=lib$(PROJECT).a
-endif
-ifndef WINSHRNAME
-WINSHRNAME:=$(PROJECT).dll
-endif
-ifndef WINDEFNAME
-WINDEFNAME:=$(PROJECT).def
-endif
-ifndef WINIMPNAME
-WINIMPNAME:=$(PROJECT).dll.lib
-endif
-ifndef WINSTANAME
-WINSTANAME:=lib$(PROJECT).lib
-endif
-# Where generated/compiled output files will live, with directory structures
-# matching that of $(SRCDIR)
-ifeq ($(TARGET),WINDOWS)
- OUTDIR:=$(BLDDIR)/$(WINDIR)
-else
- OUTDIR:=$(BLDDIR)/$(UNIDIR)
-endif ## TARGET
-ifeq ($(BITS),32)
- OUTDIR:=$(OUTDIR)/$(B32DIR)
-else
- OUTDIR:=$(OUTDIR)/$(B64DIR)
-endif ## BITS
-ifeq ($(MODE),SHARED)
- OUTDIR:=$(OUTDIR)/$(SHRDIR)
-else
- OUTDIR:=$(OUTDIR)/$(STADIR)
-endif ## MODE
+ifndef UNISHRNAME # {
+UNISHRNAME:=$(PROJECT)
+endif # }
+ifndef UNISTANAME # {
+UNISTANAME:=$(PROJECT)
+endif # }
+ifndef WINSHRNAME # {
+WINSHRNAME:=$(PROJECT)
+endif # }
+ifndef WINDEFNAME # {
+WINDEFNAME:=$(PROJECT)
+endif # }
+ifndef WINIMPNAME # {
+WINIMPNAME:=$(PROJECT)
+endif # }
+ifndef WINSTANAME # {
+WINSTANAME:=$(PROJECT)
+endif # }
 
-### Toolchain
-## Compiler
-ifndef CC_CUSTOM
+ifndef UNISHRFILE # {
+UNISHRFILE:=lib$(PROJECT).so
+endif # }
+ifndef UNISTAFILE # {
+UNISTAFILE:=lib$(PROJECT).a
+endif # }
+ifndef WINSHRFILE # {
+WINSHRFILE:=$(PROJECT).dll
+endif # }
+ifndef WINDEFFILE # {
+WINDEFFILE:=$(PROJECT).def
+endif # }
+ifndef WINIMPFILE # {
+WINIMPFILE:=$(PROJECT).dll.lib
+endif # }
+ifndef WINSTAFILE # {
+WINSTAFILE:=lib$(PROJECT).lib
+endif # }
+
+ifndef CC_CUSTOM # {
  ifeq ($(HOST),UNIX)
   ifeq ($(TARGET),UNIX)
    CC:=gcc
   else # Windows target, must have mingw
    ifeq ($(BITS),32)
     CC:=i686-w64-mingw32-gcc
-   else # Assume 64 bit
+   else
     CC:=x86_64-w64-mingw32-gcc
-   endif ## BITS
-  endif ## TARGET
+   endif
+  endif
  else # Windows host, must have mingw
   CC:=gcc
- endif ## HOST
+ endif
 else
- CC:=$(CC_CUSTOM)
-endif ## CC
-## Archiver
-ifndef AR_CUSTOM
+ ifeq ($(HOST),UNIX)
+  ifeq ($(TARGET),UNIX)
+   # Custom cc only on unix, to unix for now
+   CC:=$(CC_CUSTOM)
+  else # Windows target, must have mingw
+   ifeq ($(BITS),32)
+    CC:=i686-w64-mingw32-gcc
+   else
+    CC:=x86_64-w64-mingw32-gcc
+   endif
+  endif
+ else # Windows host, must have mingw
+  CC:=gcc
+ endif
+endif # }
+ifndef AR_CUSTOM # {
  ifeq ($(HOST),UNIX)
   ifeq ($(TARGET),UNIX)
    AR:=gcc-ar
   else # Windows target, must have mingw
    ifeq ($(BITS),32)
     AR:=i686-w64-mingw32-gcc-ar
-   else # Assume 64 bit
+   else
     AR:=x86_64-w64-mingw32-gcc-ar
-   endif ## BITS
-  endif ## TARGET
+   endif
+  endif
  else # Windows host, must have mingw
   AR:=gcc-ar
- endif ## HOST
+ endif
 else
  AR:=$(AR_CUSTOM)
-endif ## AR
-ifndef DLLTOOL
+endif # }
+ifndef DLLTOOL # {
  ifeq ($(HOST),UNIX)
   ifeq ($(TARGET),UNIX)
    DLLTOOL:=echo There is no dlltool for unix
@@ -181,21 +185,38 @@ ifndef DLLTOOL
     DLLTOOL:=i686-w64-mingw32-dlltool
    else
     DLLTOOL:=x86_64-w64-mingw32-dlltool
-   endif ## BITS
-  endif ## TARGET
+   endif
+  endif
  else # Windows host
   DLLTOOL:=dlltool
- endif ## HOST
-endif ## DLLTOOL
+ endif
+endif # }
 
-### Compiler arguments
-# Includes
+ifeq ($(TARGET),WINDOWS) # {
+ OUTDIR:=$(BLDDIR)/$(WINDIR)
+else
+ OUTDIR:=$(BLDDIR)/$(UNIDIR)
+endif # }
+ifeq ($(BITS),32) # {
+ OUTDIR:=$(OUTDIR)/$(B32DIR)
+else
+ OUTDIR:=$(OUTDIR)/$(B64DIR)
+endif # }
+ifeq ($(MODE),SHARED) # {
+ OUTDIR:=$(OUTDIR)/$(SHRDIR)
+else
+ OUTDIR:=$(OUTDIR)/$(STADIR)
+endif # }
+
+# { INCS & WRNS
 INCS:=-I$(SRCDIR)
-# Warnings/errors
-WRNS:=-Wall -Wextra -Wpedantic -pedantic -Werror=pedantic -pedantic-errors\
+WRNS:=-Wall -Wextra -Wpedantic -Werror=pedantic\
       -Werror=implicit-function-declaration -Werror=missing-declarations\
       -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter
-# Defines
+ifneq ($(CC),tcc)
+ WRNS:=-pedantic -pedantic-errors $(WRNS)
+endif # }
+# { DEFS
 DEFS:=-D$(UPROJECT)_MAJOR=$($(PROJECT)_MAJOR)\
       -D$(UPROJECT)_MINOR=$($(PROJECT)_MINOR)\
       -D$(UPROJECT)_REVIS=$($(PROJECT)_REVIS)\
@@ -209,77 +230,93 @@ ifdef DEBUG
 endif
 ifeq ($(TARGET),UNIX)
  DEFS:=$(DEFS) -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L
-endif
-
-# PRF: Performance options (applied at compile- & link-time)
-# OPT: Optimization options (applied at compile-time)
+else
+ DEFS:=-DWIN32_LEAN_AND_MEAN $(DEFS)
+endif # }
+# { CC[LD]FLG
 ifdef DEBUG
- OPT:=-O0 -g
+# CCLDFLG: Performance options (applied at compile- & link-time)
+# CCFLG: Optimization options (applied at compile-time)
+ CCFLG:=-O0 -g
  ifdef MEMCHECK
-  PRF:=
+  CCLDFLG:=
  else
-  PRF:=-pg -no-pie
+  CCLDFLG:=-pg -no-pie
  endif ## MEMCHECK
 else
- OPT:=-O3 -Ofast
+ CCFLG:=-O3 -Ofast
  ifeq ($(TARGET),SHARED)
-  PRF:=-s
+  CCLDFLG:=-s
  else
-  PRF:=
+  CCLDFLG:=
  endif
-endif ## DEBUG
-# Binary bit-ness
+endif
 ifeq ($(BITS),32)
- PRF:=$(PRF) -m32
+ CCLDFLG:=$(CCLDFLG) -m32
 else
- PRF:=$(PRF) -m64
-endif ## BITS
+ CCLDFLG:=$(CCLDFLG) -m64
+endif # }
 
-$(PROJECT)_PCFLAGS:=-std=c99 $(WRNS) $(INCS) $(OPT) $(PRF) $(CFLAGS)
-$(PROJECT)_PCPPFLAGS:=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
-$(PROJECT)_PLDFLAGS:=$(PRF) $(LDFLAGS)
+# { CHECK
+$(PROJECT)_CHECK_CFLAGS:=-std=c99 $(WRNS) $(INCS) $(CCFLG) $(CCLDFLG) $(CFLAGS)
+$(PROJECT)_CHECK_CPPFLAGS:=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
+$(PROJECT)_CHECK_LDFLAGS:=$(CCLDFLG) $(LDFLAGS)
 ifeq ($(TARGET),WINDOWS)
  ifeq ($(MODE),SHARED)
-  $(PROJECT)_PCPPFLAGS:=-D$(PROJECT)_IMPORTS $($(PROJECT)_PCPPFLAGS)
+  $(PROJECT)_CHECK_CPPFLAGS:=-D$(PROJECT)_IMPORTS $($(PROJECT)_CHECK_CPPFLAGS)
  endif
 endif
 
-ifeq ($(BITS),64)
+CHECK_SRC:=\
+	src/main.c\
+
+CHECK_HDR:=\
+
+# }
+
+ifeq ($(BITS),64) # {
  DEFS:=-D$(UPROJECT)_TARGET_BIT=64 $(DEFS)
 else
  DEFS:=-D$(UPROJECT)_TARGET_BIT=32 $(DEFS)
-endif
-
-### Linker arguments
+endif # }
 LNK:=
-ifeq ($(TARGET),UNIX)
+ifeq ($(TARGET),UNIX) # {
  ifeq ($(MODE),SHARED)
   ifdef PIC2
-   OPT:=$(OPT) -fPIC
+   CCFLG:=$(CCFLG) -fPIC
   else
-   OPT:=$(OPT) -fpic
-  endif ## PIC2
+   CCFLG:=$(CCFLG) -fpic
+  endif
   LNK:=-shared
-  TARGETNAME:=$(UNISHRNAME)
- else # Static
-  TARGETNAME:=$(UNISTANAME)
- endif ## MODE
+ endif
 else # Windows target
- DEFS:=-DWIN32_LEAN_AND_MEAN $(DEFS)
  LNK:=-Wl,--subsystem,windows
  ifeq ($(MODE),SHARED)
   DEFS:=-D$(PROJECT)_EXPORTS $(DEFS)
   LNK:=$(LNK) -shared
-  TARGETNAME:=$(WINSHRNAME)
- else # Static
-  TARGETNAME:=$(WINSTANAME)
- endif ## MODE
-endif ## TARGET
+ endif
+endif # }
+ifeq ($(TARGET),UNIX) # {
+ ifeq ($(MODE),SHARED)
+  LIBFILE:=$(UNISHRFILE)
+  LIBNAME:=$(UNISHRNAME)
+ else
+  LIBFILE:=$(UNISTAFILE)
+  LIBNAME:=$(UNISTANAME)
+ endif
+else # Windows target
+ ifeq ($(MODE),SHARED)
+  LIBFILE:=$(WINSHRFILE)
+  LIBNAME:=$(WINSHRNAME)
+ else
+  LIBFILE:=$(WINSTAFILE)
+  LIBNAME:=$(WINSTANAME)
+ endif
+endif # }
 
-# Basic, platform-indenpendent flags
-$(PROJECT)_CFLAGS=-std=c99 -pedantic $(WRNS) $(INCS) $(OPT) $(PRF) $(CFLAGS)
+$(PROJECT)_CFLAGS=-std=c99 $(WRNS) $(INCS) $(CCFLG) $(CCLDFLG) $(CFLAGS)
 $(PROJECT)_CPPFLAGS=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
-$(PROJECT)_LDFLAGS=$(PRF) $(LNK) $(LDFLAGS)
+$(PROJECT)_LDFLAGS=$(CCLDFLG) $(LNK) $(LDFLAGS)
 
 SRC:=\
 	src/brrtools/brrlib.c\
@@ -303,7 +340,3 @@ HDR:=\
 	src/brrtools/brrstr.h\
 	src/brrtools/brrpath.h\
 
-PSRC:=\
-	src/main.c\
-
-PHDR:=\
