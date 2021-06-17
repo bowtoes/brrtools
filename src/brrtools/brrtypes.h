@@ -18,7 +18,6 @@ limitations under the License.
 #define BRRTOOLS_TYPES_H
 
 #include <stdint.h>
-#include <stdbool.h>
 
 typedef int8_t      brrs1;
 typedef uint8_t     brru1;
@@ -52,8 +51,6 @@ typedef brrs8   brrof;
 // Byte.
 typedef brru1   brrby;
 #define BRRTOOLS_BRRBY_MAX 255
-// Bool.
-typedef bool    brrb1;
 
 // Array element count.
 typedef brru2   brrct;

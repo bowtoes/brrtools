@@ -17,6 +17,7 @@ limitations under the License.
 #include "brrtools/brrpath.h"
 
 #include "brrtools/brrapi.h"
+#include "brrtools/brrstr.h"
 #include "brrtools/noinstall/utils.h"
 #include "brrtools/brrplatform.h"
 #include "brrtools/brrlib.h"
@@ -28,9 +29,11 @@ limitations under the License.
 #include <sys/types.h>
 #include <sys/stat.h>
 
-//#if defined(BRRPLATFORMTYPE_UNIX)
-//# include <ftw.h> // nftw()
-//#endif
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+# include <windows.h>
+#else
+# include <unistd.h>
+#endif
 
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 # if BRRTOOLS_TARGET_BIT == 64
@@ -66,43 +69,27 @@ typedef struct stat pathstT;
 # define PATHSEPCHR '\\'
 # define PATHSEPSTR "\\"
 # define ROOTSTR "C:"
+# define BRRPATH_MAX 260
 #else
 # define PATHSEPCHR '/'
 # define PATHSEPSTR "/"
 # define ROOTSTR "/"
+# define BRRPATH_MAX 4097
 #endif
-#define MAXNAME 255
+#define BRRPATH_MAXNAME 255
 
 #define CURDIR "."
 #define PARDIR ".."
 
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-static const brrb1 csepaths = true;
+static const brrb1 casepaths = false;
 #else
-static const brrb1 csepaths = false;
+static const brrb1 casepaths = true;
 #endif
 
-brrb1 BRRCALL
-brrpath_absolute(const char *const path)
-{
-	brrb1 r = false;
-	if (path && path[0] != 0) {
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-		brrsz l = strlen(path);
-		if (path[0] == PATHSEPCHR ||
-		 (l >= 2 && path[0] == path[1] && path[1] == PATHSEPCHR) ||
-		 (l >= 3 && isalpha(path[0]) && path[1] == ':' && path[2] == PATHSEPCHR))
-#elif defined(BRRPLATFORMTYPE_UNIX)
-		if (path[0] == PATHSEPCHR)
-#endif
-			r = true;
-	}
-	return r;
-}
-
-static brrb1 isnamechar(char ch) {
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-	// todo I don't think this is exhaustive
+static brrb1 BRRCALL
+isnamechar(char ch) {
+#if defined(BRRPLATFORMTYPE_WINDOWS) // todo I don't think this is exhaustive
 	return !(ch==PATHSEPCHR||
 			ch=='<'||ch=='>'||
 			ch==':'||ch=='"'||
@@ -116,90 +103,136 @@ static brrb1 isnamechar(char ch) {
 	return !(ch == PATHSEPCHR||ch=='\\'||ch=='/');
 #endif
 }
-
-static char *cleanflatpath(const char *const path) {
-	char *res = NULL;
-	if (path && path[0] != 0) {
-		brrsz l = strlen(path);
-		brrsz c = 0;
-		if (!brrlib_alloc((void **)&res, l + 1, 1))
-			return NULL;
-		for (brrsz i = 0; i < l; ++i) {
-			if (isnamechar(path[i]) ||
-			   (i + 1 == l && path[i] == PATHSEPCHR)) {
-				res[c++] = path[i];
-			} else if (i + 1 < l && isnamechar(path[i+1])) {
-				res[c++] = path[i];
-			}
+static brrstrT BRRCALL
+cleanflatpath(const char *const path) {
+	brrstrT str = brrstr_new(path, -1);
+	brrsz c = 0, l = brrstr_strlen(&str);
+	for (brrsz i = 0; i < l; ++i) {
+		if (isnamechar(path[i]) ||
+		   (i + 1 == l && path[i] == PATHSEPCHR) ||
+		   (i + 1 < l && isnamechar(path[i+1]))) {
+			((char *)brrstr_cstr(&str))[c++] = path[i];
 		}
-		if (!brrlib_alloc((void **)&res, c+1, 0)) {
-			brrlib_alloc((void **)&res, 0, 0);
-			return NULL;
-		}
-		res[c] = 0;
 	}
-	return res;
+	brrstr_resize(&str, c + 1);
+	return str;
 }
+static brrpath_typeT BRRCALL
+gettype(pathstT s) {
+	brrpath_typeT t = 0;
+	if (TYPEDIR(s.st_mode)) {
+		t |= brrpath_type_directory;
+	} else if (TYPEFIL(s.st_mode)) {
+		t |= brrpath_type_file;
+	} else if (TYPELNK(s.st_mode)) {
+		t |= brrpath_type_link;
+	} else {
+		t |= brrpath_type_irregular;
+	}
+	return t;
+}
+static brrpath_permsT BRRCALL
+getperms(pathstT stat) {
+	brrpath_permsT perms = brrpath_perms_none;
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	if (stat.st_mode & _S_IREAD)
+		perms |= brrpath_perms_readable;
+	if (stat.st_mode & _S_IWRITE)
+		perms |= brrpath_perms_writable;
+	if (stat.st_mode & _S_IEXEC)
+		perms |= brrpath_perms_executable;
+#else
+	/* Unix permissions are complicated; this doesn't take into account acls
+	 * or anything extra. Probably not safe. */
+	if (geteuid() == stat.st_uid) {
+		if (stat.st_mode & S_IRUSR)
+			perms |= brrpath_perms_readable;
+		if (stat.st_mode & S_IWUSR)
+			perms |= brrpath_perms_writable;
+		if (stat.st_mode & S_IXUSR)
+			perms |= brrpath_perms_executable;
+	} else if (getgid() == stat.st_gid) {
+		if (stat.st_mode & S_IRGRP)
+			perms |= brrpath_perms_readable;
+		if (stat.st_mode & S_IWGRP)
+			perms |= brrpath_perms_writable;
+		if (stat.st_mode & S_IXGRP)
+			perms |= brrpath_perms_executable;
+	} else {
+		if (stat.st_mode & S_IROTH)
+			perms |= brrpath_perms_readable;
+		if (stat.st_mode & S_IWOTH)
+			perms |= brrpath_perms_writable;
+		if (stat.st_mode & S_IXOTH)
+			perms |= brrpath_perms_executable;
+	}
+#endif
+	return perms;
+}
+
+brrstrT BRRCALL
+brrpath_cwd(void) {
+	static char tmp[BRRPATH_MAX] = {0};
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	GetCurrentDirectory(BRRPATH_MAX, tmp);
+#else
+	getcwd(tmp, BRRPATH_MAX);
+#endif
+	return brrstr_new(tmp, BRRPATH_MAX - 1);
+}
+
+char *BRRCALL
+brrpath_flatten(const char *const path)
+{
+	if (!path)
+		return NULL;
+}
+
+brrb1 BRRCALL
+brrpath_is_absolute(const char *const path)
+{
+	if (path && path[0] != 0) {
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+		brrsz l = strlen(path);
+		// This is likely incomplete
+		if (path[0] == PATHSEPCHR ||
+		 (l >= 2 && path[0] == PATHSEPCHR && path[1] == PATHSEPCHR) ||
+		 (l >= 3 && isalpha(path[0]) && path[1] == ':' && path[2] == PATHSEPCHR))
+#elif defined(BRRPLATFORMTYPE_UNIX)
+		if (path[0] == PATHSEPCHR)
+#endif
+			return true;
+	}
+	return false;
+}
+
 brrpath_statT BRRCALL
 brrpath_stat(const char *const path, int follow_link)
 {
 	brrpath_statT st = {0};
-	if (path && path[0] != 0) {
-		pathstT s = {0};
-		int err = 0;
-		if (follow_link)
-			err = statpath(path, &s);
-		else
-			err = lstatpath(path, &s);
-		if (err != 0) {
-			if (errno != ENOENT) {
-#if defined(GFS_PLATFORMTYPE_UNIX)
-				if (errno == ENOTDIR) st.error |= brrpath_statinvalidtype;
-				else
-#endif
-				st.error |= brrpath_stat_error;
-			} else {
-				st.type |= brrpath_type_directory;
-			}
-		} else {
-			st.size = s.st_size;
-			if (TYPEDIR(s.st_mode)) {
-				st.type |= brrpath_type_directory;
-			} else if (TYPEFIL(s.st_mode)) {
-				st.type |= brrpath_type_file;
-			} else if (TYPELNK(s.st_mode)) {
-				st.type |= brrpath_type_link;
-			} else {
-				st.type |= brrpath_type_irregular;
-			}
-			st.exists = true;
-		}
-	} else {
-		st.error |= brrpath_stat_invalid_path;
-	}
-	if (!st.error)
-		st.absolute = brrpath_absolute(path);
-	return st;
-}
-brrpath_statT BRRCALL
-brrpath_fstat(int fd)
-{
-	brrpath_statT st = {0};
 	pathstT s = {0};
-	if (fstatpath(fd, &s) != 0) {
-		st.error |= brrpath_stat_error;
-	} else {
+	if (!path || path[0] == 0) {
+		st.error |= brrpath_stat_invalid_path;
+		return st;
+	}
+	if (0 == (follow_link?statpath(path, &s):lstatpath(path, &s))) {
 		st.size = s.st_size;
-		if (TYPEDIR(s.st_mode)) {
-			st.type |= brrpath_type_directory;
-		} else if (TYPEFIL(s.st_mode)) {
-			st.type |= brrpath_type_file;
-		} else if (TYPELNK(s.st_mode)) {
-			st.type |= brrpath_type_link;
-		} else {
-			st.type |= brrpath_type_irregular;
-		}
 		st.exists = true;
+		st.type = gettype(s);
+		st.perms = getperms(s);
+		st.is_absolute = brrpath_is_absolute(path);
+	} else {
+		if (errno != ENOENT) {
+#if defined(BRRPLATFORMTYPE_UNIX)
+			if (errno == ENOTDIR)
+				st.error |= brrpath_stat_invalid_type;
+			else
+#endif
+			st.error |= brrpath_stat_error;
+		} else {
+			st.type |= brrpath_type_directory;
+			st.is_absolute = brrpath_is_absolute(path);
+		}
 	}
 	return st;
 }
@@ -207,6 +240,7 @@ brrpath_fstat(int fd)
 brrb1 BRRCALL
 brrpath_exists(const char *const path, int follow_link)
 {
+	/* TODO is there a version of `access` that doesn't follow symlinks? */
 	brrpath_statT s = brrpath_stat(path, follow_link);
 	return s.error == 0 && s.exists;
 }
@@ -218,6 +252,10 @@ brrpath_type(const char *const path, int follow_link)
 }
 
 /*
+#if defined(BRRPLATFORMTYPE_UNIX)
+# include <ftw.h> // nftw()
+#endif
+
 brrb1 BRRCALL
 brrpath_makepath(const char *const path, brrb1 parents, brrb1 clean)
 {

@@ -14,90 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "brrtools/brrlib.h"
-
-#include "brrtools/brrapi.h"
 #include "brrtools/brrplatform.h"
-#include "brrtools/brrmem.h"
 
-#include <stdlib.h>
+#include <stdio.h>
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 # include <windows.h>
 # include <malloc.h>
 # include <conio.h>
 #else
-# include <stdio.h>
 # include <termios.h>
 # include <sys/select.h>
 # if defined(BRRPLATFORM_AIX)
-#  // https://cr.yp.to/docs/unixport.html
+/* https://cr.yp.to/docs/unixport.html */
 #  include <time.h>
-# endif // BRRPLATFORM_AIX
+# endif /* BRRPLATFORM_AIX */
 # include <sys/time.h>
 #endif
+#include <stdlib.h>
 
-#include "brrtools/brrtypes.h"
+#include "brrtools/brrlib.h"
+#include "brrtools/brrmem.h"
 
-#define BRRBASES \
-    "0123456789"\
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
-
-#define BRREXTBASES \
-    "abcdefghijklmnopqrstuvwxyz"\
-    "([{</\"'?!@#$%^&*|,.`~=+-_;:\\>}])"\
-
-brrb1 brrlib_use_extended_bases = false;
-const char brrlib_bases[] = BRRBASES BRREXTBASES;
-
-static const brrsz maxnormalbase = sizeof(BRRBASES)-1;
-static const brrsz maxextbase = (sizeof(BRREXTBASES)-1)/2;
-static const brrsz maxbase = maxnormalbase + maxextbase;
-brrsz BRRCALL
-brrlib_max_base(void)
-{
-	return brrlib_use_extended_bases?maxbase:maxnormalbase;
-}
-
-brrsz BRRCALL
-brrlib_print_base(char *const destination, brru8 max_length,
-	    brru8 number, brrb1 is_signed, brru1 base)
-{
-	brrsz ns = 0;
-	brrb1 isneg = false;
-	if (!max_length || base < 2 || base > (brrlib_use_extended_bases?maxbase:maxnormalbase)) {
-		return 0;
-	} else if (!number) {
-		destination[0]='0';
-		destination[1]=0;
-		return 1;
-	} else if (is_signed && (brrs8)number < 0) {
-		isneg = true;
-		number = -(brrs8)number;
-		destination[ns] = '-';
-		ns++;
-	}
-	for (;ns < max_length && number; number /= base) {
-		brrsz idx = number % base;
-		if (idx > maxnormalbase) {
-			idx = (idx - maxnormalbase) * 2 + maxnormalbase;
-			destination[ns++] = brrlib_bases[idx];
-			destination[ns++] = brrlib_bases[idx+1];
-		} else {
-			destination[ns++] = brrlib_bases[idx];
-	}
-	}
-	brrmem_static_reverse(destination + isneg, ns - isneg);
-	destination[ns] = 0;
-
-	return ns;
-}
-
-brrb1 BRRCALL
+int BRRCALL
 brrlib_pause(void)
 {
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 	getch();
-	return true;
 #elif defined(BRRPLATFORMTYPE_UNIX)
 	struct termios new, before;
 	/* https://stackoverflow.com/a/18806671/13528679 */
@@ -110,27 +52,25 @@ brrlib_pause(void)
 	tcsetattr(0, TCSANOW, &new); /* set immediately */
 	getc(stdin);
 	tcsetattr(0, TCSANOW, &before);
-	return true;
 #else
-	return false;
+	return 0;
 #endif
+	return 1;
 }
-
-brrb1 BRRCALL
+int BRRCALL
 brrlib_clear(void)
 {
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-	// https://cboard.cprogramming.com/cplusplus-programming/93806-conio-h-functions-mingw-post672795.html#post672795
+	/* https://cboard.cprogramming.com/cplusplus-programming/93806-conio-h-functions-mingw-post672795.html#post672795 */
 	COORD a = {0,0};
 	DWORD nwrite;
 	FillConsoleOutputAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07, 2000, a, &nwrite);
-	return true;
 #elif defined(BRRPLATFORMTYPE_UNIX)
 	printf("\x1b[1;1H\x1b[2J");
-	return true;
 #else
-	return false;
+	return 0;
 #endif
+	return 1;
 }
 
 brru8 BRRCALL
@@ -142,18 +82,17 @@ brrlib_utime(void)
 	GetSystemTimeAsFileTime(&time);
 	lrg.u.LowPart = time.dwLowDateTime;
 	lrg.u.HighPart = time.dwHighDateTime;
-	// Convert windows FILETIME (100ns precision) to usec precision
+	/* Convert windows FILETIME (100ns precision) to usec precision */
 	lrg.QuadPart /= 10;
-	// Offset windows epoch to be UNIX epoch
+	/* Offset windows epoch to be UNIX epoch (not accurate) */
 	return lrg.QuadPart - 11644473838000000;
 #else
-	// TODO gettimeofday deprecated.
+	/* TODO gettimeofday deprecated. */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000000 + tv.tv_usec;
-#endif // BRRPLATFORMTYPE_WINDOWS
+#endif /* BRRPLATFORMTYPE_WINDOWS */
 }
-
 void BRRCALL
 brrlib_usleep(brru8 usec)
 {
@@ -161,7 +100,7 @@ brrlib_usleep(brru8 usec)
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 		HANDLE timer;
 		LARGE_INTEGER ft;
-		// Convert usec precision to windows FILETIME (100ns precision).
+		/* Convert usec precision to windows FILETIME (100ns precision). */
 		ft.QuadPart = -(10 * (__int64)usec);
 		timer = CreateWaitableTimer(NULL, TRUE, NULL);
 		SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
@@ -174,36 +113,36 @@ brrlib_usleep(brru8 usec)
 	}
 }
 
-brrb1 BRRCALL
-brrlib_alloc(void **current, brrsz size, brrb1 zero)
+int BRRCALL
+brrlib_alloc(void **current, brrsz size, int zero)
 {
-	brrb1 res = false;
+	int res = 0;
 	if (current) {
 		void *cur = *current;
 		if (!size) {
 			if (cur)
 				free(cur);
 			cur = NULL;
-			res = true;
+			res = 1;
 		} else if (zero) {
 			void *t = calloc(1, size);
 			if (t) {
 				if (cur)
 					free(cur);
 				cur = t;
-				res = true;
+				res = 1;
 			}
 		} else if (!cur) {
 			void *t = malloc(size);
 			if (t) {
 				cur = t;
-				res = true;
+				res = 1;
 			}
 		} else {
 			void *t = realloc(cur, size);
 			if (t) {
 				cur = t;
-				res = true;
+				res = 1;
 			}
 		}
 		*current = cur;
@@ -212,27 +151,28 @@ brrlib_alloc(void **current, brrsz size, brrb1 zero)
 }
 
 brrsz BRRCALL
-brrlib_ndigits(brrb1 is_signed, brru8 number, brru1 base)
+brrlib_ndigits(brru8 number, int is_signed, brru1 base)
 {
 	brrsz c = 1;
-	if (is_signed && (brrs8)number < 0)
-		number = (brru8)(-(brrs8)number);
-	if (number == 0)
-		return c;
-	while (number/=base) c++; /* teehee */
+	if (base < 2)
+		return 0;
+	else if (!number)
+		return 1;
+	else if (is_signed && (brrs8)number < 0)
+		number = -(brrs8)number;
+	while (number/=base)
+		c++; /* teehee */
 	return c;
 }
-
 brrs8 BRRCALL
 brrlib_wrap(brrs8 number, brru8 wrap, brrs8 offset)
 {
 	if (!wrap)
 		return 0;
-	if (number >= 0) {
+	else if (number >= 0)
 		return (brrs8)((brru8)number % wrap);
-	} else {
+	else
 		return (brrs8)(wrap - 1 - ((brru8)(-(number + 1)) % wrap)) + offset;
-	}
 }
 
 /* Written in 2015 by Sebastiano Vigna (vigna@acm.org)
@@ -270,14 +210,12 @@ brrlib_rand(void)
 	XOSHIRO256(randseed, res);
 	return res;
 }
-
 brru8 BRRCALL
 brrlib_srand(brru8 seed)
 {
 	SPLITMIX64(seed,randseed);
 	return randseed[0] + randseed[3];
 }
-
 #define CPYSEED(_from, _to) (_to[0]=_from[0],_to[1]=_from[1],_to[2]=_from[2],_to[3]=_from[3])
 brru8 BRRCALL
 brrlib_trand(void)
@@ -292,27 +230,44 @@ brrlib_trand(void)
 	return res;
 }
 
-brru8 BRRCALL brrlib_umax(brru8 a, brru8 b)
-{return a>b?a:b;}
-brru8 BRRCALL brrlib_umin(brru8 a, brru8 b)
-{return a<b?a:b;}
-brru8 BRRCALL brrlib_uclamp(brru8 x, brru8 min, brru8 max)
-{return x<min?min:x>max?max:x;}
-brrs8 BRRCALL brrlib_smax(brrs8 a, brrs8 b)
-{return a>b?a:b;}
-brrs8 BRRCALL brrlib_smin(brrs8 a, brrs8 b)
-{return a<b?a:b;}
-brrs8 BRRCALL brrlib_sclamp(brrs8 x, brrs8 min, brrs8 max)
-{return x<min?min:x>max?max:x;}
+brru8 BRRCALL
+brrlib_umax(brru8 a, brru8 b)
+{
+	return a>b?a:b;
+}
+brru8 BRRCALL
+brrlib_umin(brru8 a, brru8 b)
+{
+	return a<b?a:b;
+}
+brru8 BRRCALL
+brrlib_uclamp(brru8 x, brru8 min, brru8 max)
+{
+	return x<min?min:x>max?max:x;
+}
+brrs8 BRRCALL
+brrlib_smax(brrs8 a, brrs8 b)
+{
+	return a>b?a:b;
+}
+brrs8 BRRCALL
+brrlib_smin(brrs8 a, brrs8 b)
+{
+	return a<b?a:b;
+}
+brrs8 BRRCALL
+brrlib_sclamp(brrs8 x, brrs8 min, brrs8 max)
+{
+	return x<min?min:x>max?max:x;
+}
 
 brru8 BRRCALL
 brrlib_ugcf(brru8 a, brru8 b)
 {
 	if (a == b)
 		return a;
-	if (!a || !b)
+	else if (!a || !b)
 		return 0;
-
 	while (b != 0) {
 		brru8 t = b;
 		b = a % t;
@@ -320,15 +275,13 @@ brrlib_ugcf(brru8 a, brru8 b)
 	}
 	return a;
 }
-
 brrs8 BRRCALL
 brrlib_sgcf(brrs8 a, brrs8 b)
 {
 	if (a == b)
 		return a;
-	if (!a || !b)
+	else if (!a || !b)
 		return 0;
-
 	while (b != 0) {
 		brrs8 t = b;
 		b = a % t;

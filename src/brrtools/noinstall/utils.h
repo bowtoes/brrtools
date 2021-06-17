@@ -42,10 +42,12 @@
 # define brr_read(_fd, _dst, _sz) _read(_fd, _dst, _sz)
 # define brr_write(_fd, _src, _sz) _write(_fd, _src, _sz)
 # define brr_lseek(_fd, _of, _whn) _lseek(_fd, _of, _whn)
+# define brr_access(_pt, _md) _access_s(_pt, _md)
 #else
 # define brr_read(_fd, _dst, _sz) read(_fd, _dst, _sz)
 # define brr_write(_fd, _src, _sz) write(_fd, _src, _sz)
 # define brr_lseek(_fd, _of, _whn) lseek(_fd, _of, _whn)
+# define brr_access(_pt, _md) access(_pt, _md)
 #endif
 
 #endif /* BRRUTILS_H */

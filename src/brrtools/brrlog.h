@@ -17,12 +17,14 @@ limitations under the License.
 #ifndef BRRTOOLS_BRRLOG_H
 #define BRRTOOLS_BRRLOG_H
 
+/* I may be stupid, ... */
+
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
 BRRCPPSTART
 
-/* ANSI colors for logging. */
+/* ANSI colors used for logging. */
 typedef enum brrlog_color {
 	brrlog_color_last = -1,    /*  Last used color. */
 	brrlog_color_normal,       /*  Normal/default color. */
@@ -44,11 +46,8 @@ typedef enum brrlog_color {
 	brrlog_color_lightwhite,   /*  Light white. */
 	brrlog_color_count,
 } brrlog_colorT;
-/* Get a string representation of the given log color. */
-BRRAPI const char *BRRCALL brrlog_fgcolor_str(brrlog_colorT foreground);
-BRRAPI const char *BRRCALL brrlog_bgcolor_str(brrlog_colorT background);
 
-/* Font used for log. */
+/* Font types to used for logging. */
 typedef enum brrlog_font {
 	brrlog_font_last = -1, /*  Last used font. */
 	brrlog_font_normal,    /*  Use the normal font. */
@@ -63,10 +62,8 @@ typedef enum brrlog_font {
 	brrlog_font_9,         /*  Use alternate font 9. */
 	brrlog_font_count
 } brrlog_fontT;
-/* Get a string representation of the given log font. */
-BRRAPI const char *BRRCALL brrlog_font_str(brrlog_fontT font);
 
-/* Text style used for log. */
+/* Text styles used for logging. */
 typedef enum brrlog_style {
 	brrlog_style_last = -1,     /*  Last used style. */
 	brrlog_style_normal,        /*  Normal style, text is plain. */
@@ -102,10 +99,11 @@ typedef enum brrlog_style {
 	brrlog_style_count,
 	brrlog_style_none = brrlog_style_normal,
 } brrlog_styleT;
-/* Get a string representation of the given log style. */
-BRRAPI const char *BRRCALL brrlog_style_str(brrlog_styleT style);
 
-/* Log level used to determine whether the message should be logged. */
+/* Log levels used for logging.
+ * These control whether a message is logged, based on the minimum and maximum
+ * log levels set.
+ * */
 typedef enum brrlog_priority {
 	brrlog_priority_last = -1, /* Last used log priority. */
 	brrlog_priority_none,      /* No priority; nothing is logged. */
@@ -116,390 +114,455 @@ typedef enum brrlog_priority {
 	brrlog_priority_debug,     /* Debug message, only logged when debug is enabled. */
 	brrlog_priority_count,
 } brrlog_priorityT;
-/* Get a string representation of the given log level. */
-BRRAPI const char *BRRCALL brrlog_priority_str(brrlog_priorityT level);
-BRRAPI const char *BRRCALL brrlog_priority_dbgstr(brrlog_priorityT level);
 
+/* Destinations for log messages to go.
+ * Only 'stdout' and 'stderr' loggable, for now.
+ * TODO loggable to generic 'FILE *'.
+ * */
 typedef enum brrlog_destination {
 	brrlog_destination_last = -1,
+	brrlog_destination_null,
 	brrlog_destination_stdout,
 	brrlog_destination_stderr,
 } brrlog_destinationT;
+
+/* Basic log-level structure, storing a log message's priortiy, destination, and
+ * prefix.
+ * */
 typedef struct brrlog_level {
 	brrlog_priorityT priority;
 	brrlog_destinationT destination;
 	const char *prefix;
 } brrlog_levelT;
 
-/* Struct for representing different logging text formats. */
+/* Settings used for stylizing log output. */
 typedef struct brrlog_format {
-	brrlog_levelT level;      /* Format log level. */
 	brrlog_colorT foreground; /* Format foreground color. */
 	brrlog_colorT background; /* Format background color. */
 	brrlog_styleT style;      /* Format text style. */
 	brrlog_fontT  font;       /* Format format font. */
 } brrlog_formatT;
+typedef struct brrlog_type {
+	brrlog_levelT level;
+	brrlog_formatT format;
+} brrlog_typeT;
 
-/* Format for critical logs. */
-extern BRRAPI brrlog_formatT brrlog_format_critical;
-/* Format for error logs. */
-extern BRRAPI brrlog_formatT brrlog_format_error;
-/* Format for normal logs. */
-extern BRRAPI brrlog_formatT brrlog_format_normal;
-/* Format for warning logs. */
-extern BRRAPI brrlog_formatT brrlog_format_warning;
-/* Format for debug logs. */
-extern BRRAPI brrlog_formatT brrlog_format_debug;
-/* Clear format; unstyled log text. */
-extern BRRAPI brrlog_formatT brrlog_format_clear;
-/* Format storing last-used log style settings. */
-extern BRRAPI brrlog_formatT brrlog_format_last;
+extern BRRAPI brrlog_typeT brrlog_type_critical ; /* Logs of 'critical' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT brrlog_type_error    ; /* Logs of 'error' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT brrlog_type_normal   ; /* Logs of 'normal' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT brrlog_type_warning  ; /* Logs of 'warning' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT brrlog_type_debug    ; /* Logs of 'debug' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT brrlog_type_clear    ; /* Format used to clear log styles once log output has finished. */
+extern BRRAPI brrlog_typeT brrlog_type_last     ; /* Settings last-used to log a message. w*/
 
-/* Whether log output is styled. */
-extern BRRAPI brrb1 brrlogctl_styleon;
-/* Whether debug logs are enabled. */
-extern BRRAPI brrb1 brrlogctl_debugon;
-/* Whether automatic log flushing is done. */
-extern BRRAPI brrb1 brrlogctl_flushon;
-/* Whether file, function, and line information should also be logged. */
-extern BRRAPI brrb1 brrlogctl_verbose;
+/* Various control settings for the log system. */
+extern BRRAPI struct brrlogctl {
+	brru2 style_enabled:1;    /* Whether log styling is enabled at all. */
+	brru2 debug_enabled:1;    /* Whether the 'debug' log priority is enabled. */
+	brru2 flush_enabled:1;    /* Whether automatic stream flushing is enabled. */
+	brru2 verbose_enabled:1;  /* Whether file, function, and line information should also be logged. */
+	brru2 prefixes_enabled:1; /* Whether logs should print their prefixes by default. */
+	brru2 newline_enabled:1;  /* Whether logs should print a newline by default. */
+} brrlogctl;
+
+/* Get a string representation of the given color. */
+BRRAPI const char *BRRCALL brrlog_color_str(brrlog_colorT color);
+/* Get a string representation of the given font. */
+BRRAPI const char *BRRCALL brrlog_font_str(brrlog_fontT font);
+/* Get a string representation of the given style. */
+BRRAPI const char *BRRCALL brrlog_style_str(brrlog_styleT style);
+/* Get a string representation of the given level. */
+BRRAPI const char *BRRCALL brrlog_priority_str(brrlog_priorityT level);
+/* Get a debug string representation of the given level. */
+BRRAPI const char *BRRCALL brrlog_priority_dbgstr(brrlog_priorityT level);
 
 /* Get maximum number of bytes that can be logged at once. */
 BRRAPI brrsz BRRCALL brrlog_logmax(void);
 /* Set maximum number of bytes that can be logged at once.
  * Set to 0 to disable maximum.
- * Returns 'true' if the max was successfully set, 'false' otherwise. */
-BRRAPI brrb1 BRRCALL brrlog_setlogmax(brrsz newmax);
-/* Sets the minimum priority that will be logged. Any priority less will not be logged. */
-BRRAPI void BRRCALL brrlog_setminpriority(brrlog_priorityT newmin);
-/* Returns the current minimum loggable priority. */
-BRRAPI brrlog_priorityT BRRCALL brrlog_minpriority(void);
-/* Sets the maximum priority that will be logged. Any priority greater will not be logged. */
-BRRAPI void BRRCALL brrlog_setmaxpriority(brrlog_priorityT newmax);
-/* Returns the current maximum loggable priority. */
-BRRAPI brrlog_priorityT BRRCALL brrlog_maxpriority(void);
+ * Returns 1 if the max was successfully set, 0 otherwise.
+ * MUST be called before using any log functions, acts as an initialization.
+ * */
+BRRAPI int BRRCALL brrlog_setlogmax(brrsz newmax);
 /* Returns number of times logged. */
 BRRAPI brru8 BRRCALL brrlog_count(void);
 /* Resets log count to 0. */
 BRRAPI void BRRCALL brrlog_resetcount(void);
+/* Returns the current minimum loggable priority. */
+BRRAPI brrlog_priorityT BRRCALL brrlog_minpriority(void);
+/* Sets the minimum priority that will be logged.
+ * Any priority less than the given will not be logged.
+ * */
+BRRAPI void BRRCALL brrlog_setminpriority(brrlog_priorityT newmin);
+/* Returns the current maximum loggable priority. */
+BRRAPI brrlog_priorityT BRRCALL brrlog_maxpriority(void);
+/* Sets the maximum priority that will be logged.
+ * Any priority greater than the given will not be logged.
+ * */
+BRRAPI void BRRCALL brrlog_setmaxpriority(brrlog_priorityT newmax);
 
-BRRAPI brrb1 BRRCALL brrlog_init(void);
+/* Initialize the log buffer.
+ * The buffer is only used if 'logmax' isn't 0.
+ * Run either this or 'brrlog_setlogmax' before trying to log.
+ * Returns 1 on success and 0 on failure.
+ * */
+BRRAPI int BRRCALL brrlog_init(void);
+/* Frees the log buffer used by brrlog. */
 BRRAPI void BRRCALL brrlog_deinit(void);
-#define LOG_PARAMS \
-	brrlog_priorityT priority, brrlog_destinationT destination, const char *const prefix, \
-	brrlog_colorT foreground, brrlog_colorT background, brrlog_styleT style, brrlog_fontT font, \
-	brrb1 print_prefix, brrb1 print_newline, const char *const file, const char *const function, brru8 line
-BRRAPI brrsz BRRCALL brrlog_text(LOG_PARAMS, const char *const format, ...);
-BRRAPI brrsz BRRCALL brrlog_digits(LOG_PARAMS, char digit_separator, brrsz separator_spacing,
-    brrb1 is_signed, brru8 number, brru1 base);
-BRRAPI brrsz BRRCALL brrlog_bits(LOG_PARAMS, brrb1 reverse_bytes, brrb1 reverse_bits,
-    brrsz bits_to_print, const void *const data, char bit_separator, brrsz separator_spacing);
 
-#undef LOG_PARAMS
+#define _brrlog_log_params \
+    brrlog_priorityT priority, brrlog_destinationT destination, const char *prefix, \
+    brrlog_colorT foreground, brrlog_colorT background, brrlog_styleT style, brrlog_fontT font, \
+    char *const buffer, int print_prefix, int print_newline, \
+    const char *const file, const char *const function, brru8 line
+BRRAPI brrsz BRRCALL brrlog_text(_brrlog_log_params,
+    const char *const format, ...);
+BRRAPI brrsz BRRCALL brrlog_digits(_brrlog_log_params,
+    brru8 number, int base, int is_signed, char digit_separator, brrsz separator_spacing);
+BRRAPI brrsz BRRCALL brrlog_bits(_brrlog_log_params,
+    const void *const data, brrsz bits_to_print,
+    int reverse_bytes, int reverse_bits, char bit_separator, brrsz separator_spacing);
 
-/* ********************* */
-/* MESSAGE */
-/* ********************* */
-#define BRRLOG_LOG_MESSAGE(priority, destination, prefix, foreground, background, style, font, print_prefix, print_newline, ...) \
-	brrlog_text(priority, destination, prefix, foreground, background, style, font, print_prefix, print_newline, \
-	__FILE__, __func__, __LINE__, __VA_ARGS__)
-#define BRRLOG_MESSAGE(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_MESSAGE(priority, destination, prefix, foreground, background, style, font, 1, 1, __VA_ARGS__)
-#define BRRLOG_MESSAGEN(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_MESSAGE(priority, destination, prefix, foreground, background, style, font, 1, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGEP(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_MESSAGE(priority, destination, prefix, foreground, background, style, font, 0, 1, __VA_ARGS__)
-#define BRRLOG_MESSAGENP(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_MESSAGE(priority, destination, prefix, foreground, background, style, font, 0, 0, __VA_ARGS__)
-#define BRRLOG_LOG_MESSAGE_FORMAT(level, format, print_prefix, print_newline, ...) BRRLOG_LOG_MESSAGE(\
-	level.priority, level.destination, level.prefix, \
-	format.foreground, format.background, format.style, format.font, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_MESSAGEF(level, format, ...)   BRRLOG_LOG_MESSAGE_FORMAT(level, format, 1, 1, __VA_ARGS__)
-#define BRRLOG_MESSAGEFN(level, format, ...)  BRRLOG_LOG_MESSAGE_FORMAT(level, format, 1, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGEFP(level, format, ...)  BRRLOG_LOG_MESSAGE_FORMAT(level, format, 0, 1, __VA_ARGS__)
-#define BRRLOG_MESSAGEFNP(level, format, ...) BRRLOG_LOG_MESSAGE_FORMAT(level, format, 0, 0, __VA_ARGS__)
+#define _brrlog_cat0(cat, \
+    priority, destination, prefix, foreground, background, style, font, \
+    buffer, print_prefix, print_newline, ...) \
+    brrlog_##cat(priority, destination, prefix, foreground, background, style, font, \
+        buffer, print_prefix, print_newline, __FILE__, __func__, __LINE__, __VA_ARGS__)
 
-#define BRRLOG_LOG_MESSAGE_STYLE(level, foreground, background, style, font, print_prefix, print_newline, ...) BRRLOG_LOG_MESSAGE(\
-	level.priority, level.destination, level.prefix, \
-	foreground, background, style, font, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_MESSAGES(level, foreground, background, style, font, ...)   BRRLOG_LOG_MESSAGE_STYLE(level, foreground, background, style, font, 1, 1, __VA_ARGS__)
-#define BRRLOG_MESSAGESN(level, foreground, background, style, font, ...)  BRRLOG_LOG_MESSAGE_STYLE(level, foreground, background, style, font, 1, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGESP(level, foreground, background, style, font, ...)  BRRLOG_LOG_MESSAGE_STYLE(level, foreground, background, style, font, 0, 1, __VA_ARGS__)
-#define BRRLOG_MESSAGESNP(level, foreground, background, style, font, ...) BRRLOG_LOG_MESSAGE_STYLE(level, foreground, background, style, font, 0, 0, __VA_ARGS__)
+#define _brrlog_cat1(cat, \
+    priority, destination, prefix, foreground, background, style, font, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 1, 1, __VA_ARGS__)
+#define _brrlog_cat2(cat, \
+    priority, destination, prefix, foreground, background, style, font, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 1, 0, __VA_ARGS__)
+#define _brrlog_cat3(cat, \
+    priority, destination, prefix, foreground, background, style, font, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 0, 1, __VA_ARGS__)
+#define _brrlog_cat4(cat, \
+    priority, destination, prefix, foreground, background, style, font, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 0, 0, __VA_ARGS__)
+#define _brrlog_cat5(cat, \
+    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 1, 1, __VA_ARGS__)
+#define _brrlog_cat6(cat, \
+    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 1, 0, __VA_ARGS__)
+#define _brrlog_cat7(cat, \
+    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 0, 1, __VA_ARGS__)
+#define _brrlog_cat8(cat, \
+    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+    _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 0, 0, __VA_ARGS__)
 
-#define BRRLOG_MESSAGE_FN(level, foreground, background, style, font, ...)   BRRLOG_MESSAGES(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FNN(level, foreground, background, style, font, ...)  BRRLOG_MESSAGESN(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FNP(level, foreground, background, style, font, ...)  BRRLOG_MESSAGESP(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FNNP(level, foreground, background, style, font, ...) BRRLOG_MESSAGESNP(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_MESSAGE_ST(level, foreground, background, style, ...)         BRRLOG_MESSAGE_FN(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_STN(level, foreground, background, style, ...)        BRRLOG_MESSAGE_FNN(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_STP(level, foreground, background, style, ...)        BRRLOG_MESSAGE_FNP(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_STNP(level, foreground, background, style, ...)       BRRLOG_MESSAGE_FNNP(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_BG(level, foreground, background, ...)                BRRLOG_MESSAGE_ST(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_BGN(level, foreground, background, ...)               BRRLOG_MESSAGE_STN(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_BGP(level, foreground, background, ...)               BRRLOG_MESSAGE_STP(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_BGNP(level, foreground, background, ...)              BRRLOG_MESSAGE_STNP(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FG(level, foreground, ...)                            BRRLOG_MESSAGE_BG(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FGN(level, foreground, ...)                           BRRLOG_MESSAGE_BGN(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FGP(level, foreground, ...)                           BRRLOG_MESSAGE_BGP(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_FGNP(level, foreground, ...)                          BRRLOG_MESSAGE_BGNP(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_EM(level, ...)                                        BRRLOG_MESSAGE_FG(level, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_EMN(level, ...)                                       BRRLOG_MESSAGE_FGN(level, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_EMP(level, ...)                                       BRRLOG_MESSAGE_FGP(level, 0, __VA_ARGS__)
-#define BRRLOG_MESSAGE_EMNP(level, ...)                                      BRRLOG_MESSAGE_FGNP(level, 0, __VA_ARGS__)
+#define _brrlog_docat0(type, cat, priority, destination, prefix, foreground, background, style, font, ...) \
+    _brrlog_cat##type(cat, priority, destination, prefix, foreground, background, style, font, __VA_ARGS__)
+#define _brrlog_docat1(type, cat, level, foreground, background, style, font, ...) \
+    _brrlog_cat##type(cat, levelrpriority, level.destination, level.prefix, foreground, background, style, font, __VA_ARGS__)
+#define _brrlog_docat2(type, cat, priority, destination, prefix, format, ...) \
+    _brrlog_cat##type(cat, priority, destination, prefix, \
+        format.foreground, format.background, format.style, format.font, \
+        __VA_ARGS__)
+#define _brrlog_docat3(type, cat, level, format, ...) \
+    _brrlog_cat##type(cat, level.priority, level.destination, level.prefix, \
+        format.foreground, format.background, format.style, format.font, \
+        __VA_ARGS__)
 
-#define BRRLOG_MESSAGE_CRITICAL(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_MESSAGE_FORMAT(brrlog_format_critical.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_CRITICAL(...)   BRRLOG_MESSAGE_CRITICAL(1, 1, __VA_ARGS__)
-#define BRRLOG_CRITICALN(...)  BRRLOG_MESSAGE_CRITICAL(1, 0, __VA_ARGS__)
-#define BRRLOG_CRITICALP(...)  BRRLOG_MESSAGE_CRITICAL(0, 1, __VA_ARGS__)
-#define BRRLOG_CRITICALNP(...) BRRLOG_MESSAGE_CRITICAL(0, 0, __VA_ARGS__)
+#define _brrlog_docatn(typeA, typeB, cat, ...) _brrlog_docat##typeA(typeB, cat, __VA_ARGS__)
+
+#define BRRLOG_LOG_MESSAGE(...)          _brrlog_docatn(0, 0, text, __VA_ARGS__)
+#define BRRLOG_MESSAGE(...)              _brrlog_docatn(0, 1, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEN(...)             _brrlog_docatn(0, 2, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEP(...)             _brrlog_docatn(0, 3, text, __VA_ARGS__)
+#define BRRLOG_MESSAGENP(...)            _brrlog_docatn(0, 4, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEB(...)             _brrlog_docatn(0, 5, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEBN(...)            _brrlog_docatn(0, 6, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEBP(...)            _brrlog_docatn(0, 7, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEBNP(...)           _brrlog_docatn(0, 8, text, __VA_ARGS__)
+#define BRRLOG_LOG_MESSAGE_STYLE(...)    _brrlog_docatn(1, 0, text, __VA_ARGS__)
+#define BRRLOG_MESSAGES(...)             _brrlog_docatn(1, 1, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESN(...)            _brrlog_docatn(1, 2, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESP(...)            _brrlog_docatn(1, 3, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESNP(...)           _brrlog_docatn(1, 4, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESB(...)            _brrlog_docatn(1, 5, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESBN(...)           _brrlog_docatn(1, 6, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESBP(...)           _brrlog_docatn(1, 7, text, __VA_ARGS__)
+#define BRRLOG_MESSAGESBNP(...)          _brrlog_docatn(1, 8, text, __VA_ARGS__)
+#define BRRLOG_LOG_MESSAGE_LOCATION(...) _brrlog_docatn(2, 0, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEL(...)             _brrlog_docatn(2, 1, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELN(...)            _brrlog_docatn(2, 2, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELP(...)            _brrlog_docatn(2, 3, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELNP(...)           _brrlog_docatn(2, 4, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELB(...)            _brrlog_docatn(2, 5, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELBN(...)           _brrlog_docatn(2, 6, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELBP(...)           _brrlog_docatn(2, 7, text, __VA_ARGS__)
+#define BRRLOG_MESSAGELBNP(...)          _brrlog_docatn(2, 8, text, __VA_ARGS__)
+#define BRRLOG_LOG_MESSAGE_FORMAT(...)   _brrlog_docatn(3, 0, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEF(...)             _brrlog_docatn(3, 1, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFN(...)            _brrlog_docatn(3, 2, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFP(...)            _brrlog_docatn(3, 3, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFNP(...)           _brrlog_docatn(3, 4, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFB(...)            _brrlog_docatn(3, 5, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFBN(...)           _brrlog_docatn(3, 6, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFBP(...)           _brrlog_docatn(3, 7, text, __VA_ARGS__)
+#define BRRLOG_MESSAGEFBNP(...)          _brrlog_docatn(3, 8, text, __VA_ARGS__)
+
+#define BRRLOG_MESSAGE_CRITICAL(...) _brrlog_docatn(3, 0, text, brrlog_type_critical.level, brrlog_type_critical.format, __VA_ARGS__)
+#define BRRLOG_MESSAGE_ERROR(...)    _brrlog_docatn(3, 0, text, brrlog_type_error.level,    brrlog_type_error.format,    __VA_ARGS__)
+#define BRRLOG_MESSAGE_NORMAL(...)   _brrlog_docatn(3, 0, text, brrlog_type_normal.level,   brrlog_type_normal.format,   __VA_ARGS__)
+#define BRRLOG_MESSAGE_WARNING(...)  _brrlog_docatn(3, 0, text, brrlog_type_warning.level,  brrlog_type_warning.format,  __VA_ARGS__)
+#define BRRLOG_MESSAGE_DEBUG(...)    _brrlog_docatn(3, 0, text, brrlog_type_debug.level,    brrlog_type_debug.format,    __VA_ARGS__)
+#define BRRLOG_CRITICAL(...)   BRRLOG_MESSAGE_CRITICAL(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOG_CRITICALN(...)  BRRLOG_MESSAGE_CRITICAL(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOG_CRITICALP(...)  BRRLOG_MESSAGE_CRITICAL(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOG_CRITICALNP(...) BRRLOG_MESSAGE_CRITICAL(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOG_CRITICALB(buffer, ...)   BRRLOG_MESSAGE_CRITICAL(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOG_CRITICALBN(buffer, ...)  BRRLOG_MESSAGE_CRITICAL(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOG_CRITICALBP(buffer, ...)  BRRLOG_MESSAGE_CRITICAL(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOG_CRITICALBNP(buffer, ...) BRRLOG_MESSAGE_CRITICAL(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOG_CRI   BRRLOG_CRITICAL
 #define BRRLOG_CRIN  BRRLOG_CRITICALN
 #define BRRLOG_CRIP  BRRLOG_CRITICALP
 #define BRRLOG_CRINP BRRLOG_CRITICALNP
-#define BRRLOG_MESSAGE_ERROR(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_MESSAGE_FORMAT(brrlog_format_error.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_ERROR(...)   BRRLOG_MESSAGE_ERROR(1, 1, __VA_ARGS__)
-#define BRRLOG_ERRORN(...)  BRRLOG_MESSAGE_ERROR(1, 0, __VA_ARGS__)
-#define BRRLOG_ERRORP(...)  BRRLOG_MESSAGE_ERROR(0, 1, __VA_ARGS__)
-#define BRRLOG_ERRORNP(...) BRRLOG_MESSAGE_ERROR(0, 0, __VA_ARGS__)
+#define BRRLOG_CRIB   BRRLOG_CRITICALB
+#define BRRLOG_CRIBN  BRRLOG_CRITICALBN
+#define BRRLOG_CRIBP  BRRLOG_CRITICALBP
+#define BRRLOG_CRIBNP BRRLOG_CRITICALBNP
+#define BRRLOG_ERROR(...)   BRRLOG_MESSAGE_ERROR(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOG_ERRORN(...)  BRRLOG_MESSAGE_ERROR(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOG_ERRORP(...)  BRRLOG_MESSAGE_ERROR(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOG_ERRORNP(...) BRRLOG_MESSAGE_ERROR(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOG_ERRORB(buffer, ...)   BRRLOG_MESSAGE_ERROR(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOG_ERRORBN(buffer, ...)  BRRLOG_MESSAGE_ERROR(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOG_ERRORBP(buffer, ...)  BRRLOG_MESSAGE_ERROR(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOG_ERRORBNP(buffer, ...) BRRLOG_MESSAGE_ERROR(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOG_ERR   BRRLOG_ERROR
 #define BRRLOG_ERRN  BRRLOG_ERRORN
 #define BRRLOG_ERRP  BRRLOG_ERRORP
 #define BRRLOG_ERRNP BRRLOG_ERRORNP
-#define BRRLOG_MESSAGE_NORMAL(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_MESSAGE_FORMAT(brrlog_format_normal.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_NORMAL(...)   BRRLOG_MESSAGE_NORMAL(1, 1, __VA_ARGS__)
-#define BRRLOG_NORMALN(...)  BRRLOG_MESSAGE_NORMAL(1, 0, __VA_ARGS__)
-#define BRRLOG_NORMALP(...)  BRRLOG_MESSAGE_NORMAL(0, 1, __VA_ARGS__)
-#define BRRLOG_NORMALNP(...) BRRLOG_MESSAGE_NORMAL(0, 0, __VA_ARGS__)
+#define BRRLOG_ERRB   BRRLOG_ERRORB
+#define BRRLOG_ERRBN  BRRLOG_ERRORBN
+#define BRRLOG_ERRBP  BRRLOG_ERRORBP
+#define BRRLOG_ERRBNP BRRLOG_ERRORBNP
+#define BRRLOG_NORMAL(...)   BRRLOG_MESSAGE_NORMAL(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOG_NORMALN(...)  BRRLOG_MESSAGE_NORMAL(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOG_NORMALP(...)  BRRLOG_MESSAGE_NORMAL(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOG_NORMALNP(...) BRRLOG_MESSAGE_NORMAL(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOG_NORMALB(buffer, ...)   BRRLOG_MESSAGE_NORMAL(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOG_NORMALBN(buffer, ...)  BRRLOG_MESSAGE_NORMAL(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOG_NORMALBP(buffer, ...)  BRRLOG_MESSAGE_NORMAL(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOG_NORMALBNP(buffer, ...) BRRLOG_MESSAGE_NORMAL(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOG_NOR   BRRLOG_NORMAL
 #define BRRLOG_NORN  BRRLOG_NORMALN
 #define BRRLOG_NORP  BRRLOG_NORMALP
 #define BRRLOG_NORNP BRRLOG_NORMALNP
-#define BRRLOG_MESSAGE_WARNING(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_MESSAGE_FORMAT(brrlog_format_warning.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_WARNING(...)   BRRLOG_MESSAGE_WARNING(1, 1, __VA_ARGS__)
-#define BRRLOG_WARNINGN(...)  BRRLOG_MESSAGE_WARNING(1, 0, __VA_ARGS__)
-#define BRRLOG_WARNINGP(...)  BRRLOG_MESSAGE_WARNING(0, 1, __VA_ARGS__)
-#define BRRLOG_WARNINGNP(...) BRRLOG_MESSAGE_WARNING(0, 0, __VA_ARGS__)
+#define BRRLOG_NORB   BRRLOG_NORMALB
+#define BRRLOG_NORBN  BRRLOG_NORMALBN
+#define BRRLOG_NORBP  BRRLOG_NORMALBP
+#define BRRLOG_NORBNP BRRLOG_NORMALBNP
+#define BRRLOG_WARNING(...)   BRRLOG_MESSAGE_WARNING(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOG_WARNINGN(...)  BRRLOG_MESSAGE_WARNING(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOG_WARNINGP(...)  BRRLOG_MESSAGE_WARNING(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOG_WARNINGNP(...) BRRLOG_MESSAGE_WARNING(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOG_WARNINGB(buffer, ...)   BRRLOG_MESSAGE_WARNING(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOG_WARNINGBN(buffer, ...)  BRRLOG_MESSAGE_WARNING(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOG_WARNINGBP(buffer, ...)  BRRLOG_MESSAGE_WARNING(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOG_WARNINGBNP(buffer, ...) BRRLOG_MESSAGE_WARNING(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOG_WAR   BRRLOG_WARNING
 #define BRRLOG_WARN  BRRLOG_WARNINGN
 #define BRRLOG_WARP  BRRLOG_WARNINGP
 #define BRRLOG_WARNP BRRLOG_WARNINGNP
-#define BRRLOG_MESSAGE_DEBUG(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_MESSAGE_FORMAT(brrlog_format_debug.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_DEBUG(...)   BRRLOG_MESSAGE_DEBUG(1, 1, __VA_ARGS__)
-#define BRRLOG_DEBUGN(...)  BRRLOG_MESSAGE_DEBUG(1, 0, __VA_ARGS__)
-#define BRRLOG_DEBUGP(...)  BRRLOG_MESSAGE_DEBUG(0, 1, __VA_ARGS__)
-#define BRRLOG_DEBUGNP(...) BRRLOG_MESSAGE_DEBUG(0, 0, __VA_ARGS__)
+#define BRRLOG_WARB   BRRLOG_WARNINGB
+#define BRRLOG_WARBN  BRRLOG_WARNINGBN
+#define BRRLOG_WARBP  BRRLOG_WARNINGBP
+#define BRRLOG_WARBNP BRRLOG_WARNINGBNP
+#define BRRLOG_DEBUG(...)   BRRLOG_MESSAGE_DEBUG(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOG_DEBUGN(...)  BRRLOG_MESSAGE_DEBUG(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOG_DEBUGP(...)  BRRLOG_MESSAGE_DEBUG(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOG_DEBUGNP(...) BRRLOG_MESSAGE_DEBUG(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOG_DEBUGB(buffer, ...)   BRRLOG_MESSAGE_DEBUG(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOG_DEBUGBN(buffer, ...)  BRRLOG_MESSAGE_DEBUG(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOG_DEBUGBP(buffer, ...)  BRRLOG_MESSAGE_DEBUG(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOG_DEBUGBNP(buffer, ...) BRRLOG_MESSAGE_DEBUG(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOG_DEB   BRRLOG_DEBUG
 #define BRRLOG_DEBN  BRRLOG_DEBUGN
 #define BRRLOG_DEBP  BRRLOG_DEBUGP
 #define BRRLOG_DEBNP BRRLOG_DEBUGNP
-/* ********************* */
-/* DIGITS */
-/* ********************* */
-#define BRRLOG_LOG_DIGITS(priority, destination, prefix, foreground, background, style, font, print_prefix, print_newline, ...) \
-	brrlog_digits(priority, destination, prefix, foreground, background, style, font, print_prefix, print_newline, \
-	__FILE__, __func__, __LINE__, __VA_ARGS__)
-#define BRRLOG_DIGITS(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_DIGITS(priority, destination, prefix, foreground, background, style, font, 1, 1, __VA_ARGS__)
-#define BRRLOG_DIGITSN(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_DIGITS(priority, destination, prefix, foreground, background, style, font, 1, 0, __VA_ARGS__)
-#define BRRLOG_DIGITSP(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_DIGITS(priority, destination, prefix, foreground, background, style, font, 0, 1, __VA_ARGS__)
-#define BRRLOG_DIGITSNP(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_DIGITS(priority, destination, prefix, foreground, background, style, font, 0, 0, __VA_ARGS__)
-#define BRRLOG_LOG_DIGITS_FORMAT(level, format, print_prefix, print_newline, ...) BRRLOG_LOG_DIGITS(\
-	level.priority, level.destination, level.prefix, \
-	format.foreground, format.background, format.style, format.font, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_DIGITSF(level, format, ...)   BRRLOG_LOG_DIGITS_FORMAT(level, format, 1, 1, __VA_ARGS__)
-#define BRRLOG_DIGITSFN(level, format, ...)  BRRLOG_LOG_DIGITS_FORMAT(level, format, 1, 0, __VA_ARGS__)
-#define BRRLOG_DIGITSFP(level, format, ...)  BRRLOG_LOG_DIGITS_FORMAT(level, format, 0, 1, __VA_ARGS__)
-#define BRRLOG_DIGITSFNP(level, format, ...) BRRLOG_LOG_DIGITS_FORMAT(level, format, 0, 0, __VA_ARGS__)
+#define BRRLOG_DEBB   BRRLOG_DEBUGB
+#define BRRLOG_DEBBN  BRRLOG_DEBUGBN
+#define BRRLOG_DEBBP  BRRLOG_DEBUGBP
+#define BRRLOG_DEBBNP BRRLOG_DEBUGBNP
 
-#define BRRLOG_LOG_DIGITS_STYLE(level, foreground, background, style, font, print_prefix, print_newline, ...) BRRLOG_LOG_DIGITS(\
-	level.priority, level.destination, level.prefix, \
-	foreground, background, style, font, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_DIGITSS(level, foreground, background, style, font, ...)   BRRLOG_LOG_DIGITS_STYLE(level, foreground, background, style, font, 1, 1, __VA_ARGS__)
-#define BRRLOG_DIGITSSN(level, foreground, background, style, font, ...)  BRRLOG_LOG_DIGITS_STYLE(level, foreground, background, style, font, 1, 0, __VA_ARGS__)
-#define BRRLOG_DIGITSSP(level, foreground, background, style, font, ...)  BRRLOG_LOG_DIGITS_STYLE(level, foreground, background, style, font, 0, 1, __VA_ARGS__)
-#define BRRLOG_DIGITSSNP(level, foreground, background, style, font, ...) BRRLOG_LOG_DIGITS_STYLE(level, foreground, background, style, font, 0, 0, __VA_ARGS__)
-
-#define BRRLOG_DIGITS_FN(level, foreground, background, style, font, ...)   BRRLOG_DIGITSS(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_DIGITS_FNN(level, foreground, background, style, font, ...)  BRRLOG_DIGITSSN(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_DIGITS_FNP(level, foreground, background, style, font, ...)  BRRLOG_DIGITSSP(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_DIGITS_FNNP(level, foreground, background, style, font, ...) BRRLOG_DIGITSSNP(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_DIGITS_ST(level, foreground, background, style, ...)         BRRLOG_DIGITS_FN(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_STN(level, foreground, background, style, ...)        BRRLOG_DIGITS_FNN(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_STP(level, foreground, background, style, ...)        BRRLOG_DIGITS_FNP(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_STNP(level, foreground, background, style, ...)       BRRLOG_DIGITS_FNNP(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_BG(level, foreground, background, ...)                BRRLOG_DIGITS_ST(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_BGN(level, foreground, background, ...)               BRRLOG_DIGITS_STN(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_BGP(level, foreground, background, ...)               BRRLOG_DIGITS_STP(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_BGNP(level, foreground, background, ...)              BRRLOG_DIGITS_STNP(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_FG(level, foreground, ...)                            BRRLOG_DIGITS_BG(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_FGN(level, foreground, ...)                           BRRLOG_DIGITS_BGN(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_FGP(level, foreground, ...)                           BRRLOG_DIGITS_BGP(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_FGNP(level, foreground, ...)                          BRRLOG_DIGITS_BGNP(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_EM(level, ...)                                        BRRLOG_DIGITS_FG(level, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_EMN(level, ...)                                       BRRLOG_DIGITS_FGN(level, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_EMP(level, ...)                                       BRRLOG_DIGITS_FGP(level, 0, __VA_ARGS__)
-#define BRRLOG_DIGITS_EMNP(level, ...)                                      BRRLOG_DIGITS_FGNP(level, 0, __VA_ARGS__)
-
-#define BRRLOG_DIGITS_CRITICAL(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_DIGITS_FORMAT(brrlog_format_critical.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGD_CRITICAL(...)   BRRLOG_DIGITS_CRITICAL(1, 1, __VA_ARGS__)
-#define BRRLOGD_CRITICALN(...)  BRRLOG_DIGITS_CRITICAL(1, 0, __VA_ARGS__)
-#define BRRLOGD_CRITICALP(...)  BRRLOG_DIGITS_CRITICAL(0, 1, __VA_ARGS__)
-#define BRRLOGD_CRITICALNP(...) BRRLOG_DIGITS_CRITICAL(0, 0, __VA_ARGS__)
+#define BRRLOG_DIGITS_CRITICAL(...) _brrlog_docatn(3, 0, digits, brrlog_type_critical.level, brrlog_type_critical.format, __VA_ARGS__)
+#define BRRLOG_DIGITS_ERROR(...)    _brrlog_docatn(3, 0, digits, brrlog_type_error.level,    brrlog_type_error.format,    __VA_ARGS__)
+#define BRRLOG_DIGITS_NORMAL(...)   _brrlog_docatn(3, 0, digits, brrlog_type_normal.level,   brrlog_type_normal.format,   __VA_ARGS__)
+#define BRRLOG_DIGITS_WARNING(...)  _brrlog_docatn(3, 0, digits, brrlog_type_warning.level,  brrlog_type_warning.format,  __VA_ARGS__)
+#define BRRLOG_DIGITS_DEBUG(...)    _brrlog_docatn(3, 0, digits, brrlog_type_debug.level,    brrlog_type_debug.format,    __VA_ARGS__)
+#define BRRLOGD_CRITICAL(...)   BRRLOG_DIGITS_CRITICAL(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGD_CRITICALN(...)  BRRLOG_DIGITS_CRITICAL(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGD_CRITICALP(...)  BRRLOG_DIGITS_CRITICAL(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGD_CRITICALNP(...) BRRLOG_DIGITS_CRITICAL(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGD_CRITICALB(buffer, ...)   BRRLOG_DIGITS_CRITICAL(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGD_CRITICALBN(buffer, ...)  BRRLOG_DIGITS_CRITICAL(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGD_CRITICALBP(buffer, ...)  BRRLOG_DIGITS_CRITICAL(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGD_CRITICALBNP(buffer, ...) BRRLOG_DIGITS_CRITICAL(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGD_CRI   BRRLOGD_CRITICAL
 #define BRRLOGD_CRIN  BRRLOGD_CRITICALN
 #define BRRLOGD_CRIP  BRRLOGD_CRITICALP
 #define BRRLOGD_CRINP BRRLOGD_CRITICALNP
-#define BRRLOG_DIGITS_ERROR(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_DIGITS_FORMAT(brrlog_format_error.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGD_ERROR(...)   BRRLOG_DIGITS_ERROR(1, 1, __VA_ARGS__)
-#define BRRLOGD_ERRORN(...)  BRRLOG_DIGITS_ERROR(1, 0, __VA_ARGS__)
-#define BRRLOGD_ERRORP(...)  BRRLOG_DIGITS_ERROR(0, 1, __VA_ARGS__)
-#define BRRLOGD_ERRORNP(...) BRRLOG_DIGITS_ERROR(0, 0, __VA_ARGS__)
+#define BRRLOGD_CRIB   BRRLOGD_CRITICALB
+#define BRRLOGD_CRIBN  BRRLOGD_CRITICALBN
+#define BRRLOGD_CRIBP  BRRLOGD_CRITICALBP
+#define BRRLOGD_CRIBNP BRRLOGD_CRITICALBNP
+#define BRRLOGD_ERROR(...)   BRRLOG_DIGITS_ERROR(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGD_ERRORN(...)  BRRLOG_DIGITS_ERROR(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGD_ERRORP(...)  BRRLOG_DIGITS_ERROR(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGD_ERRORNP(...) BRRLOG_DIGITS_ERROR(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGD_ERRORB(buffer, ...)   BRRLOG_DIGITS_ERROR(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGD_ERRORBN(buffer, ...)  BRRLOG_DIGITS_ERROR(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGD_ERRORBP(buffer, ...)  BRRLOG_DIGITS_ERROR(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGD_ERRORBNP(buffer, ...) BRRLOG_DIGITS_ERROR(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGD_ERR   BRRLOGD_ERROR
 #define BRRLOGD_ERRN  BRRLOGD_ERRORN
 #define BRRLOGD_ERRP  BRRLOGD_ERRORP
 #define BRRLOGD_ERRNP BRRLOGD_ERRORNP
-#define BRRLOG_DIGITS_NORMAL(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_DIGITS_FORMAT(brrlog_format_normal.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGD_NORMAL(...)   BRRLOG_DIGITS_NORMAL(1, 1, __VA_ARGS__)
-#define BRRLOGD_NORMALN(...)  BRRLOG_DIGITS_NORMAL(1, 0, __VA_ARGS__)
-#define BRRLOGD_NORMALP(...)  BRRLOG_DIGITS_NORMAL(0, 1, __VA_ARGS__)
-#define BRRLOGD_NORMALNP(...) BRRLOG_DIGITS_NORMAL(0, 0, __VA_ARGS__)
+#define BRRLOGD_ERRB   BRRLOGD_ERRORB
+#define BRRLOGD_ERRBN  BRRLOGD_ERRORBN
+#define BRRLOGD_ERRBP  BRRLOGD_ERRORBP
+#define BRRLOGD_ERRBNP BRRLOGD_ERRORBNP
+#define BRRLOGD_NORMAL(...)   BRRLOG_DIGITS_NORMAL(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGD_NORMALN(...)  BRRLOG_DIGITS_NORMAL(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGD_NORMALP(...)  BRRLOG_DIGITS_NORMAL(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGD_NORMALNP(...) BRRLOG_DIGITS_NORMAL(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGD_NORMALB(buffer, ...)   BRRLOG_DIGITS_NORMAL(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGD_NORMALBN(buffer, ...)  BRRLOG_DIGITS_NORMAL(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGD_NORMALBP(buffer, ...)  BRRLOG_DIGITS_NORMAL(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGD_NORMALBNP(buffer, ...) BRRLOG_DIGITS_NORMAL(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGD_NOR   BRRLOGD_NORMAL
 #define BRRLOGD_NORN  BRRLOGD_NORMALN
 #define BRRLOGD_NORP  BRRLOGD_NORMALP
 #define BRRLOGD_NORNP BRRLOGD_NORMALNP
-#define BRRLOG_DIGITS_WARNING(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_DIGITS_FORMAT(brrlog_format_warning.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGD_WARNING(...)   BRRLOG_DIGITS_WARNING(1, 1, __VA_ARGS__)
-#define BRRLOGD_WARNINGN(...)  BRRLOG_DIGITS_WARNING(1, 0, __VA_ARGS__)
-#define BRRLOGD_WARNINGP(...)  BRRLOG_DIGITS_WARNING(0, 1, __VA_ARGS__)
-#define BRRLOGD_WARNINGNP(...) BRRLOG_DIGITS_WARNING(0, 0, __VA_ARGS__)
+#define BRRLOGD_NORB   BRRLOGD_NORMALB
+#define BRRLOGD_NORBN  BRRLOGD_NORMALBN
+#define BRRLOGD_NORBP  BRRLOGD_NORMALBP
+#define BRRLOGD_NORBNP BRRLOGD_NORMALBNP
+#define BRRLOGD_WARNING(...)   BRRLOG_DIGITS_WARNING(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGD_WARNINGN(...)  BRRLOG_DIGITS_WARNING(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGD_WARNINGP(...)  BRRLOG_DIGITS_WARNING(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGD_WARNINGNP(...) BRRLOG_DIGITS_WARNING(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGD_WARNINGB(buffer, ...)   BRRLOG_DIGITS_WARNING(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGD_WARNINGBN(buffer, ...)  BRRLOG_DIGITS_WARNING(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGD_WARNINGBP(buffer, ...)  BRRLOG_DIGITS_WARNING(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGD_WARNINGBNP(buffer, ...) BRRLOG_DIGITS_WARNING(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGD_WAR   BRRLOGD_WARNING
 #define BRRLOGD_WARN  BRRLOGD_WARNINGN
 #define BRRLOGD_WARP  BRRLOGD_WARNINGP
 #define BRRLOGD_WARNP BRRLOGD_WARNINGNP
-#define BRRLOG_DIGITS_DEBUG(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_DIGITS_FORMAT(brrlog_format_debug.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGD_DEBUG(...)   BRRLOG_DIGITS_DEBUG(1, 1, __VA_ARGS__)
-#define BRRLOGD_DEBUGN(...)  BRRLOG_DIGITS_DEBUG(1, 0, __VA_ARGS__)
-#define BRRLOGD_DEBUGP(...)  BRRLOG_DIGITS_DEBUG(0, 1, __VA_ARGS__)
-#define BRRLOGD_DEBUGNP(...) BRRLOG_DIGITS_DEBUG(0, 0, __VA_ARGS__)
+#define BRRLOGD_WARB   BRRLOGD_WARNINGB
+#define BRRLOGD_WARBN  BRRLOGD_WARNINGBN
+#define BRRLOGD_WARBP  BRRLOGD_WARNINGBP
+#define BRRLOGD_WARBNP BRRLOGD_WARNINGBNP
+#define BRRLOGD_DEBUG(...)   BRRLOG_DIGITS_DEBUG(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGD_DEBUGN(...)  BRRLOG_DIGITS_DEBUG(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGD_DEBUGP(...)  BRRLOG_DIGITS_DEBUG(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGD_DEBUGNP(...) BRRLOG_DIGITS_DEBUG(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGD_DEBUGB(buffer, ...)   BRRLOG_DIGITS_DEBUG(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGD_DEBUGBN(buffer, ...)  BRRLOG_DIGITS_DEBUG(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGD_DEBUGBP(buffer, ...)  BRRLOG_DIGITS_DEBUG(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGD_DEBUGBNP(buffer, ...) BRRLOG_DIGITS_DEBUG(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGD_DEB   BRRLOGD_DEBUG
 #define BRRLOGD_DEBN  BRRLOGD_DEBUGN
 #define BRRLOGD_DEBP  BRRLOGD_DEBUGP
 #define BRRLOGD_DEBNP BRRLOGD_DEBUGNP
-/* ********************* */
-/* BITS */
-/* ********************* */
-#define BRRLOG_LOG_BITS(priority, destination, prefix, foreground, background, style, font, print_prefix, print_newline, ...) \
-	brrlog_bits(priority, destination, prefix, foreground, background, style, font, print_prefix, print_newline, \
-	__FILE__, __func__, __LINE__, __VA_ARGS__)
-#define BRRLOG_BITS(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_BITS(priority, destination, prefix, foreground, background, style, font, 1, 1, __VA_ARGS__)
-#define BRRLOG_BITSN(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_BITS(priority, destination, prefix, foreground, background, style, font, 1, 0, __VA_ARGS__)
-#define BRRLOG_BITSP(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_BITS(priority, destination, prefix, foreground, background, style, font, 0, 1, __VA_ARGS__)
-#define BRRLOG_BITSNP(priority, destination, prefix, foreground, background, style, font, ...) \
-	BRRLOG_LOG_BITS(priority, destination, prefix, foreground, background, style, font, 0, 0, __VA_ARGS__)
-#define BRRLOG_LOG_BITS_FORMAT(level, format, print_prefix, print_newline, ...) BRRLOG_LOG_BITS(\
-	level.priority, level.destination, level.prefix, \
-	format.foreground, format.background, format.style, format.font, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_BITSF(level, format, ...)   BRRLOG_LOG_BITS_FORMAT(level, format, 1, 1, __VA_ARGS__)
-#define BRRLOG_BITSFN(level, format, ...)  BRRLOG_LOG_BITS_FORMAT(level, format, 1, 0, __VA_ARGS__)
-#define BRRLOG_BITSFP(level, format, ...)  BRRLOG_LOG_BITS_FORMAT(level, format, 0, 1, __VA_ARGS__)
-#define BRRLOG_BITSFNP(level, format, ...) BRRLOG_LOG_BITS_FORMAT(level, format, 0, 0, __VA_ARGS__)
+#define BRRLOGD_DEBB   BRRLOGD_DEBUGB
+#define BRRLOGD_DEBBN  BRRLOGD_DEBUGBN
+#define BRRLOGD_DEBBP  BRRLOGD_DEBUGBP
+#define BRRLOGD_DEBBNP BRRLOGD_DEBUGBNP
 
-#define BRRLOG_LOG_BITS_STYLE(level, foreground, background, style, font, print_prefix, print_newline, ...) BRRLOG_LOG_BITS(\
-	level.priority, level.destination, level.prefix, \
-	foreground, background, style, font, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOG_BITSS(level, foreground, background, style, font, ...)   BRRLOG_LOG_BITS_STYLE(level, foreground, background, style, font, 1, 1, __VA_ARGS__)
-#define BRRLOG_BITSSN(level, foreground, background, style, font, ...)  BRRLOG_LOG_BITS_STYLE(level, foreground, background, style, font, 1, 0, __VA_ARGS__)
-#define BRRLOG_BITSSP(level, foreground, background, style, font, ...)  BRRLOG_LOG_BITS_STYLE(level, foreground, background, style, font, 0, 1, __VA_ARGS__)
-#define BRRLOG_BITSSNP(level, foreground, background, style, font, ...) BRRLOG_LOG_BITS_STYLE(level, foreground, background, style, font, 0, 0, __VA_ARGS__)
-
-#define BRRLOG_BITS_FN(level, foreground, background, style, font, ...)   BRRLOG_BITSS(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_BITS_FNN(level, foreground, background, style, font, ...)  BRRLOG_BITSSN(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_BITS_FNP(level, foreground, background, style, font, ...)  BRRLOG_BITSSP(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_BITS_FNNP(level, foreground, background, style, font, ...) BRRLOG_BITSSNP(level, foreground, background, style, font, __VA_ARGS__)
-#define BRRLOG_BITS_ST(level, foreground, background, style, ...)         BRRLOG_BITS_FN(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_BITS_STN(level, foreground, background, style, ...)        BRRLOG_BITS_FNN(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_BITS_STP(level, foreground, background, style, ...)        BRRLOG_BITS_FNP(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_BITS_STNP(level, foreground, background, style, ...)       BRRLOG_BITS_FNNP(level, foreground, background, style, 0, __VA_ARGS__)
-#define BRRLOG_BITS_BG(level, foreground, background, ...)                BRRLOG_BITS_ST(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_BITS_BGN(level, foreground, background, ...)               BRRLOG_BITS_STN(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_BITS_BGP(level, foreground, background, ...)               BRRLOG_BITS_STP(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_BITS_BGNP(level, foreground, background, ...)              BRRLOG_BITS_STNP(level, foreground, background, 0, __VA_ARGS__)
-#define BRRLOG_BITS_FG(level, foreground, ...)                            BRRLOG_BITS_BG(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_BITS_FGN(level, foreground, ...)                           BRRLOG_BITS_BGN(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_BITS_FGP(level, foreground, ...)                           BRRLOG_BITS_BGP(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_BITS_FGNP(level, foreground, ...)                          BRRLOG_BITS_BGNP(level, foreground, 0, __VA_ARGS__)
-#define BRRLOG_BITS_EM(level, ...)                                        BRRLOG_BITS_FG(level, 0, __VA_ARGS__)
-#define BRRLOG_BITS_EMN(level, ...)                                       BRRLOG_BITS_FGN(level, 0, __VA_ARGS__)
-#define BRRLOG_BITS_EMP(level, ...)                                       BRRLOG_BITS_FGP(level, 0, __VA_ARGS__)
-#define BRRLOG_BITS_EMNP(level, ...)                                      BRRLOG_BITS_FGNP(level, 0, __VA_ARGS__)
-
-#define BRRLOG_BITS_CRITICAL(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_BITS_FORMAT(brrlog_format_critical.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGB_CRITICAL(...)   BRRLOG_BITS_CRITICAL(1, 1, __VA_ARGS__)
-#define BRRLOGB_CRITICALN(...)  BRRLOG_BITS_CRITICAL(1, 0, __VA_ARGS__)
-#define BRRLOGB_CRITICALP(...)  BRRLOG_BITS_CRITICAL(0, 1, __VA_ARGS__)
-#define BRRLOGB_CRITICALNP(...) BRRLOG_BITS_CRITICAL(0, 0, __VA_ARGS__)
+#define BRRLOG_BITS_CRITICAL(...) _brrlog_docatn(3, 0, bits, brrlog_type_critical.level, brrlog_type_critical.format, __VA_ARGS__)
+#define BRRLOG_BITS_ERROR(...)    _brrlog_docatn(3, 0, bits, brrlog_type_error.level,    brrlog_type_error.format,    __VA_ARGS__)
+#define BRRLOG_BITS_NORMAL(...)   _brrlog_docatn(3, 0, bits, brrlog_type_normal.level,   brrlog_type_normal.format,   __VA_ARGS__)
+#define BRRLOG_BITS_WARNING(...)  _brrlog_docatn(3, 0, bits, brrlog_type_warning.level,  brrlog_type_warning.format,  __VA_ARGS__)
+#define BRRLOG_BITS_DEBUG(...)    _brrlog_docatn(3, 0, bits, brrlog_type_debug.level,    brrlog_type_debug.format,    __VA_ARGS__)
+#define BRRLOGB_CRITICAL(...)   BRRLOG_BITS_CRITICAL(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGB_CRITICALN(...)  BRRLOG_BITS_CRITICAL(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGB_CRITICALP(...)  BRRLOG_BITS_CRITICAL(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGB_CRITICALNP(...) BRRLOG_BITS_CRITICAL(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGB_CRITICALB(buffer, ...)   BRRLOG_BITS_CRITICAL(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGB_CRITICALBN(buffer, ...)  BRRLOG_BITS_CRITICAL(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGB_CRITICALBP(buffer, ...)  BRRLOG_BITS_CRITICAL(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGB_CRITICALBNP(buffer, ...) BRRLOG_BITS_CRITICAL(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGB_CRI   BRRLOGB_CRITICAL
 #define BRRLOGB_CRIN  BRRLOGB_CRITICALN
 #define BRRLOGB_CRIP  BRRLOGB_CRITICALP
 #define BRRLOGB_CRINP BRRLOGB_CRITICALNP
-#define BRRLOG_BITS_ERROR(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_BITS_FORMAT(brrlog_format_error.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGB_ERROR(...)   BRRLOG_BITS_ERROR(1, 1, __VA_ARGS__)
-#define BRRLOGB_ERRORN(...)  BRRLOG_BITS_ERROR(1, 0, __VA_ARGS__)
-#define BRRLOGB_ERRORP(...)  BRRLOG_BITS_ERROR(0, 1, __VA_ARGS__)
-#define BRRLOGB_ERRORNP(...) BRRLOG_BITS_ERROR(0, 0, __VA_ARGS__)
+#define BRRLOGB_CRIB   BRRLOGB_CRITICALB
+#define BRRLOGB_CRIBN  BRRLOGB_CRITICALBN
+#define BRRLOGB_CRIBP  BRRLOGB_CRITICALBP
+#define BRRLOGB_CRIBNP BRRLOGB_CRITICALBNP
+#define BRRLOGB_ERROR(...)   BRRLOG_BITS_ERROR(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGB_ERRORN(...)  BRRLOG_BITS_ERROR(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGB_ERRORP(...)  BRRLOG_BITS_ERROR(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGB_ERRORNP(...) BRRLOG_BITS_ERROR(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGB_ERRORB(buffer, ...)   BRRLOG_BITS_ERROR(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGB_ERRORBN(buffer, ...)  BRRLOG_BITS_ERROR(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGB_ERRORBP(buffer, ...)  BRRLOG_BITS_ERROR(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGB_ERRORBNP(buffer, ...) BRRLOG_BITS_ERROR(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGB_ERR   BRRLOGB_ERROR
 #define BRRLOGB_ERRN  BRRLOGB_ERRORN
 #define BRRLOGB_ERRP  BRRLOGB_ERRORP
 #define BRRLOGB_ERRNP BRRLOGB_ERRORNP
-#define BRRLOG_BITS_NORMAL(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_BITS_FORMAT(brrlog_format_normal.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGB_NORMAL(...)   BRRLOG_BITS_NORMAL(1, 1, __VA_ARGS__)
-#define BRRLOGB_NORMALN(...)  BRRLOG_BITS_NORMAL(1, 0, __VA_ARGS__)
-#define BRRLOGB_NORMALP(...)  BRRLOG_BITS_NORMAL(0, 1, __VA_ARGS__)
-#define BRRLOGB_NORMALNP(...) BRRLOG_BITS_NORMAL(0, 0, __VA_ARGS__)
+#define BRRLOGB_ERRB   BRRLOGB_ERRORB
+#define BRRLOGB_ERRBN  BRRLOGB_ERRORBN
+#define BRRLOGB_ERRBP  BRRLOGB_ERRORBP
+#define BRRLOGB_ERRBNP BRRLOGB_ERRORBNP
+#define BRRLOGB_NORMAL(...)   BRRLOG_BITS_NORMAL(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGB_NORMALN(...)  BRRLOG_BITS_NORMAL(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGB_NORMALP(...)  BRRLOG_BITS_NORMAL(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGB_NORMALNP(...) BRRLOG_BITS_NORMAL(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGB_NORMALB(buffer, ...)   BRRLOG_BITS_NORMAL(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGB_NORMALBN(buffer, ...)  BRRLOG_BITS_NORMAL(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGB_NORMALBP(buffer, ...)  BRRLOG_BITS_NORMAL(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGB_NORMALBNP(buffer, ...) BRRLOG_BITS_NORMAL(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGB_NOR   BRRLOGB_NORMAL
 #define BRRLOGB_NORN  BRRLOGB_NORMALN
 #define BRRLOGB_NORP  BRRLOGB_NORMALP
 #define BRRLOGB_NORNP BRRLOGB_NORMALNP
-#define BRRLOG_BITS_WARNING(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_BITS_FORMAT(brrlog_format_warning.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGB_WARNING(...)   BRRLOG_BITS_WARNING(1, 1, __VA_ARGS__)
-#define BRRLOGB_WARNINGN(...)  BRRLOG_BITS_WARNING(1, 0, __VA_ARGS__)
-#define BRRLOGB_WARNINGP(...)  BRRLOG_BITS_WARNING(0, 1, __VA_ARGS__)
-#define BRRLOGB_WARNINGNP(...) BRRLOG_BITS_WARNING(0, 0, __VA_ARGS__)
+#define BRRLOGB_NORB   BRRLOGB_NORMALB
+#define BRRLOGB_NORBN  BRRLOGB_NORMALBN
+#define BRRLOGB_NORBP  BRRLOGB_NORMALBP
+#define BRRLOGB_NORBNP BRRLOGB_NORMALBNP
+#define BRRLOGB_WARNING(...)   BRRLOG_BITS_WARNING(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGB_WARNINGN(...)  BRRLOG_BITS_WARNING(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGB_WARNINGP(...)  BRRLOG_BITS_WARNING(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGB_WARNINGNP(...) BRRLOG_BITS_WARNING(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGB_WARNINGB(buffer, ...)   BRRLOG_BITS_WARNING(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGB_WARNINGBN(buffer, ...)  BRRLOG_BITS_WARNING(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGB_WARNINGBP(buffer, ...)  BRRLOG_BITS_WARNING(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGB_WARNINGBNP(buffer, ...) BRRLOG_BITS_WARNING(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGB_WAR   BRRLOGB_WARNING
 #define BRRLOGB_WARN  BRRLOGB_WARNINGN
 #define BRRLOGB_WARP  BRRLOGB_WARNINGP
 #define BRRLOGB_WARNP BRRLOGB_WARNINGNP
-#define BRRLOG_BITS_DEBUG(print_prefix, print_newline, ...) \
-	BRRLOG_LOG_BITS_FORMAT(brrlog_format_debug.level, brrlog_format_normal, print_prefix, print_newline, __VA_ARGS__)
-#define BRRLOGB_DEBUG(...)   BRRLOG_BITS_DEBUG(1, 1, __VA_ARGS__)
-#define BRRLOGB_DEBUGN(...)  BRRLOG_BITS_DEBUG(1, 0, __VA_ARGS__)
-#define BRRLOGB_DEBUGP(...)  BRRLOG_BITS_DEBUG(0, 1, __VA_ARGS__)
-#define BRRLOGB_DEBUGNP(...) BRRLOG_BITS_DEBUG(0, 0, __VA_ARGS__)
+#define BRRLOGB_WARB   BRRLOGB_WARNINGB
+#define BRRLOGB_WARBN  BRRLOGB_WARNINGBN
+#define BRRLOGB_WARBP  BRRLOGB_WARNINGBP
+#define BRRLOGB_WARBNP BRRLOGB_WARNINGBNP
+#define BRRLOGB_DEBUG(...)   BRRLOG_BITS_DEBUG(NULL, 1, 1, __VA_ARGS__)
+#define BRRLOGB_DEBUGN(...)  BRRLOG_BITS_DEBUG(NULL, 1, 0, __VA_ARGS__)
+#define BRRLOGB_DEBUGP(...)  BRRLOG_BITS_DEBUG(NULL, 0, 1, __VA_ARGS__)
+#define BRRLOGB_DEBUGNP(...) BRRLOG_BITS_DEBUG(NULL, 0, 0, __VA_ARGS__)
+#define BRRLOGB_DEBUGB(buffer, ...)   BRRLOG_BITS_DEBUG(buffer, 1, 1, __VA_ARGS__)
+#define BRRLOGB_DEBUGBN(buffer, ...)  BRRLOG_BITS_DEBUG(buffer, 1, 0, __VA_ARGS__)
+#define BRRLOGB_DEBUGBP(buffer, ...)  BRRLOG_BITS_DEBUG(buffer, 0, 1, __VA_ARGS__)
+#define BRRLOGB_DEBUGBNP(buffer, ...) BRRLOG_BITS_DEBUG(buffer, 0, 0, __VA_ARGS__)
 #define BRRLOGB_DEB   BRRLOGB_DEBUG
 #define BRRLOGB_DEBN  BRRLOGB_DEBUGN
 #define BRRLOGB_DEBP  BRRLOGB_DEBUGP
 #define BRRLOGB_DEBNP BRRLOGB_DEBUGNP
+#define BRRLOGB_DEBB   BRRLOGB_DEBUGB
+#define BRRLOGB_DEBBN  BRRLOGB_DEBUGBN
+#define BRRLOGB_DEBBP  BRRLOGB_DEBUGBP
+#define BRRLOGB_DEBBNP BRRLOGB_DEBUGBNP
 
 BRRCPPEND
 
