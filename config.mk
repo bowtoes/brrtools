@@ -325,23 +325,25 @@ $(PROJECT)_CPPFLAGS=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
 $(PROJECT)_LDFLAGS=$(CCLDFLG) $(LNK) $(LDFLAGS)
 
 SRC:=\
-	src/brrtools/brrtest.c\
 	src/brrtools/brrlib.c\
 	src/brrtools/brrlog.c\
 	src/brrtools/brrmem.c\
-	src/brrtools/brrstr.c\
+	src/brrtools/brrstg.c\
+	src/brrtools/brrtest.c\
 	#src/brrtools/brrbuffer.c\
+	src/brrtools/brrpath.c\
 
 HDR:=\
 	src/brrtools/brrapi.h\
+	src/brrtools/brrmap.h\
 	src/brrtools/brrplatform.h\
 	src/brrtools/brrtypes.h\
 	src/brrtools/brrtil.h\
-	src/brrtools/brrmap.h\
-	src/brrtools/brrtest.h\
 	src/brrtools/brrlib.h\
 	src/brrtools/brrlog.h\
 	src/brrtools/brrmem.h\
-	src/brrtools/brrstr.h\
+	src/brrtools/brrstg.h\
+	src/brrtools/brrtest.h\
 	#src/brrtools/brrbuffer.h\
+	src/brrtools/brrpath.h\
 
