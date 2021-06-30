@@ -17,6 +17,13 @@ limitations under the License.
 #ifndef BRRTIL_H
 #define BRRTIL_H
 
+#define _brrtil_eval0(...) __VA_ARGS__
+#define _brrtil_eval1(...) _brrtil_eval0(_brrtil_eval0(_brrtil_eval0(__VA_ARGS__)))
+#define _brrtil_eval2(...) _brrtil_eval1(_brrtil_eval1(_brrtil_eval1(__VA_ARGS__)))
+#define _brrtil_eval3(...) _brrtil_eval2(_brrtil_eval2(_brrtil_eval2(__VA_ARGS__)))
+#define _brrtil_eval4(...) _brrtil_eval3(_brrtil_eval3(_brrtil_eval3(__VA_ARGS__)))
+#define _brrtil_eval(...)  _brrtil_eval4(_brrtil_eval4(_brrtil_eval4(__VA_ARGS__)))
+
 #define _brrtil_narg0(...) _brrtil_narg1(__VA_ARGS__)
 #define _brrtil_narg1( \
     _001_, _002_, _003_, _004_, _005_, _006_, _007_, _008_, _009_, _010_, \
@@ -66,11 +73,11 @@ limitations under the License.
 #define _brrtil_comma(...) ,
 #define _brrtil_has_comma(...) _brrtil_narg0(__VA_ARGS__, _brrtil_commas())
 
-#define _brrtil_narg_help0(_a_, _b_, _n_) _brrtil_narg_help1(_a_, _b_, _n_)
-#define _brrtil_narg_help1(_a_, _b_, _n_) _brrtil_help##_a_##_b_(_n_)
 #define _brrtil_narg_help00(_n_) 1
 #define _brrtil_narg_help01(_n_) 0
 #define _brrtil_narg_help11(_n_) _n_
+#define _brrtil_narg_help1(_a_, _b_, _n_) _brrtil_help##_a_##_b_(_n_)
+#define _brrtil_narg_help0(_a_, _b_, _n_) _brrtil_narg_help1(_a_, _b_, _n_)
 
 #define BRRTIL_NARG(...) \
     _brrtil_narg_help0( \
@@ -78,17 +85,28 @@ limitations under the License.
 			_brrtil_has_comma(_brrtil_comma __VA_ARGS__ ()), \
 			_brrtil_narg0(__VA_ARGS__, _brrtil_sequence()))
 
-#define BRRTIL_TOGGLE(_b_) ((_b_) = !(_b_))
-
 #define _brrtil_paste2(_1_, _2_) _1_ ## _2_
 #define BRRTIL_PASTE(_1_,_2_) _brrtil_paste2(_1_, _2_)
+
+#define _brrtil_index_get0(_0_, ...) (_0_)
+#define _brrtil_index_after0(_0_, ...) __VA_ARGS__
+#define BRRTIL_INDEX(_n_, ...) _brrtil_eval(BRRTIL_PASTE(_brrtil_index_get, _n_ (__VA_ARGS__)))
+#define BRRTIL_AFTER(_n_, ...) _brrtil_eval(BRRTIL_PASTE(_brrtil_index_after, _n_ (__VA_ARGS__)))
+
+#define BRRTIL_TOGGLE(_b_) ((_b_) = !(_b_))
 
 #define BRRTIL_MIN(_1_, _2_) (_1_<_2_?_1_:_2_)
 #define BRRTIL_MAX(_1_, _2_) (_1_>_2_?_1_:_2_)
 #define BRRTIL_CLAMP(_v_, _m_, _M_) (_v_<_m_?_m_:_v_>_M_?_M_:_v_)
 
 #define BRRTIL_ARRLEN(_a_) (sizeof(_a_)/sizeof((_a_)[0]))
-#define BRRTIL_SSTR(_s_) ((_s_)?(_s_):"(nul)")
+#define BRRTIL_SAFESTR(_s_,_r_) ((_s_)?(_s_):(_r_))
+#define BRRTIL_NULSTR(_s_) BRRTIL_SAFESTR(_s_,"(nul)")
+#define BRRTIL_EMPTYSTR(_s_) BRRTIL_SAFESTR(_s_,"")
 #define BRRTIL_ITERARR(_t_, _i_, _a_) for (_t_ _i_ = 0; _i_ < BRRTIL_ARRLEN((_a_)); ++_i_)
+
+#define BRRTIL_FLAG(_x_,_f_) (((_x_)&(_f_))!=0)
+#define BRRTIL_FLAGS(_x_,_f_) (((_x_)&(_f_))==(_f_))
+#define BRRTIL_TGL(_a_) ((_a_)=!(_a_))
 
 #endif /* BRRTIL_H */

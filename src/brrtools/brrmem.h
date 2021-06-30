@@ -23,60 +23,71 @@ limitations under the License.
 BRRCPPSTART
 
 /* Swaps the memory at locations 'data0' and 'data1'.
- * If 'data0' or 'data1' is NULL or 'data_size' == 0, nothing is done. */
+ * If 'data0' or 'data1' is NULL or 'data_size' == 0, nothing is done.
+ * */
 BRRAPI void BRRCALL brrmem_swap(void *const data0, void *const data1, brrsz data_size);
 
 /* Searches 'data' for the first occurrence of 'key' at or after 'offset' and
  * returns the found offset, up-to-and-including 'data_size-1'.
  * If 'data' is NULL or size == 0, 'offset' is returned.
- * If 'key' is not found, 'data_size' is returned. */
+ * If 'key' is not found, 'data_size' is returned.
+ * */
 BRRAPI brrsz BRRCALL brrmem_next(const void *const data, brrsz data_size,
     brrby key, brrsz offset);
 /* Searches 'data' for the first occurrence of 'key' at or before 'offset' and
  * returns the found offset, UTAI 'data_size - 1'.
  * If 'data' is NULL or size == 0, 'offset' is returned.
- * If 'key' is not found, 'data_size' is returned. */
+ * If 'key' is not found, 'data_size' is returned.
+ * */
 BRRAPI brrsz BRRCALL brrmem_previous(const void *const data, brrsz data_size,
     brrby key, brrsz offset);
 
 /* Allocates and creates a copy of 'data' and returns a pointer to the new memory.
  * If 'data' is NULL or size == 0, nothing is done and NULL is returned.
- * If an error occurs, NULL is returned. */
+ * If an error occurs, NULL is returned.
+ * */
 BRRAPI void *BRRCALL brrmem_duplicate(const void *const data, brrsz data_size);
 /* Copies at most 'destination_length' bytes from 'source', of 'source_length' bytes,
  * into 'destination' and returns the number of bytes copied.
  * If either 'source' or 'destination' is NULL or size == 0,
- * nothing is done and 0 is returned. */
+ * nothing is done and 0 is returned.
+ * */
 BRRAPI brrsz BRRCALL brrmem_copy(const void *const source, brrsz source_length,
     void *const destination, brrsz destination_length);
 
 /* Searches 'data' for the first occurrence of 'key' at or after 'offset' and
  * returns the found offset, up-to-and-including 'data_size - 1'.
  * If 'data' or 'key' is NULL or size == 0, 'offset' is returned.
- * If 'key' is not found in 'data', 'data_size' is returned. */
+ * If 'key' is not found in 'data', 'data_size' is returned.
+ * */
 BRRAPI brrsz BRRCALL brrmem_search(const void *const data, brrsz data_size,
     const void *const key, brrsz key_size, brrsz offset);
 /* Searches 'data' for the first occurrence of 'key' at or before 'offset' and
  * returns the found offset, UTAI 'data_size - 1'.
  * If 'data' or 'key' is NULL or size == 0, 'offset' is returned.
- * If 'key' is not found in 'data', 'data_size' is returned. */
+ * If 'key' is not found in 'data', 'data_size' is returned.
+ * */
 BRRAPI brrsz BRRCALL brrmem_search_reverse(const void *const data, brrsz data_size,
     const void *const key, brrsz key_size, brrsz offset);
 
 /* Reverses 'data_size' bytes of 'data' in-place and returns 'data'.
- * If 'data' is NULL or size == 0, nothing is done and NULL is returned. */
+ * If 'data' is NULL or size == 0, nothing is done and NULL is returned.
+ * */
 BRRAPI void *BRRCALL brrmem_static_reverse(void *const data, brrsz data_size);
 /* Creates a reversed copy of 'data' and returns the copy.
  * If 'data' is NULL or size == 0, nothing is done and NULL is returned.
- * If an error occurs, nothing is done and NULL is returned. */
+ * If an error occurs, nothing is done and NULL is returned.
+ * */
 BRRAPI void *BRRCALL brrmem_reverse(const void *const data, brrsz data_size);
 /* Reverses 'block_count' blocks of 'block_size' size bytes in data in-place and returns data.
  * If 'data' is NULL, nothing is done and NULL is returned.
- * If 'block_size' or 'block_count' is 0, nothing is done and 'data' is returned. */
+ * If 'block_size' or 'block_count' is 0, nothing is done and 'data' is returned.
+ * */
 BRRAPI void *BRRCALL brrmem_static_reverse_blocks(void *const data, brrsz block_size, brrsz block_count);
 /* Returns a copy of 'data', where blocks of 'block_size' are in reverse order.
  * If 'data' is NULL or size == 0 or block_size == 0, nothing is done and NULL is returned.
- * If an error occurs, nothing is done and NULL is returned. */
+ * If an error occurs, nothing is done and NULL is returned.
+ * */
 BRRAPI void *BRRCALL brrmem_reverse_blocks(const void *const data, brrsz block_size, brrsz block_count);
 
 /* Concatenates the two memory regions 'data_a' and 'data_b' together into new
@@ -114,7 +125,8 @@ BRRAPI void *BRRCALL brrmem_prepend(void *data, brrsz data_size,
  * into 'destination' and returns the length of the copied subsection.
  * If 'data' or 'destination' is NULL or size == 0, nothing is done and 0 is returned.
  * If 'start > end', the subsection is copied in reverse.
- * If 'start == end', nothing is done and 0 is returned. */
+ * If 'start == end', nothing is done and 0 is returned.
+ * */
 BRRAPI brrsz BRRCALL brrmem_slice(const void *const data, brrsz data_size,
     void *const destination, brrsz start, brrsz end_inclusive);
 

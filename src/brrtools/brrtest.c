@@ -27,10 +27,14 @@ limitations under the License.
 static void BRRCALL
 addtest(const char *const test_name, const char *(*const test_fn)(void), brrtest_suiteT *const suite)
 {
+	brrsz tnlen;
 	if (!brrlib_alloc((void **)&suite->tests, (suite->ntests + 1) * sizeof(*suite->tests), 0)) {
 		fprintf(stderr, "FAILED TO ALLOCATE TEST: %s", strerror(errno));
 		exit(1);
 	}
+	tnlen = strlen(test_name);
+	if (tnlen > suite->maxtnlen)
+		suite->maxtnlen = tnlen;
 	suite->tests[suite->ntests] = (brrtest_testT){.name = test_name, .test = test_fn};
 	suite->ntests++;
 }
@@ -59,24 +63,28 @@ void BRRCALL
 void BRRCALL
 (BRRTEST_RUN_SUITE)(brrtest_suiteT *const suite)
 {
+	int ndigits = brrlib_ndigits(suite->ntests, 0, 10);
 	printf("Running suite '%s' with %zu...\n", suite->name, suite->ntests);
 	for (brru8 i = 0; i < suite->ntests; ++i) {
 		brrtest_testT *const t = &suite->tests[i];
+		printf("SUITE %s Running test %*zu/%zu %-*s ... ", suite->name, ndigits, i + 1, suite->ntests, suite->maxtnlen, t->name);
+		fflush(stdout);
+		fflush(stderr);
 		runtest(t);
 		if (t->skip) {
-			printf("SUITE %s %zu/%zu Skipped: %s\n", suite->name, i + 1, suite->ntests, t->name);
+			printf("SKIPPED\n");
 			suite->nskip++;
 		} else {
 			suite->nrun++;
 			if (t->fail) {
-				printf("SUITE %s %zu/%zu Failed: %s: %s\n", suite->name, i + 1, suite->ntests, t->name, t->message);
+				printf("FAILED : %s\n", t->message);
 				suite->nfail++;
 				if (suite->skip_on_fail) {
 					suite->nskip += suite->ntests - (i + 1);
 					break;
 				}
 			} else {
-				printf("SUITE %s %zu/%zu Succeeded: %s\n", suite->name, i + 1, suite->ntests, t->name);
+				printf("SUCCEEDED\n");
 				suite->nsucc++;
 			}
 		}

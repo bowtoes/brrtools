@@ -40,6 +40,7 @@ struct brrtest_suite {
 	brru8 nskip;
 	brru8 nsucc;
 	brru8 nfail;
+	int maxtnlen;
 	int skip_on_fail;
 };
 
@@ -69,7 +70,7 @@ BRRTEST_RUN_SUITE(brrtest_suiteT *const suite);
 	}
 #define BRRTEST_RUN_SUITE(_suite_) do { _brraddname(_suite_)(); BRRTEST_RUN_SUITE(&_brrsuitename(_suite_)); } while (0)
 
-#define BRRTEST_ASSERT(_cond_, _msg_) do { if (!(_cond_)) return _msg_; } while (0)
+#define BRRTEST_ASSERT(_cond_, _msg_) do { if (!(_cond_)) return (_msg_); } while (0)
 
 BRRCPPEND
 
