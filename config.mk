@@ -210,12 +210,15 @@ endif # }
 
 # { INCS & WRNS
 INCS:=-I$(SRCDIR)
-WRNS:=-Wall -Wextra -Wpedantic -Werror=pedantic\
+WRNS:=-Wall -Wextra\
       -Werror=implicit-function-declaration -Werror=missing-declarations\
       -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter
+#ifdef PEDANTIC
+WRNS:= $(WRNS) -Wpedantic -Werror=pedantic
 ifneq ($(CC),tcc)
  WRNS:=-pedantic -pedantic-errors $(WRNS)
-endif # }
+endif
+#endif # }
 # { DEFS
 DEFS:=-D$(UPROJECT)_MAJOR=$($(PROJECT)_MAJOR)\
       -D$(UPROJECT)_MINOR=$($(PROJECT)_MINOR)\
@@ -232,6 +235,9 @@ ifeq ($(TARGET),UNIX)
  DEFS:=$(DEFS) -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L
 else
  DEFS:=-DWIN32_LEAN_AND_MEAN $(DEFS)
+ ifeq ($(MODE),SHARED)
+  DEFS:=-D$(UPROJECT)_EXPORTS $(DEFS)
+ endif
 endif # }
 # { CC[LD]FLG
 ifdef DEBUG
