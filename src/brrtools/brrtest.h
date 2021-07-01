@@ -70,6 +70,13 @@ BRRTEST_RUN_SUITE(brrtest_suiteT *const suite);
 	}
 #define BRRTEST_RUN_SUITE(_suite_) do { _brraddname(_suite_)(); BRRTEST_RUN_SUITE(&_brrsuitename(_suite_)); } while (0)
 
+#define BRRTEST_SUITE_TOTAL(_suite_) ((_brrsuitename(_suite_)).ntests)
+#define BRRTEST_SUITE_RUN(_suite_) ((_brrsuitename(_suite_)).nrun)
+#define BRRTEST_SUITE_SKIP(_suite_) ((_brrsuitename(_suite_)).nskip)
+#define BRRTEST_SUITE_SUCCEED(_suite_) ((_brrsuitename(_suite_)).nsucc)
+#define BRRTEST_SUITE_FAIL(_suite_) ((_brrsuitename(_suite_)).nfail)
+#define BRRTEST_SUITE_SKIP_ON_FAIL(_suite_) ((_brrsuitename(_suite_)).skip_on_fail)
+
 #define BRRTEST_ASSERT(_cond_, _msg_) do { if (!(_cond_)) return (_msg_); } while (0)
 
 BRRCPPEND

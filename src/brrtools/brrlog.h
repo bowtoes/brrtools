@@ -147,23 +147,23 @@ typedef struct brrlog_type {
 	brrlog_formatT format;
 } brrlog_typeT;
 
-extern BRRAPI brrlog_typeT brrlog_type_critical ; /* Logs of 'critical' priority will be logged with this style by default. */
-extern BRRAPI brrlog_typeT brrlog_type_error    ; /* Logs of 'error' priority will be logged with this style by default. */
-extern BRRAPI brrlog_typeT brrlog_type_normal   ; /* Logs of 'normal' priority will be logged with this style by default. */
-extern BRRAPI brrlog_typeT brrlog_type_warning  ; /* Logs of 'warning' priority will be logged with this style by default. */
-extern BRRAPI brrlog_typeT brrlog_type_debug    ; /* Logs of 'debug' priority will be logged with this style by default. */
-extern BRRAPI brrlog_typeT brrlog_type_clear    ; /* Format used to clear log styles once log output has finished. */
-extern BRRAPI brrlog_typeT brrlog_type_last     ; /* Settings last-used to log a message. w*/
+extern BRRAPI brrlog_typeT gbrrlog_type_critical ; /* Logs of 'critical' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT gbrrlog_type_error    ; /* Logs of 'error' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT gbrrlog_type_normal   ; /* Logs of 'normal' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT gbrrlog_type_warning  ; /* Logs of 'warning' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT gbrrlog_type_debug    ; /* Logs of 'debug' priority will be logged with this style by default. */
+extern BRRAPI brrlog_typeT gbrrlog_type_clear    ; /* Format used to clear log styles once log output has finished. */
+extern BRRAPI brrlog_typeT gbrrlog_type_last     ; /* Settings last-used to log a message. w*/
 
 /* Various control settings for the log system. */
-extern BRRAPI struct brrlogctl {
+extern BRRAPI struct gbrrlogctl {
 	brru2 style_enabled:1;    /* Whether log styling is enabled at all. */
 	brru2 debug_enabled:1;    /* Whether the 'debug' log priority is enabled. */
 	brru2 flush_enabled:1;    /* Whether automatic stream flushing is enabled. */
 	brru2 verbose_enabled:1;  /* Whether file, function, and line information should also be logged. */
 	brru2 prefixes_enabled:1; /* Whether logs should print their prefixes by default. */
 	brru2 newline_enabled:1;  /* Whether logs should print a newline by default. */
-} brrlogctl;
+} gbrrlogctl;
 
 /* Get a string representation of the given color. */
 BRRAPI const char *BRRCALL brrlog_color_str(brrlog_colorT color);
@@ -306,11 +306,11 @@ BRRAPI brrsz BRRCALL brrlog_bits(_brrlog_log_params,
 #define BRRLOG_MESSAGEFBP(...)           _brrlog_docatn(3, 7, text, __VA_ARGS__)
 #define BRRLOG_MESSAGEFBNP(...)          _brrlog_docatn(3, 8, text, __VA_ARGS__)
 
-#define BRRLOG_MESSAGE_CRITICAL(...) _brrlog_docatn(3, 0, text, brrlog_type_critical.level, brrlog_type_critical.format, __VA_ARGS__)
-#define BRRLOG_MESSAGE_ERROR(...)    _brrlog_docatn(3, 0, text, brrlog_type_error.level,    brrlog_type_error.format,    __VA_ARGS__)
-#define BRRLOG_MESSAGE_NORMAL(...)   _brrlog_docatn(3, 0, text, brrlog_type_normal.level,   brrlog_type_normal.format,   __VA_ARGS__)
-#define BRRLOG_MESSAGE_WARNING(...)  _brrlog_docatn(3, 0, text, brrlog_type_warning.level,  brrlog_type_warning.format,  __VA_ARGS__)
-#define BRRLOG_MESSAGE_DEBUG(...)    _brrlog_docatn(3, 0, text, brrlog_type_debug.level,    brrlog_type_debug.format,    __VA_ARGS__)
+#define BRRLOG_MESSAGE_CRITICAL(...) _brrlog_docatn(3, 0, text, gbrrlog_type_critical.level, gbrrlog_type_critical.format, __VA_ARGS__)
+#define BRRLOG_MESSAGE_ERROR(...)    _brrlog_docatn(3, 0, text, gbrrlog_type_error.level,    gbrrlog_type_error.format,    __VA_ARGS__)
+#define BRRLOG_MESSAGE_NORMAL(...)   _brrlog_docatn(3, 0, text, gbrrlog_type_normal.level,   gbrrlog_type_normal.format,   __VA_ARGS__)
+#define BRRLOG_MESSAGE_WARNING(...)  _brrlog_docatn(3, 0, text, gbrrlog_type_warning.level,  gbrrlog_type_warning.format,  __VA_ARGS__)
+#define BRRLOG_MESSAGE_DEBUG(...)    _brrlog_docatn(3, 0, text, gbrrlog_type_debug.level,    gbrrlog_type_debug.format,    __VA_ARGS__)
 #define BRRLOG_CRITICAL(...)   BRRLOG_MESSAGE_CRITICAL(NULL, 1, 1, __VA_ARGS__)
 #define BRRLOG_CRITICALN(...)  BRRLOG_MESSAGE_CRITICAL(NULL, 1, 0, __VA_ARGS__)
 #define BRRLOG_CRITICALP(...)  BRRLOG_MESSAGE_CRITICAL(NULL, 0, 1, __VA_ARGS__)
@@ -392,11 +392,11 @@ BRRAPI brrsz BRRCALL brrlog_bits(_brrlog_log_params,
 #define BRRLOG_DEBBP  BRRLOG_DEBUGBP
 #define BRRLOG_DEBBNP BRRLOG_DEBUGBNP
 
-#define BRRLOG_DIGITS_CRITICAL(...) _brrlog_docatn(3, 0, digits, brrlog_type_critical.level, brrlog_type_critical.format, __VA_ARGS__)
-#define BRRLOG_DIGITS_ERROR(...)    _brrlog_docatn(3, 0, digits, brrlog_type_error.level,    brrlog_type_error.format,    __VA_ARGS__)
-#define BRRLOG_DIGITS_NORMAL(...)   _brrlog_docatn(3, 0, digits, brrlog_type_normal.level,   brrlog_type_normal.format,   __VA_ARGS__)
-#define BRRLOG_DIGITS_WARNING(...)  _brrlog_docatn(3, 0, digits, brrlog_type_warning.level,  brrlog_type_warning.format,  __VA_ARGS__)
-#define BRRLOG_DIGITS_DEBUG(...)    _brrlog_docatn(3, 0, digits, brrlog_type_debug.level,    brrlog_type_debug.format,    __VA_ARGS__)
+#define BRRLOG_DIGITS_CRITICAL(...) _brrlog_docatn(3, 0, digits, gbrrlog_type_critical.level, gbrrlog_type_critical.format, __VA_ARGS__)
+#define BRRLOG_DIGITS_ERROR(...)    _brrlog_docatn(3, 0, digits, gbrrlog_type_error.level,    gbrrlog_type_error.format,    __VA_ARGS__)
+#define BRRLOG_DIGITS_NORMAL(...)   _brrlog_docatn(3, 0, digits, gbrrlog_type_normal.level,   gbrrlog_type_normal.format,   __VA_ARGS__)
+#define BRRLOG_DIGITS_WARNING(...)  _brrlog_docatn(3, 0, digits, gbrrlog_type_warning.level,  gbrrlog_type_warning.format,  __VA_ARGS__)
+#define BRRLOG_DIGITS_DEBUG(...)    _brrlog_docatn(3, 0, digits, gbrrlog_type_debug.level,    gbrrlog_type_debug.format,    __VA_ARGS__)
 #define BRRLOGD_CRITICAL(...)   BRRLOG_DIGITS_CRITICAL(NULL, 1, 1, __VA_ARGS__)
 #define BRRLOGD_CRITICALN(...)  BRRLOG_DIGITS_CRITICAL(NULL, 1, 0, __VA_ARGS__)
 #define BRRLOGD_CRITICALP(...)  BRRLOG_DIGITS_CRITICAL(NULL, 0, 1, __VA_ARGS__)
@@ -478,11 +478,11 @@ BRRAPI brrsz BRRCALL brrlog_bits(_brrlog_log_params,
 #define BRRLOGD_DEBBP  BRRLOGD_DEBUGBP
 #define BRRLOGD_DEBBNP BRRLOGD_DEBUGBNP
 
-#define BRRLOG_BITS_CRITICAL(...) _brrlog_docatn(3, 0, bits, brrlog_type_critical.level, brrlog_type_critical.format, __VA_ARGS__)
-#define BRRLOG_BITS_ERROR(...)    _brrlog_docatn(3, 0, bits, brrlog_type_error.level,    brrlog_type_error.format,    __VA_ARGS__)
-#define BRRLOG_BITS_NORMAL(...)   _brrlog_docatn(3, 0, bits, brrlog_type_normal.level,   brrlog_type_normal.format,   __VA_ARGS__)
-#define BRRLOG_BITS_WARNING(...)  _brrlog_docatn(3, 0, bits, brrlog_type_warning.level,  brrlog_type_warning.format,  __VA_ARGS__)
-#define BRRLOG_BITS_DEBUG(...)    _brrlog_docatn(3, 0, bits, brrlog_type_debug.level,    brrlog_type_debug.format,    __VA_ARGS__)
+#define BRRLOG_BITS_CRITICAL(...) _brrlog_docatn(3, 0, bits, gbrrlog_type_critical.level, gbrrlog_type_critical.format, __VA_ARGS__)
+#define BRRLOG_BITS_ERROR(...)    _brrlog_docatn(3, 0, bits, gbrrlog_type_error.level,    gbrrlog_type_error.format,    __VA_ARGS__)
+#define BRRLOG_BITS_NORMAL(...)   _brrlog_docatn(3, 0, bits, gbrrlog_type_normal.level,   gbrrlog_type_normal.format,   __VA_ARGS__)
+#define BRRLOG_BITS_WARNING(...)  _brrlog_docatn(3, 0, bits, gbrrlog_type_warning.level,  gbrrlog_type_warning.format,  __VA_ARGS__)
+#define BRRLOG_BITS_DEBUG(...)    _brrlog_docatn(3, 0, bits, gbrrlog_type_debug.level,    gbrrlog_type_debug.format,    __VA_ARGS__)
 #define BRRLOGB_CRITICAL(...)   BRRLOG_BITS_CRITICAL(NULL, 1, 1, __VA_ARGS__)
 #define BRRLOGB_CRITICALN(...)  BRRLOG_BITS_CRITICAL(NULL, 1, 0, __VA_ARGS__)
 #define BRRLOGB_CRITICALP(...)  BRRLOG_BITS_CRITICAL(NULL, 0, 1, __VA_ARGS__)

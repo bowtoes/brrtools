@@ -275,8 +275,16 @@ endif
 
 CHECK_SRC:=\
 	src/main.c\
+	src/tests/mem.c\
+	src/tests/lib.c\
+	src/tests/log.c\
+	src/tests/stg.c\
 
 CHECK_HDR:=\
+	src/tests/mem.h\
+	src/tests/lib.h\
+	src/tests/log.h\
+	src/tests/stg.h\
 
 # }
 

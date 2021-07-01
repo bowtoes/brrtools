@@ -152,39 +152,39 @@ static void BRRCALL
 uselast(brrlog_priorityT *p, brrlog_destinationT *d,
     brrlog_colorT *fg, brrlog_colorT *bg, brrlog_styleT *s, brrlog_fontT *fn)
 {
-	if (*p  <= brrlog_priority_last)    *p  = brrlog_type_last.level.priority;
-	if (*d  <= brrlog_destination_last) *d  = brrlog_type_last.level.destination;
-	if (*fg <= brrlog_color_last)       *fg = brrlog_type_last.format.foreground;
-	if (*bg <= brrlog_color_last)       *bg = brrlog_type_last.format.background;
-	if (*s  <= brrlog_style_last)       *s  = brrlog_type_last.format.style;
-	if (*fn <= brrlog_font_last)        *fn = brrlog_type_last.format.font;
+	if (*p  <= brrlog_priority_last)    *p  = gbrrlog_type_last.level.priority;
+	if (*d  <= brrlog_destination_last) *d  = gbrrlog_type_last.level.destination;
+	if (*fg <= brrlog_color_last)       *fg = gbrrlog_type_last.format.foreground;
+	if (*bg <= brrlog_color_last)       *bg = gbrrlog_type_last.format.background;
+	if (*s  <= brrlog_style_last)       *s  = gbrrlog_type_last.format.style;
+	if (*fn <= brrlog_font_last)        *fn = gbrrlog_type_last.format.font;
 }
 static void BRRCALL
 setlast(brrlog_priorityT p, brrlog_destinationT d,
     brrlog_colorT fg, brrlog_colorT bg, brrlog_styleT s, brrlog_fontT fn)
 {
-	brrlog_type_last.level.priority = p;
-	brrlog_type_last.level.destination = d;
-	brrlog_type_last.format.foreground = fg;
-	brrlog_type_last.format.background = bg;
-	brrlog_type_last.format.style = s;
-	brrlog_type_last.format.font = fn;
+	gbrrlog_type_last.level.priority = p;
+	gbrrlog_type_last.level.destination = d;
+	gbrrlog_type_last.format.foreground = fg;
+	gbrrlog_type_last.format.background = bg;
+	gbrrlog_type_last.format.style = s;
+	gbrrlog_type_last.format.font = fn;
 }
 static brrlog_formatT BRRCALL
 pritofmt(brrlog_priorityT p)
 {
 	if (p == brrlog_priority_critical)
-		return brrlog_type_critical.format;
+		return gbrrlog_type_critical.format;
 	else if (p == brrlog_priority_error)
-		return brrlog_type_error.format;
+		return gbrrlog_type_error.format;
 	else if (p == brrlog_priority_normal)
-		return brrlog_type_normal.format;
+		return gbrrlog_type_normal.format;
 	else if (p == brrlog_priority_warning)
-		return brrlog_type_warning.format;
+		return gbrrlog_type_warning.format;
 	else if (p == brrlog_priority_debug)
-		return brrlog_type_debug.format;
+		return gbrrlog_type_debug.format;
 	else
-		return brrlog_type_clear.format;
+		return gbrrlog_type_clear.format;
 }
 
 #define DUMCLAMP(_x, _min, _max) ((_x)<(_min)?(_x):(_x)>(_max)?(_max):(_x))
@@ -297,15 +297,15 @@ brrlog_priority_dbgstr(brrlog_priorityT priority)
 #define CLR_FORMAT {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}
 #define LST_FORMAT {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}
 
-brrlog_typeT brrlog_type_critical = {CRI_LEVEL, CRI_FORMAT};
-brrlog_typeT brrlog_type_error    = {ERR_LEVEL, ERR_FORMAT};
-brrlog_typeT brrlog_type_normal   = {NOR_LEVEL, NOR_FORMAT};
-brrlog_typeT brrlog_type_warning  = {WAR_LEVEL, WAR_FORMAT};
-brrlog_typeT brrlog_type_debug    = {DEB_LEVEL, DEB_FORMAT};
-brrlog_typeT brrlog_type_clear    = {CLR_LEVEL, CLR_FORMAT};
-brrlog_typeT brrlog_type_last     = {LST_LEVEL, LST_FORMAT};
+brrlog_typeT gbrrlog_type_critical = {CRI_LEVEL, CRI_FORMAT};
+brrlog_typeT gbrrlog_type_error    = {ERR_LEVEL, ERR_FORMAT};
+brrlog_typeT gbrrlog_type_normal   = {NOR_LEVEL, NOR_FORMAT};
+brrlog_typeT gbrrlog_type_warning  = {WAR_LEVEL, WAR_FORMAT};
+brrlog_typeT gbrrlog_type_debug    = {DEB_LEVEL, DEB_FORMAT};
+brrlog_typeT gbrrlog_type_clear    = {CLR_LEVEL, CLR_FORMAT};
+brrlog_typeT gbrrlog_type_last     = {LST_LEVEL, LST_FORMAT};
 
-struct brrlogctl brrlogctl =
+struct gbrrlogctl gbrrlogctl =
 {
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 	.style_enabled = 0,
@@ -408,7 +408,7 @@ brrlog_text(_brrlog_log_params,
 	if (!format || priority < st_minpri || priority > st_maxpri)
 		return 0;
 #ifndef BRRTOOLS_DEBUG
-	if (!brrlogctl.debug_enabled && priority == brrlog_priority_debug)
+	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug)
 		return 0;
 #endif
 	if (destination != brrlog_destination_null)
@@ -424,40 +424,40 @@ brrlog_text(_brrlog_log_params,
 		print = nomaxprint;
 	}
 	prifmt = pritofmt(priority);
-	if (brrlogctl.flush_enabled) {
+	if (gbrrlogctl.flush_enabled) {
 		if (dst && st_lastlocation != dst) {
 			fflush(st_lastlocation);
 			st_lastlocation = dst;
 		}
 	}
 
-	if (brrlogctl.prefixes_enabled && print_prefix) {
+	if (gbrrlogctl.prefixes_enabled && print_prefix) {
 		if (!prefix)
-			prefix = brrlog_type_last.level.prefix;
+			prefix = gbrrlog_type_last.level.prefix;
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-		if (brrlogctl.style_enabled)
+		if (gbrrlogctl.style_enabled)
 			print(&write, buffer, dst, "%s", updatefmtstr(prifmt.foreground, prifmt.background, prifmt.style, prifmt.font));
 #endif
 		print(&write, buffer, dst, "%s", prefix);
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-		if (brrlogctl.style_enabled)
+		if (gbrrlogctl.style_enabled)
 			print(&write, buffer, dst, "%s", st_clrstyle);
 #endif
 	}
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-	if (brrlogctl.style_enabled)
+	if (gbrrlogctl.style_enabled)
 		print(&write, buffer, dst, "%s", updatefmtstr(foreground, background, style, font));
 #endif
 	va_start(lptr, format);
 	vprint(&write, buffer, dst, format, lptr);
 	va_end(lptr);
 #if !defined(BRRPLATFORMTYPE_WINDOWS)
-	if (brrlogctl.style_enabled)
+	if (gbrrlogctl.style_enabled)
 		print(&write, buffer, dst, "%s", st_clrstyle);
 #endif
-	if (brrlogctl.verbose_enabled)
+	if (gbrrlogctl.verbose_enabled)
 		print(&write, buffer, dst, " : '%s' @ %s:%llu", file, function, line);
-	if (brrlogctl.newline_enabled && print_newline)
+	if (gbrrlogctl.newline_enabled && print_newline)
 		print(&write, buffer, dst, "\n");
 
 	if (st_logmax && dst && !buffer)
