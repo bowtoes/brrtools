@@ -57,7 +57,7 @@ $(OUTDIR)/$(INTDIR)/%.E: $(SRCDIR)/%.c
 	$(CC) $($(PROJECT)_CPPFLAGS) $($(PROJECT)_CFLAGS) -E $< -o $@
 $(OUTDIR)/$(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $($(PROJECT)_CPPFLAGS) $($(PROJECT)_CFLAGS) -c $< -o $@
-$(ASS) $(INT) $(OBJ): $(HDR) Makefile config.mk
+$(ASS) $(INT) $(OBJ): $(HDR) $(NOINSTALL_HDR) Makefile config.mk
 
 $(PROJECT): options setup $(OBJ)
 ifeq ($(MODE),SHARED) # {

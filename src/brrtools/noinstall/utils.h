@@ -1,5 +1,5 @@
-#ifndef BRRUTILS_H
-#define BRRUTILS_H
+#ifndef BRRNOINSTALL_UTILS_H
+#define BRRNOINSTALL_UTILS_H
 
 #include <stdint.h>
 
@@ -34,4 +34,4 @@
 #define FOURCC(_a,_b,_c,_d)  ((const char[4]){_a,_b,_c,_d})
 #define FOURCCR(_a,_b,_c,_d) ((const char[4]){_d,_c,_b,_a})
 
-#endif /* BRRUTILS_H */
+#endif /* BRRNOINSTALLUTILS_H */

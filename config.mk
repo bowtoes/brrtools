@@ -275,15 +275,15 @@ endif
 
 CHECK_SRC:=\
 	src/main.c\
-	src/tests/mem.c\
 	src/tests/lib.c\
 	src/tests/log.c\
+	src/tests/mem.c\
 	src/tests/stg.c\
 
 CHECK_HDR:=\
-	src/tests/mem.h\
 	src/tests/lib.h\
 	src/tests/log.h\
+	src/tests/mem.h\
 	src/tests/stg.h\
 
 # }
@@ -336,22 +336,27 @@ SRC:=\
 	src/brrtools/brrlib.c\
 	src/brrtools/brrlog.c\
 	src/brrtools/brrmem.c\
+	src/brrtools/brrpath.c\
 	src/brrtools/brrstg.c\
 	src/brrtools/brrtest.c\
+	src/brrtools/noinstall/statics.c\
 	#src/brrtools/brrbuffer.c\
-	src/brrtools/brrpath.c\
 
 HDR:=\
 	src/brrtools/brrapi.h\
 	src/brrtools/brrmap.h\
 	src/brrtools/brrplatform.h\
-	src/brrtools/brrtypes.h\
 	src/brrtools/brrtil.h\
+	src/brrtools/brrtypes.h\
 	src/brrtools/brrlib.h\
 	src/brrtools/brrlog.h\
 	src/brrtools/brrmem.h\
+	src/brrtools/brrpath.h\
 	src/brrtools/brrstg.h\
 	src/brrtools/brrtest.h\
 	#src/brrtools/brrbuffer.h\
-	src/brrtools/brrpath.h\
+
+NOINSTALL_HDR:=\
+	src/brrtools/noinstall/statics.h\
+	src/brrtools/noinstall/utils.h\
 
