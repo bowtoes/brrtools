@@ -37,6 +37,9 @@ make HOST=UNIX TARGET=WINDOWS
 ```shell
 make HOST=WINDOWS TARGET=WINDOWS
 ```
+NOTE: Windows-based compilation is untested; don't be surprised if it fails for
+whatever reason.
+
 To customize the type of binary to generate, there are different environment
 varivariables that can be set before compilation:
   * `BITS`: Set to `32` to generate a 32-bit binary, or `64` for a 64-bit
@@ -45,8 +48,10 @@ varivariables that can be set before compilation:
   * `MODE`: Set to `SHARED` to generate a shared library or dll depending on
   what the target system is.  
   Defaults to `SHARED`  
+  * 'PEDANTIC': Set to anything in order to enable GCC pedantic compilation
+  checks.  
 
-These settings are case-sensitive.
+These settings are very much case-sensitive.
 
 ## Installation
 [Contents](#contents)  
@@ -105,13 +110,15 @@ or if you can pass arguments to the linker through the compiler (like with `gcc`
 ```
 #### Dynamic linkage:
 ```shell
-{compiler} [-I/custom/brrtools/prefix/include] {compilerargs} [-L/custom/brrtools/prefix/lib] -lbrrtools
+{compiler} {compilerargs} [-L/custom/brrtools/prefix/lib] -lbrrtools
 ```
 ### Windows:
-First, `/parent/path/of/brrtools/installation` must be added to your includes.  
-#### Static linkage:
-#### Dynamic linkage:
-Add `BRRTOOLS_IMPORTS` to your defines before using.
+Windows IDEs like Visual Studio have the ability to link against specific
+binaries. It is unknown to me how to do that, but it should be no different
+than when linking against any other library.
+
+However, for `Dynamic` linkage, `BRRTOOLS_IMPORTS` must be `#define`d before
+compilation.
 
 [otherbrr]:https://github.com/Optiroc/BRRtools
 [gawk]:https://www.gnu.org/software/gawk/manual/html_node/index.html
