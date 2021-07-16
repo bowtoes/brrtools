@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "brrtools/brrlib.h"
+#include "brrtools/brrplatform.h"
 #include "brrtools/brrtest.h"
 
 static char test_msg[2048] = {0};
@@ -24,7 +25,14 @@ BRRTEST_TEST(LIB_UTIME) {
 	brru8 m = s / 60, S = s % 60;
 	brru8 h = m / 60, M = m % 60;
 	brru8 d = h / 24, H = h % 24;
-	fprintf(stderr, "Time: u=%llu %llu, %llu:%llu:%llu.%llu\n", u, d, H, M, S, U);
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+#define FU8 "%llu"
+#elif BRRBITDEPTH_SYSTEM == BRRBITDEPTH_64BIT
+#define FU8 "%lu"
+#else
+#define FU8 "%llu"
+#endif
+	fprintf(stderr, "Time: u="FU8" "FU8", "FU8":"FU8":"FU8"."FU8"\n", u, d, H, M, S, U);
 	return "";
 }
 BRRTEST_TEST(LIB_USLEEP) {
@@ -114,8 +122,8 @@ BRRTEST_TEST(LIB_SRAND) {
 	return "";
 }
 BRRTEST_SUITE(lib, 0
-//	,lib_pause
-//	,lib_clear
+//	,LIB_PAUSE
+//	,LIB_CLEAR
 	,LIB_UTIME
 	,LIB_USLEEP
 	,LIB_NDIGITS
@@ -127,19 +135,14 @@ void BRRCALL
 brrtools_brrlib_test(brrsz *total, brrsz *ran, brrsz *skipped, brrsz *succeeded, brrsz *failed)
 {
 	BRRTEST_RUN_SUITE(lib);
-	if (total) {
+	if (total)
 		*total += BRRTEST_SUITE_TOTAL(lib);
-	}
-	if (ran) {
+	if (ran)
 		*ran += BRRTEST_SUITE_RUN(lib);
-	}
-	if (skipped) {
+	if (skipped)
 		*skipped += BRRTEST_SUITE_SKIP(lib);
-	}
-	if (succeeded) {
+	if (succeeded)
 		*succeeded += BRRTEST_SUITE_SUCCEED(lib);
-	}
-	if (failed) {
+	if (failed)
 		*failed += BRRTEST_SUITE_FAIL(lib);
-	}
 }

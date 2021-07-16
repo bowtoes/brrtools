@@ -49,10 +49,11 @@ BRRAPI brru8 BRRCALL brrlib_utime(void);
 /* Pause program execution for 'usec' microseconds. */
 BRRAPI void BRRCALL brrlib_usleep(brru8 usec);
 
-/* Allocates/reallocates memory location pointed to by 'current' and returns
- * 1 on success, 0 on failure.
+/* Allocates/reallocates the memory location pointed to by 'current'.
  * If 'size' is 0 and 'current' points to a non-NULL pointer, the pointer pointed
  * to by 'current' will be freed and set to NULL.
+ * If allocation succeeds, 0 is returned.
+ * If an error occurs, -1 is returned.
  * */
 BRRAPI int BRRCALL brrlib_alloc(void **current, brrsz size, int zero);
 /* Counts the number of digits in 'number'. If 'is_signed' is non-zero, 'number'

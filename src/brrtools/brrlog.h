@@ -180,7 +180,8 @@ BRRAPI const char *BRRCALL brrlog_priority_dbgstr(brrlog_priorityT level);
 BRRAPI brrsz BRRCALL brrlog_logmax(void);
 /* Set maximum number of bytes that can be logged at once.
  * Set to 0 to disable maximum.
- * Returns 1 if the max was successfully set, 0 otherwise.
+ * If no error occurs, returns 0.
+ * If an error occurs, returns -1.
  * MUST be called before using any log functions, acts as an initialization.
  * */
 BRRAPI int BRRCALL brrlog_setlogmax(brrsz newmax);
@@ -204,7 +205,8 @@ BRRAPI void BRRCALL brrlog_setmaxpriority(brrlog_priorityT newmax);
 /* Initialize the log buffer.
  * The buffer is only used if 'logmax' isn't 0.
  * Run either this or 'brrlog_setlogmax' before trying to log.
- * Returns 1 on success and 0 on failure.
+ * If the log buffer was successfully initialized, 0 is returned.
+ * If an error occurs, -1 is returned.
  * */
 BRRAPI int BRRCALL brrlog_init(void);
 /* Frees the log buffer used by brrlog. */
@@ -257,7 +259,7 @@ BRRAPI brrsz BRRCALL brrlog_bits(_brrlog_log_params,
 #define _brrlog_docat0(type, cat, priority, destination, prefix, foreground, background, style, font, ...) \
     _brrlog_cat##type(cat, priority, destination, prefix, foreground, background, style, font, __VA_ARGS__)
 #define _brrlog_docat1(type, cat, level, foreground, background, style, font, ...) \
-    _brrlog_cat##type(cat, levelrpriority, level.destination, level.prefix, foreground, background, style, font, __VA_ARGS__)
+    _brrlog_cat##type(cat, level.priority, level.destination, level.prefix, foreground, background, style, font, __VA_ARGS__)
 #define _brrlog_docat2(type, cat, priority, destination, prefix, format, ...) \
     _brrlog_cat##type(cat, priority, destination, prefix, \
         format.foreground, format.background, format.style, format.font, \

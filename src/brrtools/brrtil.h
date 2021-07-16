@@ -104,9 +104,10 @@ limitations under the License.
 #define BRRTIL_NULSTR(_s_) BRRTIL_SAFESTR(_s_,"(nul)")
 #define BRRTIL_EMPTYSTR(_s_) BRRTIL_SAFESTR(_s_,"")
 #define BRRTIL_ITERARR(_t_, _i_, _a_) for (_t_ _i_ = 0; _i_ < BRRTIL_ARRLEN((_a_)); ++_i_)
+#define BRRTIL_ASARRAY(_t_, ...) ((_t_ []){__VA_ARGS__})
 
-#define BRRTIL_FLAG(_x_,_f_) (((_x_)&(_f_))!=0)
-#define BRRTIL_FLAGS(_x_,_f_) (((_x_)&(_f_))==(_f_))
+#define BRRTIL_ANYFLAG(_x_,_f_) (((_x_)&(_f_))!=0)
+#define BRRTIL_ALLFLAGS(_x_,_f_) (((_x_)&(_f_))==(_f_))
 #define BRRTIL_TGL(_a_) ((_a_)=!(_a_))
 
 #endif /* BRRTIL_H */

@@ -28,7 +28,7 @@ static void BRRCALL
 addtest(const char *const test_name, const char *(*const test_fn)(void), brrtest_suiteT *const suite)
 {
 	brrsz tnlen;
-	if (!brrlib_alloc((void **)&suite->tests, (suite->ntests + 1) * sizeof(*suite->tests), 0)) {
+	if (brrlib_alloc((void **)&suite->tests, (suite->ntests + 1) * sizeof(*suite->tests), 0)) {
 		fprintf(stderr, "FAILED TO ALLOCATE TEST: %s", strerror(errno));
 		exit(1);
 	}

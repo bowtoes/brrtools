@@ -64,7 +64,7 @@ brrmem_duplicate(const void *const data, brrsz data_size)
 	void *r = NULL;
 	if (!BFVALID(data)) {
 		return NULL;
-	} else if (!brrlib_alloc(&r, data_size, 1)) {
+	} else if (brrlib_alloc(&r, data_size, 1)) {
 		return NULL;
 	} else {
 		return memcpy(r, data, data_size);
@@ -134,7 +134,7 @@ brrmem_reverse(const void *const data, brrsz data_size)
 	void *r = NULL;
 	if (!BFVALID(data)) {
 		return NULL;
-	} else if (!brrlib_alloc(&r, data_size, 0)) {
+	} else if (brrlib_alloc(&r, data_size, 0)) {
 		return NULL;
 	} else {
 		for (brrsz i = 0; i < data_size; ++i)
@@ -163,7 +163,7 @@ brrmem_reverse_blocks(const void *const data, brrsz block_size, brrsz block_coun
 	void *r = NULL;
 	if (!data || !block_size || !block_count) {
 		return NULL;
-	} else if (!brrlib_alloc(&r, block_size * block_count, 0)) {
+	} else if (brrlib_alloc(&r, block_size * block_count, 0)) {
 		return NULL;
 	} else {
 		for (brrsz i = 0; i < block_count; ++i) {
@@ -181,7 +181,7 @@ brrmem_join(const void *const data_a, brrsz data_a_size,
 	void *r = NULL;
 	if (!BFVALID(data_a) || !BFVALID(data_b)) {
 		return NULL;
-	} else if (!brrlib_alloc(&r, data_a_size + data_b_size, 1)) {
+	} else if (brrlib_alloc(&r, data_a_size + data_b_size, 1)) {
 		return NULL;
 	} else {
 		memcpy(r, data_a, data_a_size);
@@ -199,7 +199,7 @@ brrmem_append(void *data, brrsz data_size,
 		return NULL;
 	} else if (!BFVALID(suffix)) {
 		return data;
-	} else if (!brrlib_alloc(&data, data_size + suffix_size, 0)) {
+	} else if (brrlib_alloc(&data, data_size + suffix_size, 0)) {
 		return NULL;
 	} else {
 		memmove((brrsz *)data + data_size, suffix, suffix_size);
@@ -216,7 +216,7 @@ brrmem_prepend(void *data, brrsz data_size,
 		return NULL;
 	} else if (!BFVALID(prefix)) {
 		return data;
-	} else if (!brrlib_alloc(&data, data_size + prefix_size, 0)) {
+	} else if (brrlib_alloc(&data, data_size + prefix_size, 0)) {
 		return NULL;
 	} else {
 		memmove((brrsz *)data + prefix_size, data, data_size);

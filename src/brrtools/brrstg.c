@@ -1,3 +1,19 @@
+/*
+Copyright 2021 BowToes (bow.toes@mailfence.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,22 +29,7 @@
 #include "brrtools/brrmem.h"
 #include "brrtools/brrstg.h"
 
-static int BRRCALL
-sizestr(brrstgT *const str, brrsz ns)
-{
-	if (ns != str->length) {
-		void *t = realloc(str->opaque, ns+1);
-		if (!t) {
-			free(str->opaque);
-			str->opaque = NULL;
-			return 0;
-		}
-		str->opaque = t;
-		str->length = ns;
-		((char *)str->opaque)[str->length] = 0;
-	}
-	return 1;
-}
+#include "brrtools/noinstall/statics.h"
 
 brrsz BRRCALL
 brrstg_strlen(const char *const string, brrsz max_length)
@@ -46,7 +47,7 @@ brrstg_new(brrstgT *const string, const char *const cstr, brrsz max_length)
 		return 0;
 	string->length = brrstg_strlen(cstr, max_length);
 	if (string->opaque) {
-		if (!sizestr(string, string->length)) {
+		if (!brrsizestr(string, string->length)) {
 			string->length = 0;
 			return -1;
 		}
@@ -101,7 +102,7 @@ brrstg_resize(brrstgT *const string, brrsz new_length, char fill)
 		return 0;
 	} else {
 		brrsz oldsz = string->length;
-		if (!sizestr(string, new_length))
+		if (!brrsizestr(string, new_length))
 			return -1;
 		if (new_length > oldsz)
 			memset((char *)string->opaque + oldsz, fill?fill:' ', new_length - oldsz);
@@ -116,7 +117,7 @@ int_print(brrstgT *const string, brrsz max_length, brrsz offset, brrsz *const wr
 	brrsz wt = 0, oldsz = 0;
 	/* Fill to offset */
 	if (offset > string->length) {
-		if (!sizestr(string, offset))
+		if (!brrsizestr(string, offset))
 			return -1;
 		memset((char *)string->opaque + string->length, ' ', offset - string->length);
 	}
@@ -126,14 +127,14 @@ int_print(brrstgT *const string, brrsz max_length, brrsz offset, brrsz *const wr
 	oldsz = string->length;
 	/* Resize to fit maximum new bytes */
 	if (offset + max_length > string->length) {
-		if (!sizestr(string, offset + max_length))
+		if (!brrsizestr(string, offset + max_length))
 			return -1;
 	}
 	/* Do print */
 	wt = vsnprintf((char *)string->opaque + offset, max_length + 1, fmt, lptr);
 	/* Shrink if we had to resize to accommodate 'max_length'. */
 	if (offset + max_length > oldsz) {
-		if (!sizestr(string, offset + wt))
+		if (!brrsizestr(string, offset + wt))
 			return -1;
 	}
 	if (written)
@@ -175,20 +176,22 @@ brrstg_copy(brrstgT *const string, const brrstgT *const source)
 {
 	if (!string || !source) {
 		return 0;
-	} else if (!string->opaque || !source->opaque) {
+	} else if (!source->opaque) {
 		return 1;
-	} else if (!sizestr(string, source->length)) {
+	} else if (!string->opaque) {
+		if (!(string->opaque = malloc(source->length + 1)))
+			return -1;
+	} else if (!brrsizestr(string, source->length)) {
 		return -1;
-	} else {
-		memcpy(string->opaque, source->opaque, source->length + 1);
-		return 0;
 	}
+	memcpy(string->opaque, source->opaque, source->length + 1);
+	return 0;
 }
 
 static int BRRCALL
 int_append(brrstgT *restrict const str, const brrstgT *restrict const sfx)
 {
-	if (!sizestr(str, str->length + sfx->length))
+	if (!brrsizestr(str, str->length + sfx->length))
 		return 0;
 	memcpy((char *)str->opaque + str->length - sfx->length, sfx->opaque, sfx->length);
 	return 1;
@@ -197,7 +200,7 @@ static int BRRCALL
 int_prepend(brrstgT *restrict const str, const brrstgT *const pfx)
 {
 	brrsz os = str->length;
-	if (!sizestr(str, str->length + pfx->length))
+	if (!brrsizestr(str, str->length + pfx->length))
 		return 0;
 	memmove((char *)str->opaque + pfx->length, str->opaque, os);
 	memcpy(str->opaque, pfx->opaque, pfx->length);
@@ -213,7 +216,7 @@ brrstg_merge(brrstgT *restrict const destination,
 		return 1;
 	} else if ((prefix && !prefix->opaque) || (suffix && !suffix->opaque)) {
 		return 1;
-	} else if (!sizestr(destination, 0)) {
+	} else if (!brrsizestr(destination, 0)) {
 		return -1;
 	}
 	if (prefix && prefix->length && !int_append(destination, prefix))
@@ -266,7 +269,7 @@ brrstg_strip(brrstgT *const string, int (*filter)(int chr))
 		{
 			brrsz nl = end - start;
 			memmove(string->opaque, (char *)string->opaque + start, nl);
-			if (!sizestr(string, nl))
+			if (!brrsizestr(string, nl))
 				return -1;
 		}
 	}
@@ -286,7 +289,7 @@ brrstg_filter(brrstgT *const string, int (*filter)(char chr, brrsz position, brr
 			if (filter(ch[i], i, string->length))
 				ch[nl++] = ch[i];
 		}
-		if (!sizestr(string, nl))
+		if (!brrsizestr(string, nl))
 			return -1;
 	}
 	return 0;
@@ -323,7 +326,7 @@ brrstg_range(brrstgT *restrict const string, const brrstgT *restrict const sourc
 		end = t;
 	}
 	nl = end - start;
-	if (!sizestr(string, nl))
+	if (!brrsizestr(string, nl))
 		return -1;
 	chi = (const char *)source->opaque;
 	cho = (char *)string->opaque;
@@ -383,7 +386,7 @@ brrstg_ajoin(brrstgT *restrict const string, const brrstgT *restrict const separ
 	} else if (separator && !separator->opaque) {
 		return 1;
 	} else if (!strings || count == 0) {
-		return sizestr(string, 0) ? 0 : -1;
+		return brrsizestr(string, 0) ? 0 : -1;
 	} else {
 		for (brrsz i = 0; i < count; ++i) {
 			const brrstgT *const st = &strings[i];

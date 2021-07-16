@@ -41,10 +41,12 @@ typedef struct brrstg {
 	brrsz length; /* Length of the c-string, excluding NULL terminator. */
 } brrstgT;
 
+#define BRRSTG_ASSTG(_c_) ({.opaque=_c_, .length=_c_?sizeof(_c_)-1:0})
+
 /* Return length of 'string' excluding null-terminator, up to 'max_length'. */
 BRRAPI brrsz BRRCALL brrstg_strlen(const char *const string, brrsz max_length);
 
-/* Initialize a new string; can reinitialize a pre-existing/NULL string.
+/* Initialize a new string; can reinitialize a pre-existing/NULL string and returns 0.
  * If 'string' is NULL, nothing is done and 0 is returned.
  * If 'cstr' is NULL or has length 0 or 'max_length' is 0, 'string' will be the
  * empty string and 0 is returned.
@@ -55,7 +57,7 @@ BRRAPI int BRRCALL brrstg_new(brrstgT *const string, const char *const cstr, brr
  * If 'string' is NULL, nothing is done.
  * */
 BRRAPI void BRRCALL brrstg_delete(brrstgT *const string);
-/* Copies the cstring from 'string' into destination.
+/* Copies the cstring from 'string' into destination and returns 0.
  * If 'string' or 'destination' is NULL, nothing is done and 0 is returned.
  * If 'string' is a NULL string, nothing is done and 1 is returned.
  * */
@@ -64,7 +66,7 @@ BRRAPI int BRRCALL brrstg_string(const brrstgT *const string, char *const destin
  * If 'string' is NULL, NULL is returned.
  * */
 BRRAPI const char *BRRCALL brrstg_raw(const brrstgT *const string);
-/* Resizes 'string' to be 'new_length' bytes long.
+/* Resizes 'string' to be 'new_length' bytes long and returns 0.
  * If 'string' is NULL, nothing is done and 0 is returned.
  * If 'new_length' == 'string->length', nothing is done and 0 is returned.
  * If 'new_length' > 'string->length' and 'fill' is non-zero, the new space will
@@ -74,36 +76,41 @@ BRRAPI const char *BRRCALL brrstg_raw(const brrstgT *const string);
 BRRAPI int BRRCALL brrstg_resize(brrstgT *const string, brrsz new_length, char fill);
 
 /* Performs printf-style printing into 'string' at the given 'offset', printing
- * at most 'max_length' bytes.
+ * at most 'max_length' bytes and returns 0.
  * Number of bytes written is added to 'written'.
  * If 'string' is NULL, nothing is done and 0 is returned.
+ * If 'string' is a NULL string, nothing is done and 1 is returned.
  * If 'offset' is greater than the length of 'string', 'string' will be resized
  * to fit and the gap will be filled with spaces; this resize does not add to
  * number of bytes written.
  * If 'max_length' is 0 or 'fmt' is NULL, nothing else is done and 0 is returned.
- * If 'string' is a NULL string, nothing is done and 1 is returned.
+ *
+ * If printing succeeds, 0 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_vprint(brrstgT *const string, brrsz max_length, brrsz offset,
     brrsz *const written, const char *const fmt, va_list lptr);
 /* Performs printf-style printing into 'string' at the given 'offset', printing
- * at most 'max_length' bytes.
+ * at most 'max_length' bytes, including the NULL terminator.
  * Number of bytes written is added to 'written'.
  * If 'string' is NULL, nothing is done and 0 is returned.
+ * If 'string' is a NULL string, nothing is done and 1 is returned.
  * If 'offset' is greater than the length of 'string', 'string' is resized
  * to fit and the gap is be filled with spaces; this resize does not count towards
  * number of bytes written.
  * If 'max_length' is 0 or 'fmt' is NULL, nothing else is done and 0 is returned.
- * If 'string' is a NULL string, nothing is done and 1 is returned.
+ *
+ * If printing succeeds, 0 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_print(brrstgT *const string, brrsz max_length, brrsz offset,
     brrsz *const written, const char *const fmt, ...);
 
-/* Copies 'source' into 'string'.
+/* Copies 'source' into 'string' and returns 0.
  * If 'string' or 'source' is NULL, nothing is done and 0 is returned.
- * If 'string' or 'source' is a NULL string, nothing is done and 1 is returned.
- * If an error occurs, 1 is returned.
+ * If or 'source' is a NULL string, nothing is done and 1 is returned.
+ * 'string' may be a NULL string.
+ * If an error occurs, -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_copy(brrstgT *restrict const string, const brrstgT *restrict const source);
 /* Joins 'suffix' onto 'prefix' and stores the result in 'destination'.
@@ -114,20 +121,20 @@ BRRAPI int BRRCALL brrstg_copy(brrstgT *restrict const string, const brrstgT *re
  * */
 BRRAPI int BRRCALL brrstg_merge(brrstgT *restrict const destination,
     const brrstgT *restrict const prefix, const brrstgT *restrict const suffix);
-/* Appends 'suffix' to the end of 'string'.
+/* Appends 'suffix' to the end of 'string' and returns 0.
  * If 'string' or 'suffix' is NULL, nothing is done and 0 is returned.
  * If 'string' or 'suffix' is a NULL string, nothing is done and 1 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_append(brrstgT *restrict const string, const brrstgT *restrict const suffix);
-/* Prepends 'prefix' at the beginning of 'string'.
+/* Prepends 'prefix' at the beginning of 'string' and returns 0.
  * If 'string' or 'prefix' is NULL, nothing is done and 0 is returned.
  * If 'string' or 'prefix' is a NULL string, nothing is done and 1 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_prepend(brrstgT *restrict const string, const brrstgT *restrict const prefix);
 
-/* Strip whitespace from the ends of 'string'.
+/* Strip whitespace from the ends of 'string' and returns 0.
  * If 'filter' is non-NULL, 'filter' is used to determine whether a character should
  * be trimmed from 'string'; otherwise, 'isspace()' is used.
  * If 'string' is NULL, nothing is done and 0 is returned.
@@ -135,7 +142,8 @@ BRRAPI int BRRCALL brrstg_prepend(brrstgT *restrict const string, const brrstgT 
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_strip(brrstgT *const string, int (*filter)(int chr));
-/* Apply 'filter' on 'string', excluding characters for which 'filter' returns 0.
+/* Apply 'filter' on 'string', excluding characters for which 'filter' returns 0
+ * and returns 0.
  * If 'filter' is non-NULL, 'filter' is used to determine whether a character should
  * be trimmed from 'string'; otherwise, 'isspace()' is used.
  * If 'string' is NULL, nothing is done and 0 is returned.
@@ -143,7 +151,7 @@ BRRAPI int BRRCALL brrstg_strip(brrstgT *const string, int (*filter)(int chr));
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_filter(brrstgT *const string, int (*filter)(char chr, brrsz position, brrsz length));
-/* Pastes the range '[start, end)' into 'string', overwriting it.
+/* Pastes the range '[start, end)' into 'string', overwriting it and returns 0.
  * If 'reverse' is non-zero, the copied range is copied in reverse.
  * If 'wrap' is 0, 'start' and 'end' will be clamped to 'source->length-1'
  * If 'wrap' is non-zero, 'start' and 'end' will be wrapped to 'source->length'
@@ -157,38 +165,38 @@ BRRAPI int BRRCALL brrstg_filter(brrstgT *const string, int (*filter)(char chr, 
 BRRAPI int BRRCALL brrstg_range(brrstgT *restrict const string, const brrstgT *restrict const source,
     brrsz start, brrsz end, int reverse, int wrap);
 
-/* Joins all of 'strings' into 'string', with 'separator' separating them.
+/* Joins all of 'strings' into 'string', with 'separator' separating them and returns 0.
  * If 'string' is NULL, nothing is done and 0 is returned.
  * If 'strings' is NULL or 'count' is 0, 'string' will be the empty string and 0
  * is returned.
- * If 'skip_empty' is non-zero, then any empty strings in 'strings' will not be
- * added and no separator will be placed for that string.
  * If 'separator' is NULL, then there will be no separators.
  * If 'string' or 'separator' is a NULL string, nothing is done and 1 is returned.
+ * If 'skip_empty' is non-zero, then any empty strings in 'strings' will not be
+ * added and no separator will be placed for that string.
  * If any of 'strings' is a NULL string, joining is halted and 1 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_ajoin(brrstgT *restrict const string, const brrstgT *restrict const separator,
     int skip_empty, brrsz count, const brrstgT *restrict const strings);
-/* Joins all of strings in 'lptr' into 'string', with 'separator' separating them.
+/* Joins all brrstgT pointers in 'lptr' into 'string', with 'separator' separating them and returns 0.
  * 'lptr' MUST be terminated with a NULL pointer.
  * If 'string' is NULL, nothing is done and 0 is returned.
+ * If 'string' or 'separator' is a NULL string, nothing is done and 1 is returned.
+ * If 'separator' is NULL, then there will be no separators.
  * If 'skip_empty' is non-zero, then any empty strings in 'strings' will not be
  * added and no separator will be placed for that string.
- * If 'separator' is NULL, then there will be no separators.
- * If 'string' or 'separator' is a NULL string, nothing is done and 1 is returned.
  * If any of strings in 'lptr' is a NULL string, joining is halted and 1 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_vjoin(brrstgT *restrict const string, const brrstgT *restrict const separator,
     int skip_empty, brrsz *count, va_list lptr);
-/* Joins a list of strings passed in into 'string', with 'separator' separating them.
+/* Joins a list of brrstgT pointers passed in into 'string', with 'separator' separating them and returns 0.
  * The list of strings MUST be terminated with a NULL pointer.
  * If 'string' is NULL, nothing is done and 0 is returned.
- * If 'skip_empty' is non-zero, then any empty strings in 'strings' will not be
- * added and no separator will be placed for that string.
  * If 'separator' is NULL, then there will be no separators.
  * If 'string' or 'separator' is a NULL string, nothing is done and 1 is returned.
+ * If 'skip_empty' is non-zero, then any empty strings in 'strings' will not be
+ * added and no separator will be placed for that string.
  * If any string in the list is a NULL string, joining is halted and 1 is returned.
  * If an error occurs, 'string' is deleted and -1 is returned.
  * */
@@ -196,7 +204,7 @@ BRRAPI int BRRCALL brrstg_join(brrstgT *restrict const string, const brrstgT *re
     int skip_empty, brrsz *count, ...);
 
 /* Splits 'string' into a list of strings stored in 'strings' with the count stored
- * in 'count'; splitting starts at 'offset'.
+ * in 'count'; splitting starts at 'offset' and returns 0.
  * Splits will be at most 'max_split' characters in length.
  * If 'string' or 'split' is NULL, nothing is done and 0 is returned.
  * If 'string' or 'split' is a NULL string, nothing is done and 0 is returned.

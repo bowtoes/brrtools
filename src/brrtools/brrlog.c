@@ -327,13 +327,14 @@ brrlog_logmax(void)
 int BRRCALL
 brrlog_setlogmax(brrsz newmax)
 {
-	int res = 1;
 	if (newmax != st_logmax) {
-		res = brrlib_alloc((void **)&st_buffer, newmax, 1);
-		if (res)
+		if (brrlib_alloc((void **)&st_buffer, newmax, 1)) {
+			return -1;
+		} else {
 			st_logmax = newmax;
+		}
 	}
-	return res;
+	return 0;
 }
 brru8 BRRCALL
 brrlog_count(void)
@@ -379,7 +380,7 @@ brrlog_init(void)
 {
 	if (!st_buffer && st_logmax)
 		return brrlib_alloc((void **)&st_buffer, st_logmax, 1);
-	return 1;
+	return 0;
 }
 void BRRCALL
 brrlog_deinit(void)
@@ -524,7 +525,7 @@ brrlog_bits(_brrlog_log_params,
 		md = bits_to_print % separator_spacing;
 		outlen += (bits_to_print - 1) / separator_spacing;
 	}
-	if (!brrlib_alloc((void **)&outstr, outlen + 1, 1))
+	if (brrlib_alloc((void **)&outstr, outlen + 1, 1))
 		return 0;
 	div = imaxdiv(bits_to_print, byte_width);
 	outlen = 0;

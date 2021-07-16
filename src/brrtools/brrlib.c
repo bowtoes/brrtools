@@ -116,38 +116,27 @@ brrlib_usleep(brru8 usec)
 int BRRCALL
 brrlib_alloc(void **current, brrsz size, int zero)
 {
-	int res = 0;
-	if (current) {
-		void *cur = *current;
-		if (!size) {
-			if (cur)
-				free(cur);
-			cur = NULL;
-			res = 1;
-		} else if (zero) {
-			void *t = calloc(1, size);
-			if (t) {
-				if (cur)
-					free(cur);
-				cur = t;
-				res = 1;
-			}
-		} else if (!cur) {
-			void *t = malloc(size);
-			if (t) {
-				cur = t;
-				res = 1;
-			}
+	if (!current) {
+		return 0;
+	} else if (!*current && !size) {
+		return 0;
+	} else if (!*current) {
+		void *t = zero?calloc(1, size):malloc(size);
+		if (!t)
+			return -1;
+		else
+			*current = t;
+	} else {
+		void *t = zero?calloc(1, size):realloc(*current, size);
+		if (!t) {
+			return -1;
 		} else {
-			void *t = realloc(cur, size);
-			if (t) {
-				cur = t;
-				res = 1;
-			}
+			if (zero)
+				free(*current);
+			*current = t;
 		}
-		*current = cur;
 	}
-	return res;
+	return 0;
 }
 
 brrsz BRRCALL
