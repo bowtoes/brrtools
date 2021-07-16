@@ -18,68 +18,123 @@ limitations under the License.
 #define BRRPATH_H
 
 #include <brrtools/brrapi.h>
+#include <brrtools/brrplatform.h>
 #include <brrtools/brrtypes.h>
-#include <brrtools/brrstr.h>
+#include <brrtools/brrstg.h>
 
 BRRCPPSTART
 
+#define BRRPATH_WALK_ERROR_NONE 0
+#define BRRPATH_WALK_ERROR_ARGUMENTS 1
+#define BRRPATH_WALK_ERROR_RUNTIME -1
+
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+# define BRRPATH_MAX_NAME 256
+# define BRRPATH_MAX_PATH (MAX_PATH - 1)
+# define BRRPATH_SEP_CHR '\\'
+# define BRRPATH_SEP_STR "\\"
+#else
+# define BRRPATH_MAX_NAME 255
+/* TODO not the same on all *nixes, limit in headers */
+# define BRRPATH_MAX_PATH 4095
+# define BRRPATH_SEP_CHR '/'
+# define BRRPATH_SEP_STR "/"
+#endif
+
+/* Type of path.
+ * Values are:
+ * - brrpath_type_none : Invalid/unset path type.
+ * - brrpath_type_file : Path is a file.
+ * - brrpath_type_directory : Path is a directory.
+ * - brrpath_type_other : Path is some other type.
+ * */
 typedef enum brrpath_type {
-	brrpath_type_invald    = 0x00,
-	brrpath_type_file      = 0x01,
-	brrpath_type_directory = 0x02,
-	brrpath_type_link      = 0x04,
-	brrpath_type_irregular = 0xF0,
+	brrpath_type_none = 0x00, /* Invalid/unset path type. */
+	brrpath_type_file = 0x01, /* Path is a file. */
+	brrpath_type_directory = 0x02, /* Path is a directory. */
+	brrpath_type_other = 0x04, /* Path is some other type. */
 } brrpath_typeT;
-
-typedef enum brrpath_stat_code {
-	brrpath_stat_success      = 0x00, // No stat error.
-	brrpath_stat_invalid_type = 0x01, // Invalid path type for stat.
-	brrpath_stat_invalid_path = 0x02, // Invalid path string.
-	brrpath_stat_error        = 0xF0, // Unspecified stat error.
-} brrpath_stat_codeT;
-
-typedef enum brrpath_perms {
-	brrpath_perms_none       = 0x00,
-	brrpath_perms_readable   = 0x01,
-	brrpath_perms_writable   = 0x02,
-	brrpath_perms_executable = 0x04,
-} brrpath_permsT;
-
-typedef struct brrpath_stat {
-	brru8 size;
-	brrb1 exists;
-	brrb1 is_absolute;
-	brrpath_typeT type;
-	brrpath_permsT perms;
-	brrpath_stat_codeT error;
-} brrpath_statT;
-
-BRRAPI char *BRRCALL brrpath_flatten(const char *const path);
-
-/* Determines if 'path' represents an absolute system path or not.
- * If 'path' is invalid (NULL or length == 0), false is returned.
+/* Result struct that holds basic information about a path.
+ * Fields:
+ * - int exists : Non-zero if the path exists, 0 if it doesn't.
+ * - brrpath_typeT type : The type of path specified, if it exists; 0 if path is a directory.
+ * - brru8 size : Size of the path on disk in bytes if it exists.
  * */
-BRRAPI brrb1 BRRCALL brrpath_is_absolute(const char *const path);
-
-/* Gathers various information about the given path, optionally following the
- * symbolic link 'path' if it is one.
- * If an error occurs or 'path' is invalid, the returned struct 'error' will
- * contain flags indicating the type of error.
- * If statting succeeds, the returned struct 'error' will be 0.
+typedef struct brrpath_stat_result {
+	int exists; /* Non-zero if the path exists, 0 if it doesn't. */
+	brrpath_typeT type; /* The type of path specified, if it exists; 0 if path is a directory. */
+	brru8 size; /* Size of the path on disk in bytes if it exists. */
+} brrpath_stat_resultT;
+/* A struct holding various information about a path on disk.
+ * Fields:
+ * brru8 size : Size of path in bytes; 0 if path is a directory.
+ * brrpath_typeT type : Type of path.
+ * brrstgT directory : The directory component of the path.
+ * brrstgT base_name : The base name component of the path.
+ * brrstgT full_path : The joining of 'directory' and 'base_name'.
+ * brrstgT extension : The extension that is on the base name component of the path; if the path is a directory, this is empty.
+ * brrsz depth : Depth that the path was found if it was constructed from 'brrpath_walk'.
+ * int exists : Non-zero if the path exists on disk.
  * */
-BRRAPI brrpath_statT BRRCALL brrpath_stat(const char *const path, int follow_link);
-
-/* Returns 'true' if 'path' is an existing path, false otherwise.
- * If 'path' is an invalid string (NULL or length == 0), returns false.
+typedef struct brrpath_info {
+	brru8 size; /* Size of path in bytes; 0 if path is a directory. */
+	brrpath_typeT type; /* Type of path. */
+	brrstgT full_path; /* The directory component of the path. */
+	brrstgT directory; /* The base name component of the path. */
+	brrstgT base_name; /* The joining of 'directory' and 'base_name'. */
+	brrstgT extension; /* The extension that is on the base name component of the path; if the path is a directory, this is empty. */
+	brrsz depth; /* Depth that the path was found if it was constructed from 'brrpath_walk'. */
+	int exists; /* Non-zero if the path exists on disk. */
+} brrpath_infoT;
+/* Options passed to 'brrpath_walk'.
+ * Fields:
+ * - brrstgT path : Path to walk; if it is a file, the directory containing the file will be walked.
+ * - brrsz min_depth : Minimum depth to include in result.
+ * - brrsz max_depth : Depth to stop walking at.
  * */
-BRRAPI brrb1 BRRCALL brrpath_exists(const char *const path, int follow_link);
-
-/* Returns the type of 'path'.
- * If 'path' is an invalid string (NULL or length == 0) or invalid path,
- * returns 'brrpath_irregular'.
- * If 'path' doesn't exist, returns 'brrpath_directory'.
+typedef struct brrpath_walk_options {
+	brrstgT path; /* Path to walk; if it is a file, the directory containing the file will be walked. */
+	brrsz min_depth; /* Minimum depth to include in result. */
+	brrsz max_depth; /* Depth to stop walking at. */
+} brrpath_walk_optionsT;
+/* The results from 'brrpath_walk'.
+ * Fields:
+ * - brrpath_infoT *walk_results : An array containing the info of all paths walked and filtered.
+ * - result_count : Number of results in result array.
  * */
-BRRAPI brrpath_typeT BRRCALL brrpath_type(const char *const path, int follow_link);
+typedef struct brrpath_walk_result {
+	brrpath_infoT *walk_results; /* An array containing the info of all paths walked and filtered. */
+	brrsz result_count; /* Number of results in result array. */
+} brrpath_walk_resultT;
+
+/* Deletes all associated memory with 'info'.
+ * If 'result' is NULL, nothing is done.
+ * */
+BRRAPI void BRRCALL brrpath_info_delete(brrpath_infoT *const info);
+/* Deletes all infos in 'result' and deletes the array. Sets 'result_count' to 0.
+ * If 'result' is NULL, nothing is done.
+ * */
+BRRAPI void BRRCALL brrpath_walk_result_delete(brrpath_walk_resultT *const result);
+/* Stats 'path' and puts the results in 'st'.
+ * If 'path' or 'st' is NULL, nothing is done and 0 is returned.
+ * If 'path' is a NULL string, nothing is done and 1 is returned.
+ *
+ * */
+BRRAPI int BRRCALL brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st);
+/* Walks all directories and subdirectories of 'options->path' according to the
+ * fields specified in 'options', applying 'filter' to the results that are then
+ * stored in 'result'; returns 0 on successful operation.
+ * For all walked paths that 'filter' returns non-zero, they are added to 'result'.
+ * If 'result' or 'options' is NULL, nothing is done and 0 is returned.
+ * If 'options->path' is a NULL string, nothing is done and 1 is returned.
+ * If 'options->path' does not exist, 'result' will be empty and 0 is returned.
+ * If 'filter' is NULL, a default filter will be used.
+ * If an error occurs, 'result' is deleted and -1 is returned.
+ * */
+BRRAPI int BRRCALL brrpath_walk(
+    brrpath_walk_resultT *const result,
+    const brrpath_walk_optionsT *const options,
+    int (*BRRCALL filter)(const brrpath_infoT *const path_info));
 
 BRRCPPEND
 

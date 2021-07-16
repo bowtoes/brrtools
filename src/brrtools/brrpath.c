@@ -16,297 +16,323 @@ limitations under the License.
 
 #include "brrtools/brrpath.h"
 
-#include "brrtools/brrapi.h"
-#include "brrtools/brrstr.h"
-#include "brrtools/noinstall/utils.h"
-#include "brrtools/brrplatform.h"
-#include "brrtools/brrlib.h"
-
 #include <errno.h>
-#include <string.h>
-#include <ctype.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
+#include <stdio.h>
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-# include <windows.h>
-#else
-# include <unistd.h>
-#endif
-
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-# if BRRTOOLS_TARGET_BIT == 64
-#  define statpath _stat64
-#  define fstatpath _fstat64
-typedef struct __stat64 pathstT;
-# else
-#  define statpath _stat32
-#  define fstatpath _fstat32
-#  if defined(BRRPLATFORMTYPE_MINGW)
-typedef struct _stat32 pathstT;
-#  else
-typedef struct __stat32 pathstT;
-#  endif // BRRPLATFORMTYPE_MINGW
-# endif // BRRTOOLS_TARGET_BIT
-# define lstatpath statpath
-
-# define TYPEDIR(md) (HASFLAG((md), _S_IFDIR))
-# define TYPEFIL(md) (HASFLAG((md), _S_IFREG))
-# define TYPELNK(md) (false)
-#else
-# define statpath stat
-# define fstatpath fstat
-# define lstatpath lstat
-typedef struct stat pathstT;
-
-# define TYPEDIR(md) (S_ISDIR(md))
-# define TYPEFIL(md) (S_ISREG(md))
-# define TYPELNK(md) (S_ISLNK(md))
-#endif
-
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-# define PATHSEPCHR '\\'
-# define PATHSEPSTR "\\"
-# define ROOTSTR "C:"
-# define BRRPATH_MAX 260
-#else
-# define PATHSEPCHR '/'
-# define PATHSEPSTR "/"
-# define ROOTSTR "/"
-# define BRRPATH_MAX 4097
-#endif
-#define BRRPATH_MAXNAME 255
-
-#define CURDIR "."
-#define PARDIR ".."
-
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-static const brrb1 casepaths = false;
-#else
-static const brrb1 casepaths = true;
-#endif
-
-static brrb1 BRRCALL
-isnamechar(char ch) {
-#if defined(BRRPLATFORMTYPE_WINDOWS) // todo I don't think this is exhaustive
-	return !(ch==PATHSEPCHR||
-			ch=='<'||ch=='>'||
-			ch==':'||ch=='"'||
-			ch=='/'||ch=='|'||
-			ch=='?'||ch=='*'||
-			ch<32);
+#include <windows.h>
+#elif defined(BRRPLATFORMTYPE_POSIX)
+#include <ftw.h>
 #elif defined(BRRPLATFORMTYPE_UNIX)
-	// Just generally disallow backslashes for now.
-	return !(ch == PATHSEPCHR||ch=='\\');
+#error UNIX system without POSIX, dont know if <ftw.h>
 #else
-	return !(ch == PATHSEPCHR||ch=='\\'||ch=='/');
+#error Unknown system
 #endif
-}
-static brrstrT BRRCALL
-cleanflatpath(const char *const path) {
-	brrstrT str = brrstr_new(path, -1);
-	brrsz c = 0, l = brrstr_strlen(&str);
-	for (brrsz i = 0; i < l; ++i) {
-		if (isnamechar(path[i]) ||
-		   (i + 1 == l && path[i] == PATHSEPCHR) ||
-		   (i + 1 < l && isnamechar(path[i+1]))) {
-			((char *)brrstr_cstr(&str))[c++] = path[i];
-		}
-	}
-	brrstr_resize(&str, c + 1);
-	return str;
-}
-static brrpath_typeT BRRCALL
-gettype(pathstT s) {
-	brrpath_typeT t = 0;
-	if (TYPEDIR(s.st_mode)) {
-		t |= brrpath_type_directory;
-	} else if (TYPEFIL(s.st_mode)) {
-		t |= brrpath_type_file;
-	} else if (TYPELNK(s.st_mode)) {
-		t |= brrpath_type_link;
-	} else {
-		t |= brrpath_type_irregular;
-	}
-	return t;
-}
-static brrpath_permsT BRRCALL
-getperms(pathstT stat) {
-	brrpath_permsT perms = brrpath_perms_none;
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-	if (stat.st_mode & _S_IREAD)
-		perms |= brrpath_perms_readable;
-	if (stat.st_mode & _S_IWRITE)
-		perms |= brrpath_perms_writable;
-	if (stat.st_mode & _S_IEXEC)
-		perms |= brrpath_perms_executable;
-#else
-	/* Unix permissions are complicated; this doesn't take into account acls
-	 * or anything extra. Probably not safe. */
-	if (geteuid() == stat.st_uid) {
-		if (stat.st_mode & S_IRUSR)
-			perms |= brrpath_perms_readable;
-		if (stat.st_mode & S_IWUSR)
-			perms |= brrpath_perms_writable;
-		if (stat.st_mode & S_IXUSR)
-			perms |= brrpath_perms_executable;
-	} else if (getgid() == stat.st_gid) {
-		if (stat.st_mode & S_IRGRP)
-			perms |= brrpath_perms_readable;
-		if (stat.st_mode & S_IWGRP)
-			perms |= brrpath_perms_writable;
-		if (stat.st_mode & S_IXGRP)
-			perms |= brrpath_perms_executable;
-	} else {
-		if (stat.st_mode & S_IROTH)
-			perms |= brrpath_perms_readable;
-		if (stat.st_mode & S_IWOTH)
-			perms |= brrpath_perms_writable;
-		if (stat.st_mode & S_IXOTH)
-			perms |= brrpath_perms_executable;
-	}
-#endif
-	return perms;
-}
 
-brrstrT BRRCALL
-brrpath_cwd(void) {
-	static char tmp[BRRPATH_MAX] = {0};
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-	GetCurrentDirectory(BRRPATH_MAX, tmp);
-#else
-	getcwd(tmp, BRRPATH_MAX);
-#endif
-	return brrstr_new(tmp, BRRPATH_MAX - 1);
-}
-
-char *BRRCALL
-brrpath_flatten(const char *const path)
-{
-	if (!path)
-		return NULL;
-}
-
-brrb1 BRRCALL
-brrpath_is_absolute(const char *const path)
-{
-	if (path && path[0] != 0) {
-#if defined(BRRPLATFORMTYPE_WINDOWS)
-		brrsz l = strlen(path);
-		// This is likely incomplete
-		if (path[0] == PATHSEPCHR ||
-		 (l >= 2 && path[0] == PATHSEPCHR && path[1] == PATHSEPCHR) ||
-		 (l >= 3 && isalpha(path[0]) && path[1] == ':' && path[2] == PATHSEPCHR))
-#elif defined(BRRPLATFORMTYPE_UNIX)
-		if (path[0] == PATHSEPCHR)
-#endif
-			return true;
-	}
-	return false;
-}
-
-brrpath_statT BRRCALL
-brrpath_stat(const char *const path, int follow_link)
-{
-	brrpath_statT st = {0};
-	pathstT s = {0};
-	if (!path || path[0] == 0) {
-		st.error |= brrpath_stat_invalid_path;
-		return st;
-	}
-	if (0 == (follow_link?statpath(path, &s):lstatpath(path, &s))) {
-		st.size = s.st_size;
-		st.exists = true;
-		st.type = gettype(s);
-		st.perms = getperms(s);
-		st.is_absolute = brrpath_is_absolute(path);
-	} else {
-		if (errno != ENOENT) {
 #if defined(BRRPLATFORMTYPE_UNIX)
-			if (errno == ENOTDIR)
-				st.error |= brrpath_stat_invalid_type;
-			else
+#include <sys/stat.h> /* TODO *nix universal? */
 #endif
-			st.error |= brrpath_stat_error;
-		} else {
-			st.type |= brrpath_type_directory;
-			st.is_absolute = brrpath_is_absolute(path);
-		}
+
+#include "brrtools/brrlib.h"
+#include "brrtools/brrlog.h"
+#include "brrtools/brrmem.h"
+#include "brrtools/brrtil.h"
+
+void BRRCALL
+brrpath_info_delete(brrpath_infoT *const info)
+{
+	if (info) {
+		brrstg_delete(&info->full_path);
+		brrstg_delete(&info->directory);
+		brrstg_delete(&info->base_name);
+		brrstg_delete(&info->extension);
 	}
-	return st;
 }
-
-brrb1 BRRCALL
-brrpath_exists(const char *const path, int follow_link)
+void BRRCALL
+brrpath_walk_result_delete(brrpath_walk_resultT *const result)
 {
-	/* TODO is there a version of `access` that doesn't follow symlinks? */
-	brrpath_statT s = brrpath_stat(path, follow_link);
-	return s.error == 0 && s.exists;
-}
-
-brrpath_typeT BRRCALL
-brrpath_type(const char *const path, int follow_link)
-{
-	return brrpath_stat(path, follow_link).type;
-}
-
-/*
-#if defined(BRRPLATFORMTYPE_UNIX)
-# include <ftw.h> // nftw()
-#endif
-
-brrb1 BRRCALL
-brrpath_makepath(const char *const path, brrb1 parents, brrb1 clean)
-{
-	brrb1 err = false;
-	brrpath_statT st = brrpath_stat(path, true);
-	if (st.error)
-		return false;
-	// No need to create the current directory.
-	if (!st.exists && path->elementcount > 0) {
-		// No need to create the root directory.
-		if (!ISABSP(path) || (ISABSP(path) && path->elementcount > 1)) {
-			stgT shortpath = stgnull;
-			sz ofs = 0;
-			flatpath(&shortpath, path->elements, path->elementcount, ISABSP(path));
-
-			if (ISABSP(path)) {
-#if defined(GFS_PLATFORMTYPE_WINDOWS)
-				ofs = 3; // todo Not always correct.
-#else
-				ofs = 1;
-#endif
+	if (result) {
+		if (result->walk_results) {
+			for (brrsz i = 0; i < result->result_count; ++i) {
+				brrpath_info_delete(&(result->walk_results[i]));
 			}
-			for (;err == ERR_PATH_NONE; ++ofs) {
-				b1 e = false;
-				char stor;
-				// Skip to next path separator.  while (ofs < shortpath.length && shortpath.cstr[ofs] != pathsep) ++ofs;
-				if (ofs == shortpath.length) break;
+			brrlib_alloc((void **)&result->walk_results, 0, 0);
+		}
+	}
+}
 
-				stor = shortpath.cstr[ofs];
-				shortpath.cstr[ofs] = 0;
-				// Try to make subdirectory
-#if defined(GFS_PLATFORMTYPE_WINDOWS)
-				e = (0 == _mkdir(shortpath.cstr));
+static brrpath_typeT BRRCALL
+int_determine_type(brru8 attr)
+{
+	brrpath_typeT type = brrpath_type_none;
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	type = (attr & FILE_ATTRIBUTE_DIRECTORY)?brrpath_type_directory:
+		(attr & (FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY | FILE_ATTRIBUTE_VIRTUAL))?brrpath_type_other:
+		brrpath_type_file;
 #else
-				// todo Create mode.
-				e = (0 == mkdir(shortpath.cstr, 0755));
+	type = S_ISDIR(attr)?brrpath_type_directory:
+		!S_ISREG(attr)?brrpath_type_other:
+		brrpath_type_file;
 #endif
-				if (e) {
-					if (errno != EEXIST) {
-						LOG_ERROR("Failed creating directory tree to '%s' at '%s' : %s",
-						        path->fullpath.cstr, shortpath.cstr, ERRSTR);
-						err |= ERR_PATH_CREATE;
+	return type;
+}
+int BRRCALL
+brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st)
+{
+	int error = 0;
+	if (!path || !st) {
+		return 0;
+	} else if (!path->opaque) {
+		return 1;
+	} else {
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+		WIN32_FILE_ATTRIBUTE_DATA attr = {0};
+		if (!GetFileAttributesEx(path->opaque, GetFileExInfoStandard, &attr)) {
+			error = GetLastError();
+			if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) {
+				error = 0;
+				*st = (brrpath_stat_resultT){0};
+			}
+		} else {
+			ULARGE_INTEGER i = {0};
+			st->exists = 1;
+			st->type = int_determine_type(attr.dwFileAttributes);
+			i.HighPart = attr.nFileSizeHigh;
+			i.LowPart = attr.nFileSizeLow;
+			st->size = i.QuadPart;
+		}
+#else
+		struct stat s = {0};
+		if (stat(path->opaque, &s)) {
+			error = errno;
+			if (error == ENOENT) {
+				error = 0;
+				*st = (brrpath_stat_resultT){0};
+			}
+		} else {
+			st->exists = 1;
+			st->size = s.st_size;
+			st->type = int_determine_type(s.st_mode);
+		}
+#endif
+	}
+	return error;
+}
+
+static brrpath_walk_resultT *walk_result;
+static const brrpath_walk_optionsT *walk_options;
+static int (*BRRCALL walk_filter)(const brrpath_infoT *const path_info);
+
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+# define T_IS_DIR(_type_) ((_type_) & FILE_ATTRIBUTE_DIRECTORY)
+# define T_IS_REG(_type_) ((_type_) & FILE_ATTRIBUTE_NORMAL)
+#else
+# define T_IS_DIR(_type_) ((_type_) == FTW_D)
+# define T_IS_REG(_type_) ((_type_) == FTW_F)
+#endif
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+static int BRRCALL
+int_res_fill(brrpath_infoT *const res, const char *const fpath, const WIN32_FIND_DATA *const data, int exists)
+{
+	int err = 0;
+	if (!(err = brrstg_new(&res->directory, fpath, BRRPATH_MAX_PATH))) {
+		if (!(err = brrstg_new(&res->base_name, data->cFileName, BRRPATH_MAX_NAME))) {
+			if (!(err = brrstg_new(&res->full_path, NULL, 0))) {
+				if (!(err = brrstg_print(&res->full_path, BRRPATH_MAX_PATH, 0, NULL, "%s\\%s", fpath, data->cFileName))) {
+					if (T_IS_DIR(data->dwFileAttributes)) {
+						err = brrstg_new(&res->extension, NULL, 0);
+					} else {
+						brrsz end = brrmem_search_reverse(res->base_name.opaque,
+						    res->base_name.length, ".", 1, res->base_name.length - 1);
+						if (end && end != res->base_name.length)
+							err = brrstg_new(&res->extension, (char*)res->base_name.opaque + end + 1, BRRPATH_MAX_NAME - end);
+						else
+							err = brrstg_new(&res->extension, NULL, 0);
 					}
 				}
-				shortpath.cstr[ofs] = stor;
 			}
 		}
-		if (!err) {
-			path->meta |= PATH_NEW | PATH_EXISTS;
+	}
+	if (err) {
+		brrpath_info_delete(res);
+	} else {
+		res->exists = exists;
+		res->type = !data->dwFileAttributes?brrpath_type_none:
+		    T_IS_DIR(data->dwFileAttributes)?brrpath_type_directory:
+		    T_IS_REG(data->dwFileAttributes)?brrpath_type_file:brrpath_type_other;
+		if (res->type != brrpath_type_directory) {
+			ULARGE_INTEGER s = {0};
+			s.HighPart = data->nFileSizeHigh;
+			s.LowPart = data->nFileSizeLow;
+			res->size = s.QuadPart;
 		}
 	}
 	return err;
 }
-*/
+#else
+static int BRRCALL
+int_res_fill(brrpath_infoT *const res, const char *const fpath, brru8 size, unsigned int type, int base_ofs, int exists)
+{
+	int err = 0;
+	if (!(err = brrstg_new(&res->full_path, fpath, BRRPATH_MAX_PATH))) {
+		if (!(err = brrstg_new(&res->directory, fpath, base_ofs - 1))) {
+			if (!(err = brrstg_new(&res->base_name, fpath + base_ofs, BRRPATH_MAX_NAME))) {
+				if (T_IS_DIR(type)) {
+					err = brrstg_new(&res->extension, NULL, 0);
+				} else {
+					brrsz end = brrmem_search_reverse(res->base_name.opaque,
+					    res->base_name.length, ".", 1, res->base_name.length - 1);
+					if (end && end != res->base_name.length)
+						err = brrstg_new(&res->extension, fpath + base_ofs + end + 1, BRRPATH_MAX_NAME - end);
+					else
+						err = brrstg_new(&res->extension, NULL, 0);
+				}
+			}
+		}
+	}
+	if (err) {
+		brrpath_info_delete(res);
+	} else {
+		res->exists = exists;
+		res->type = !exists?brrpath_type_none:
+		    T_IS_DIR(type)?brrpath_type_directory:T_IS_REG(type)?brrpath_type_file:brrpath_type_other;
+		if (res->type != brrpath_type_directory)
+			res->size = size;
+	}
+	return err;
+}
+#endif
+static int BRRCALL
+int_add_res(const brrpath_infoT *const res)
+{
+	if (brrlib_alloc((void **)&walk_result->walk_results,
+	    (walk_result->result_count + 1) * sizeof(brrpath_infoT), 0)) {
+		return -1;
+	}
+	walk_result->walk_results[walk_result->result_count] = *res;
+	walk_result->result_count++;
+	return 0;
+}
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+static int BRRCALL
+int_walk(const char *fpath, brrsz current_depth)
+{
+	HANDLE start;
+	WIN32_FIND_DATA find_data;
+	char path[BRRPATH_MAX_PATH+1] = {0};
+	/* TODO the depth seems to go one too far on windows specifically. */
+	if (current_depth >= walk_options->max_depth)
+		return 0;
+	snprintf(path, BRRPATH_MAX_PATH+1, "%s\\*.*", fpath);
+	if ((start = FindFirstFile(path, &find_data)) == INVALID_HANDLE_VALUE) {
+		BRRLOG_ERROR("FIND FIRST FILE %d", GetLastError());
+		return -1;
+	} else {
+		int err = 0;
+		do {
+			if (strcmp(find_data.cFileName, "..") != 0 &&
+			    strcmp(find_data.cFileName, ".") != 0) {
+				int added = 0;
+				brrpath_infoT res = {0};
+				/* Init 'res' */
+				if ((err = int_res_fill(&res, fpath, &find_data, 1))) {
+					break;
+				}
+				res.depth = current_depth;
+				if (current_depth >= walk_options->min_depth) {
+					/* Filter+add */
+					if (!walk_filter || walk_filter(&res)) {
+						added = 1;
+						err = int_add_res(&res);
+					}
+				}
+				/* Recurse if dir */
+				if (!err && res.type == brrpath_type_directory) {
+					err = int_walk(res.full_path.opaque, current_depth + 1);
+				}
+				if (!added) {
+					brrpath_info_delete(&res);
+				}
+			}
+		} while (!err && FindNextFile(start, &find_data));
+		CloseHandle(start);
+		return err;
+	}
+}
+#else
+static int BRRCALL
+int_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
+{
+	if ((unsigned)ftw->level < walk_options->min_depth || (unsigned)ftw->level >= walk_options->max_depth) {
+		return 0;
+	} else if (type == FTW_NS) {
+		return -1;
+		//return 0; /* TODO should this count as an error? */
+	} else {
+		brrpath_infoT res = {0};
+		if (int_res_fill(&res, fpath, sb->st_size, type, ftw->base, 1)) {
+			return -1;
+		}
+		res.depth = ftw->level;
+		if (!walk_filter || walk_filter(&res)) {
+			/* + add res */
+			if (int_add_res(&res)) {
+				brrpath_info_delete(&res);
+				return -1;
+			}
+		} else {
+			/* - del res */
+			brrpath_info_delete(&res);
+		}
+	}
+	return 0;
+}
+#endif
+
+int BRRCALL brrpath_walk(
+    brrpath_walk_resultT *const result,
+    const brrpath_walk_optionsT *const options,
+    int (*BRRCALL filter)(const brrpath_infoT *const path_info))
+{
+	brrstgT start_dir = {0};
+	brrpath_stat_resultT st = {0};
+	int error = 0;
+	if (!result || !options) {
+		BRRLOG_NOR("a");
+		return 0;
+	} else if (!options->path.opaque) {
+		BRRLOG_NOR("b");
+		return 1;
+	} else if (brrpath_stat(&options->path, &st)) {
+		BRRLOG_NOR("c");
+		return -1;
+	} else if (!st.exists) {
+		BRRLOG_NOR("d");
+		brrpath_walk_result_delete(result);
+		return 0;
+	} else if (st.type == brrpath_type_directory) {
+		error = brrstg_copy(&start_dir, &options->path);
+	} else {
+		brrsz end = brrmem_search_reverse(&options->path, options->path.length, BRRPATH_SEP_STR, 1, options->path.length);
+		error = brrstg_range(&start_dir, &options->path, 0, end, 0, 0);
+	}
+	BRRLOG_NOR("e");
+	if (!error) {
+		BRRLOG_NOR("e.1");
+		walk_result = result;
+		walk_options = options;
+		walk_filter = filter;
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+		error = int_walk(start_dir.opaque, 0);
+#else
+		error = nftw(start_dir.opaque, int_walk_filt, 15, FTW_MOUNT);
+#endif
+		brrstg_delete(&start_dir);
+		walk_result = NULL;
+		walk_options = NULL;
+		walk_filter = NULL;
+	}
+	if (error) {
+		brrpath_walk_result_delete(result);
+	}
+	return error;
+}
