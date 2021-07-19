@@ -33,7 +33,9 @@ limitations under the License.
 #endif
 
 #include "brrtools/brrlib.h"
-#include "brrtools/brrlog.h"
+#if defined(BRRTOOLS_DEBUG)
+# include "brrtools/brrlog.h"
+#endif
 #include "brrtools/brrmem.h"
 #include "brrtools/brrtil.h"
 
@@ -93,12 +95,9 @@ brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st)
 				*st = (brrpath_stat_resultT){0};
 			}
 		} else {
-			ULARGE_INTEGER i = {0};
 			st->exists = 1;
 			st->type = int_determine_type(attr.dwFileAttributes);
-			i.HighPart = attr.nFileSizeHigh;
-			i.LowPart = attr.nFileSizeLow;
-			st->size = i.QuadPart;
+			st->size = BRRTIL_WIN_ULRG(attr.nFileSizeLow, attr.nFileSizeHigh).QuadPart;
 		}
 #else
 		struct stat s = {0};
@@ -118,71 +117,31 @@ brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st)
 	return error;
 }
 
-static brrpath_walk_resultT *walk_result;
-static const brrpath_walk_optionsT *walk_options;
-static int (*BRRCALL walk_filter)(const brrpath_infoT *const path_info);
-
+static int BRRCALL
+int_res_fill(brrpath_infoT *const res, const char *const fpath, const char *const base_name, const brrpath_stat_resultT *const st)
+{
+	int err = 0;
+	if (!(err = brrstg_new(&res->base_name, base_name, BRRPATH_MAX_NAME))) {
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-# define T_IS_DIR(_type_) ((_type_) & FILE_ATTRIBUTE_DIRECTORY)
-# define T_IS_REG(_type_) ((_type_) & FILE_ATTRIBUTE_NORMAL)
+		if (!(err = brrstg_new(&res->directory, fpath, BRRPATH_MAX_PATH)))
 #else
-# define T_IS_DIR(_type_) ((_type_) == FTW_D)
-# define T_IS_REG(_type_) ((_type_) == FTW_F)
+		if (!(err = brrstg_new(&res->full_path, fpath, BRRPATH_MAX_PATH)))
 #endif
+		{
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-static int BRRCALL
-int_res_fill(brrpath_infoT *const res, const char *const fpath, const WIN32_FIND_DATA *const data, int exists)
-{
-	int err = 0;
-	if (!(err = brrstg_new(&res->directory, fpath, BRRPATH_MAX_PATH))) {
-		if (!(err = brrstg_new(&res->base_name, data->cFileName, BRRPATH_MAX_NAME))) {
-			if (!(err = brrstg_new(&res->full_path, NULL, 0))) {
-				if (!(err = brrstg_print(&res->full_path, BRRPATH_MAX_PATH, 0, NULL, "%s\\%s", fpath, data->cFileName))) {
-					if (T_IS_DIR(data->dwFileAttributes)) {
-						err = brrstg_new(&res->extension, NULL, 0);
-					} else {
-						brrsz end = brrmem_search_reverse(res->base_name.opaque,
-						    res->base_name.length, ".", 1, res->base_name.length - 1);
-						if (end && end != res->base_name.length)
-							err = brrstg_new(&res->extension, (char*)res->base_name.opaque + end + 1, BRRPATH_MAX_NAME - end);
-						else
-							err = brrstg_new(&res->extension, NULL, 0);
-					}
-				}
-			}
-		}
-	}
-	if (err) {
-		brrpath_info_delete(res);
-	} else {
-		res->exists = exists;
-		res->type = !data->dwFileAttributes?brrpath_type_none:
-		    T_IS_DIR(data->dwFileAttributes)?brrpath_type_directory:
-		    T_IS_REG(data->dwFileAttributes)?brrpath_type_file:brrpath_type_other;
-		if (res->type != brrpath_type_directory) {
-			ULARGE_INTEGER s = {0};
-			s.HighPart = data->nFileSizeHigh;
-			s.LowPart = data->nFileSizeLow;
-			res->size = s.QuadPart;
-		}
-	}
-	return err;
-}
+			if (!(err = brrstg_new(&res->full_path, NULL, 0)) &&
+			    !(err = brrstg_print(&res->full_path, BRRPATH_MAX_PATH, 0, NULL, "%s\\%s", fpath, base_name)))
 #else
-static int BRRCALL
-int_res_fill(brrpath_infoT *const res, const char *const fpath, brru8 size, unsigned int type, int base_ofs, int exists)
-{
-	int err = 0;
-	if (!(err = brrstg_new(&res->full_path, fpath, BRRPATH_MAX_PATH))) {
-		if (!(err = brrstg_new(&res->directory, fpath, base_ofs - 1))) {
-			if (!(err = brrstg_new(&res->base_name, fpath + base_ofs, BRRPATH_MAX_NAME))) {
-				if (T_IS_DIR(type)) {
+			if (!(err = brrstg_new(&res->directory, res->full_path.opaque, res->full_path.length - res->base_name.length)))
+#endif
+			{
+				if (st->type == brrpath_type_directory) {
 					err = brrstg_new(&res->extension, NULL, 0);
 				} else {
 					brrsz end = brrmem_search_reverse(res->base_name.opaque,
 					    res->base_name.length, ".", 1, res->base_name.length - 1);
 					if (end && end != res->base_name.length)
-						err = brrstg_new(&res->extension, fpath + base_ofs + end + 1, BRRPATH_MAX_NAME - end);
+						err = brrstg_new(&res->extension, (char*)res->base_name.opaque + end + 1, BRRPATH_MAX_NAME - end);
 					else
 						err = brrstg_new(&res->extension, NULL, 0);
 				}
@@ -192,39 +151,38 @@ int_res_fill(brrpath_infoT *const res, const char *const fpath, brru8 size, unsi
 	if (err) {
 		brrpath_info_delete(res);
 	} else {
-		res->exists = exists;
-		res->type = !exists?brrpath_type_none:
-		    T_IS_DIR(type)?brrpath_type_directory:T_IS_REG(type)?brrpath_type_file:brrpath_type_other;
-		if (res->type != brrpath_type_directory)
-			res->size = size;
+		res->exists = st->exists;
+		res->type = !st->exists?brrpath_type_none:st->type;
+		res->size = st->size;
 	}
 	return err;
 }
-#endif
 static int BRRCALL
-int_add_res(const brrpath_infoT *const res)
+int_add_res(brrpath_walk_resultT *const dst, const brrpath_infoT *const res)
 {
-	if (brrlib_alloc((void **)&walk_result->walk_results,
-	    (walk_result->result_count + 1) * sizeof(brrpath_infoT), 0)) {
+	if (brrlib_alloc((void **)&dst->walk_results,
+	    (dst->result_count + 1) * sizeof(brrpath_infoT), 0)) {
 		return -1;
 	}
-	walk_result->walk_results[walk_result->result_count] = *res;
-	walk_result->result_count++;
+	dst->walk_results[dst->result_count] = *res;
+	dst->result_count++;
 	return 0;
 }
+
+static brrpath_walk_resultT *walk_result;
+static const brrpath_walk_optionsT *walk_options;
+static int (*BRRCALL walk_filter)(const brrpath_infoT *const path_info);
 #if defined(BRRPLATFORMTYPE_WINDOWS)
 static int BRRCALL
-int_walk(const char *fpath, brrsz current_depth)
+int_walk_filt(const char *const fpath, brrsz current_depth)
 {
 	HANDLE start;
 	WIN32_FIND_DATA find_data;
 	char path[BRRPATH_MAX_PATH+1] = {0};
 	/* TODO the depth seems to go one too far on windows specifically. */
-	if (current_depth >= walk_options->max_depth)
-		return 0;
 	snprintf(path, BRRPATH_MAX_PATH+1, "%s\\*.*", fpath);
 	if ((start = FindFirstFile(path, &find_data)) == INVALID_HANDLE_VALUE) {
-		BRRLOG_ERROR("FIND FIRST FILE %d", GetLastError());
+		BRRLOG_DEBUG("FIND FIRST FILE %d", GetLastError());
 		return -1;
 	} else {
 		int err = 0;
@@ -233,8 +191,13 @@ int_walk(const char *fpath, brrsz current_depth)
 			    strcmp(find_data.cFileName, ".") != 0) {
 				int added = 0;
 				brrpath_infoT res = {0};
+				brrpath_stat_resultT st = {0};
+				st.exists = 1;
+				st.type = int_determine_type(find_data.dwFileAttributes);
+				/* windows gay */
+				st.size = BRRTIL_WIN_ULRG(find_data.nFileSizeLow, find_data.nFileSizeHigh).QuadPart;
 				/* Init 'res' */
-				if ((err = int_res_fill(&res, fpath, &find_data, 1))) {
+				if ((err = int_res_fill(&res, fpath, find_data.cFileName, &st))) {
 					break;
 				}
 				res.depth = current_depth;
@@ -242,12 +205,13 @@ int_walk(const char *fpath, brrsz current_depth)
 					/* Filter+add */
 					if (!walk_filter || walk_filter(&res)) {
 						added = 1;
-						err = int_add_res(&res);
+						err = int_add_res(walk_result, &res);
 					}
 				}
 				/* Recurse if dir */
 				if (!err && res.type == brrpath_type_directory) {
-					err = int_walk(res.full_path.opaque, current_depth + 1);
+					if (current_depth < walk_options->max_depth)
+						err = int_walk_filt(res.full_path.opaque, current_depth + 1);
 				}
 				if (!added) {
 					brrpath_info_delete(&res);
@@ -258,24 +222,49 @@ int_walk(const char *fpath, brrsz current_depth)
 		return err;
 	}
 }
+static int BRRCALL
+int_walk(const char *const fpath, brrsz base_off, const brrpath_stat_resultT *const st)
+{
+	brrpath_infoT res = {0};
+	if (int_res_fill(&res, fpath, fpath + base_off, st)) {
+		return -1;
+	} else {
+		res.depth = 0;
+		if (res.depth >= walk_options->min_depth && res.depth < walk_options->max_depth &&
+		    (!walk_filter || walk_filter(&res))) {
+			if (int_add_res(walk_result, &res)) {
+				brrpath_info_delete(&res);
+				return -1;
+			}
+		} else {
+			brrpath_info_delete(&res);
+		}
+		return int_walk_filt(fpath, 1);
+	}
+}
 #else
 static int BRRCALL
 int_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
 {
-	if ((unsigned)ftw->level < walk_options->min_depth || (unsigned)ftw->level >= walk_options->max_depth) {
+	if ((unsigned)ftw->level < walk_options->min_depth || (unsigned)ftw->level > walk_options->max_depth) {
 		return 0;
 	} else if (type == FTW_NS) {
 		return -1;
 		//return 0; /* TODO should this count as an error? */
 	} else {
 		brrpath_infoT res = {0};
-		if (int_res_fill(&res, fpath, sb->st_size, type, ftw->base, 1)) {
+		brrpath_stat_resultT st = {0};
+		st.exists = 1;
+		st.size = sb->st_size;
+		st.type = type == FTW_F?brrpath_type_file:
+			type == FTW_D?brrpath_type_directory:
+			brrpath_type_other;
+		if (int_res_fill(&res, fpath, fpath + ftw->base, &st))
 			return -1;
-		}
 		res.depth = ftw->level;
 		if (!walk_filter || walk_filter(&res)) {
 			/* + add res */
-			if (int_add_res(&res)) {
+			if (int_add_res(walk_result, &res)) {
 				brrpath_info_delete(&res);
 				return -1;
 			}
@@ -293,40 +282,35 @@ int BRRCALL brrpath_walk(
     const brrpath_walk_optionsT *const options,
     int (*BRRCALL filter)(const brrpath_infoT *const path_info))
 {
-	brrstgT start_dir = {0};
+	static char start_dir[BRRPATH_MAX_PATH+1] = {0};
 	brrpath_stat_resultT st = {0};
+	brrsz base_off = 0;
 	int error = 0;
 	if (!result || !options) {
-		BRRLOG_NOR("a");
 		return 0;
 	} else if (!options->path.opaque) {
-		BRRLOG_NOR("b");
 		return 1;
 	} else if (brrpath_stat(&options->path, &st)) {
-		BRRLOG_NOR("c");
 		return -1;
 	} else if (!st.exists) {
-		BRRLOG_NOR("d");
 		brrpath_walk_result_delete(result);
 		return 0;
-	} else if (st.type == brrpath_type_directory) {
-		error = brrstg_copy(&start_dir, &options->path);
-	} else {
-		brrsz end = brrmem_search_reverse(&options->path, options->path.length, BRRPATH_SEP_STR, 1, options->path.length);
-		error = brrstg_range(&start_dir, &options->path, 0, end, 0, 0);
 	}
-	BRRLOG_NOR("e");
+	base_off = brrmem_search_reverse(options->path.opaque, options->path.length, BRRPATH_SEP_STR, 1, options->path.length-1);
+	if (st.type == brrpath_type_directory) {
+		snprintf(start_dir, BRRPATH_MAX_PATH+1, "%s", (char *)options->path.opaque);
+	} else {
+		snprintf(start_dir, BRRPATH_MAX_PATH+1, "%*.*s", (int)base_off, (int)base_off, (char *)options->path.opaque);
+	}
 	if (!error) {
-		BRRLOG_NOR("e.1");
 		walk_result = result;
 		walk_options = options;
 		walk_filter = filter;
 #if defined(BRRPLATFORMTYPE_WINDOWS)
-		error = int_walk(start_dir.opaque, 0);
+		error = int_walk(start_dir, base_off, &st);
 #else
-		error = nftw(start_dir.opaque, int_walk_filt, 15, FTW_MOUNT);
+		error = nftw(start_dir, int_walk_filt, 15, FTW_MOUNT);
 #endif
-		brrstg_delete(&start_dir);
 		walk_result = NULL;
 		walk_options = NULL;
 		walk_filter = NULL;

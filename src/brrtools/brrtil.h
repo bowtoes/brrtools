@@ -110,4 +110,8 @@ limitations under the License.
 #define BRRTIL_ALLFLAGS(_x_,_f_) (((_x_)&(_f_))==(_f_))
 #define BRRTIL_TGL(_a_) ((_a_)=!(_a_))
 
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+# define BRRTIL_WIN_ULRG(_l_, _h_) ((ULARGE_INTEGER){.u={.LowPart=_l_, .HighPart=_h_}})
+#endif
+
 #endif /* BRRTIL_H */

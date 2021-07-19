@@ -96,6 +96,7 @@ typedef struct brrpath_walk_options {
 	brrstgT path; /* Path to walk; if it is a file, the directory containing the file will be walked. */
 	brrsz min_depth; /* Minimum depth to include in result. */
 	brrsz max_depth; /* Depth to stop walking at. */
+	/* TODO Add option for 'relative-to' so that output is relative to the given. */
 } brrpath_walk_optionsT;
 /* The results from 'brrpath_walk'.
  * Fields:

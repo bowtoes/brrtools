@@ -176,11 +176,8 @@ brrstg_copy(brrstgT *const string, const brrstgT *const source)
 {
 	if (!string || !source) {
 		return 0;
-	} else if (!source->opaque) {
+	} else if (!string->opaque || !source->opaque) {
 		return 1;
-	} else if (!string->opaque) {
-		if (!(string->opaque = malloc(source->length + 1)))
-			return -1;
 	} else if (!brrsizestr(string, source->length)) {
 		return -1;
 	}
