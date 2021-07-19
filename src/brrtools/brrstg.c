@@ -506,3 +506,26 @@ brrstg_split(const brrstgT *restrict const string, const brrstgT *restrict const
 		*count = ct;
 	return e;
 }
+
+int BRRCALL
+brrstg_cstr_compare(const char *const string, int case_sensitive, ...)
+{
+	va_list lptr;
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	int (*const compare)(const char *, const char *) = case_sensitive?strcmp:stricmp;
+#else
+	int (*const compare)(const char *, const char *) = case_sensitive?strcmp:strcasecmp;
+#endif
+	brrsz i = 0;
+	const char *a = NULL;
+	if (!string)
+		return -1;
+	va_start(lptr, case_sensitive);
+	while ((a = va_arg(lptr, const char *))) {
+		if (compare(string, a) == 0)
+			break;
+		++i;
+	}
+	va_end(lptr);
+	return a?i:-1;
+}

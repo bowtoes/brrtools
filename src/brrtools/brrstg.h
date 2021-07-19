@@ -191,7 +191,7 @@ BRRAPI int BRRCALL brrstg_ajoin(brrstgT *restrict const string, const brrstgT *r
 BRRAPI int BRRCALL brrstg_vjoin(brrstgT *restrict const string, const brrstgT *restrict const separator,
     int skip_empty, brrsz *count, va_list lptr);
 /* Joins a list of brrstgT pointers passed in into 'string', with 'separator' separating them and returns 0.
- * The list of strings MUST be terminated with a NULL pointer.
+ * List of string arguments must be terminated with a NULL entry.
  * If 'string' is NULL, nothing is done and 0 is returned.
  * If 'separator' is NULL, then there will be no separators.
  * If 'string' or 'separator' is a NULL string, nothing is done and 1 is returned.
@@ -222,6 +222,16 @@ BRRAPI int BRRCALL brrstg_join(brrstgT *restrict const string, const brrstgT *re
  * */
 BRRAPI int BRRCALL brrstg_split(const brrstgT *restrict const string, const brrstgT *restrict const split,
     int skip_consecutive, int include_split, brrsz offset, brrsz max_split, brrstgT **const strings, brrsz *count);
+
+/* Compares all arguments passed in to 'string' using standard string comparison
+ * functions.
+ * List of string arguments must be terminated with a NULL entry.
+ * If 'string' is NULL, -1 is returned.
+ * If 'case_sensitive' is non-zero, comparisons are done sensitive to case.
+ * If the comparison turns up equal, the index of the equal comparison is returned.
+ * If no string compared equal, -1 is returned.
+ * */
+BRRAPI int BRRCALL brrstg_cstr_compare(const char *const string, int case_sensitive, ...);
 
 BRRCPPEND
 
