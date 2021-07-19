@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <string.h>
 
+#include "brrtools/brrlib.h"
 #include "brrtools/brrlog.h"
 #include "brrtools/brrpath.h"
 #include "brrtools/brrtil.h"
@@ -40,8 +41,8 @@ int main(int argc, char **argv)
 		brrpath_walk_optionsT opt = {0};
 		brrpath_walk_resultT result = {0};
 		opt.path = path;
-		opt.max_depth = 4;
-		opt.min_depth = 2;
+		opt.min_depth = 1;
+		opt.max_depth = 2;
 		error = brrpath_walk(&result, &opt, NULL);
 		if (!error && !errno) {
 			BRRLOG_NOR("Found %zu paths", result.result_count);
@@ -54,15 +55,15 @@ int main(int argc, char **argv)
 					info->type == brrpath_type_other?brrlog_color_magenta:
 					brrlog_color_darkgrey, brrlog_color_normal, brrlog_style_bold, brrlog_font_normal,
 				    "%s", pathtypes[info->type]);
-				BRRLOG_NORNP(" %-*s : ", 60-info->depth, BRRTIL_NULSTR((char *)info->full_path.opaque));
+				BRRLOG_NORNP(" %-*s : ", 76-2*info->depth, BRRTIL_NULSTR((char *)info->full_path.opaque));
 				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
 				    brrlog_color_blue, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 				    "DIR");
-				BRRLOG_NORNP(" %-40s ", BRRTIL_NULSTR((char *)info->directory.opaque));
+				BRRLOG_NORNP(" %-60s ", BRRTIL_NULSTR((char *)info->directory.opaque));
 				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
 				    brrlog_color_red, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 				    "BSE");
-				BRRLOG_NORNP(" %-40s ", BRRTIL_NULSTR((char *)info->base_name.opaque));
+				BRRLOG_NORNP(" %-20s ", BRRTIL_NULSTR((char *)info->base_name.opaque));
 				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
 				    brrlog_color_green, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 				    "EXT");
