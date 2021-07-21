@@ -33,20 +33,10 @@ limitations under the License.
 #endif
 
 #include "brrtools/brrlib.h"
-#include "brrtools/brrlog.h"
 #include "brrtools/brrmem.h"
 #include "brrtools/brrtil.h"
+#include "brrtools/noinstall/statics.h"
 
-void BRRCALL
-brrpath_info_delete(brrpath_infoT *const info)
-{
-	if (info) {
-		brrstg_delete(&info->full_path);
-		brrstg_delete(&info->directory);
-		brrstg_delete(&info->base_name);
-		brrstg_delete(&info->extension);
-	}
-}
 void BRRCALL
 brrpath_walk_result_delete(brrpath_walk_resultT *const result)
 {
@@ -89,9 +79,12 @@ brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st)
 		if (!GetFileAttributesEx(path->opaque, GetFileExInfoStandard, &attr)) {
 			error = GetLastError();
 			if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) {
+				/* Path doesn't exist. */
 				error = 0;
-				*st = (brrpath_stat_resultT){0};
+			} else {
+				error = -1;
 			}
+			*st = (brrpath_stat_resultT){0};
 		} else {
 			st->exists = 1;
 			st->type = int_determine_type(attr.dwFileAttributes);
@@ -102,9 +95,12 @@ brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st)
 		if (stat(path->opaque, &s)) {
 			error = errno;
 			if (error == ENOENT) {
+				/* Path doesn't exist. */
 				error = 0;
-				*st = (brrpath_stat_resultT){0};
+			} else {
+				error = -1;
 			}
+			*st = (brrpath_stat_resultT){0};
 		} else {
 			st->exists = 1;
 			st->size = s.st_size;
@@ -156,6 +152,98 @@ int_res_fill(brrpath_infoT *const res, const char *const fpath, const char *cons
 	return err;
 }
 static int BRRCALL
+int_char_is_sep(char ch)
+{
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	return ch=='/'||ch=='\\';
+#else
+	return ch=='/';
+#endif
+}
+static int BRRCALL
+int_char_is_valid_path(char ch)
+{
+#if defined(BRRPLATFORMTYPE_WINDOWS)
+	return !(ch=='<'||ch=='>'||
+			ch==':'||ch=='"'||
+			ch=='|'||ch=='?'||
+			ch=='*'||ch<32);
+#else
+	return 1;
+#endif
+}
+/* TODO where else should paths be cleaned? What can be passed into 'brrpath_walk'?
+ * What will be pruned by erroring out at the stat? I hate paths. */
+/* remove duplicate separators/invalid characters */
+static int BRRCALL
+int_path_clean(brrstgT *const path)
+{
+	char *p = (char *)path->opaque;
+	brrsz nl = 0;
+	for (brrsz i = 0; i < path->length; ++i) {
+		if (!int_char_is_sep(p[i]) || (i + 1 < path->length && !int_char_is_sep(p[i+1])) || nl == 0) {
+			if (int_char_is_valid_path(p[i])) {
+				p[nl++] = p[i];
+			}
+		}
+	}
+	return brrsizestr(path, nl)?0:-1;
+}
+int BRRCALL
+brrpath_info_new(brrpath_infoT *const info, const brrstgT *const path)
+{
+	if (!info || !path) {
+		return 0;
+	} else if (!path->opaque) {
+		return 1;
+	} else {
+		brrpath_stat_resultT st = {0};
+		int err = 0;
+		brrpath_info_delete(info);
+		if (!(err = brrpath_stat(path, &st))) {
+			info->type = st.type;
+			info->exists = st.exists;
+			info->size = st.size;
+			if (!(err = brrstg_new(&info->full_path, path->opaque, BRRPATH_MAX_PATH)) &&
+				!(err = int_path_clean(&info->full_path))) {
+				brrsz sep = brrmem_search_reverse(info->full_path.opaque, info->full_path.length,
+				    BRRPATH_SEP_STR, 1, info->full_path.length - 1);
+				if (sep == info->full_path.length) {
+					err = brrstg_new(&info->directory, ".", 1);
+					sep = 0;
+				} else {
+					err = brrstg_new(&info->directory, (char *)info->full_path.opaque, sep?sep:1);
+					sep++;
+				}
+				if (!err && !(err = brrstg_new(&info->base_name, (char *)info->full_path.opaque + sep, BRRPATH_MAX_NAME))) {
+					brrsz dot = brrmem_search_reverse(info->base_name.opaque, info->base_name.length,
+					    ".", 1, info->base_name.length - 1);
+					if (dot < info->base_name.length - 1) {
+						err = brrstg_new(&info->extension, (char *)info->base_name.opaque + dot + 1, info->base_name.length - dot);
+					} else {
+						err = brrstg_new(&info->extension, NULL, 0);
+					}
+				}
+			}
+		}
+		if (err)
+			brrpath_info_delete(info);
+		return 0;
+	}
+}
+void BRRCALL
+brrpath_info_delete(brrpath_infoT *const info)
+{
+	if (info) {
+		brrstg_delete(&info->full_path);
+		brrstg_delete(&info->directory);
+		brrstg_delete(&info->base_name);
+		brrstg_delete(&info->extension);
+		info->depth = info->exists = info->size = info->type = 0;
+	}
+}
+
+static int BRRCALL
 int_add_res(brrpath_walk_resultT *const dst, const brrpath_infoT *const res)
 {
 	if (brrlib_alloc((void **)&dst->walk_results,
@@ -180,7 +268,6 @@ int_walk_filt(const char *const fpath, brrsz current_depth)
 	/* TODO the depth seems to go one too far on windows specifically. */
 	snprintf(path, BRRPATH_MAX_PATH+1, "%s\\*.*", fpath);
 	if ((start = FindFirstFile(path, &find_data)) == INVALID_HANDLE_VALUE) {
-		BRRLOG_DEBUG("FIND FIRST FILE %d", GetLastError());
 		return -1;
 	} else {
 		int err = 0;
@@ -295,7 +382,9 @@ int BRRCALL brrpath_walk(
 		return 0;
 	}
 	base_off = brrmem_search_reverse(options->path.opaque, options->path.length, BRRPATH_SEP_STR, 1, options->path.length-1);
-	if (st.type == brrpath_type_directory) {
+	if (base_off == options->path.length) {
+		snprintf(start_dir, BRRPATH_MAX_PATH+1, "./");
+	} else if (st.type == brrpath_type_directory) {
 		snprintf(start_dir, BRRPATH_MAX_PATH+1, "%s", (char *)options->path.opaque);
 	} else {
 		snprintf(start_dir, BRRPATH_MAX_PATH+1, "%*.*s", (int)base_off, (int)base_off, (char *)options->path.opaque);

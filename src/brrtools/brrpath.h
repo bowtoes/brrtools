@@ -108,6 +108,12 @@ typedef struct brrpath_walk_result {
 	brrsz result_count; /* Number of results in result array. */
 } brrpath_walk_resultT;
 
+/* Initializes 'info' from the path 'path' and returns 0.
+ * If 'info' or 'path' is NULL, nothing is done and 0 is returned.
+ * If 'path' is a NULL string, nothing is done and 1 is returned.
+ * If an error occurs, 'info' will be empty and -1 is returned.
+ * */
+BRRAPI int BRRCALL brrpath_info_new(brrpath_infoT *const info, const brrstgT *const path);
 /* Deletes all associated memory with 'info'.
  * If 'result' is NULL, nothing is done.
  * */
@@ -116,10 +122,10 @@ BRRAPI void BRRCALL brrpath_info_delete(brrpath_infoT *const info);
  * If 'result' is NULL, nothing is done.
  * */
 BRRAPI void BRRCALL brrpath_walk_result_delete(brrpath_walk_resultT *const result);
-/* Stats 'path' and puts the results in 'st'.
+/* Stats 'path' on disk and stores the resulting information in 'st' and returns 0.
  * If 'path' or 'st' is NULL, nothing is done and 0 is returned.
  * If 'path' is a NULL string, nothing is done and 1 is returned.
- *
+ * If an error occurs, 'st' will be empty and -1 is returned.
  * */
 BRRAPI int BRRCALL brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st);
 /* Walks all directories and subdirectories of 'options->path' according to the
