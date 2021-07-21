@@ -33,9 +33,7 @@ limitations under the License.
 #endif
 
 #include "brrtools/brrlib.h"
-#if defined(BRRTOOLS_DEBUG)
-# include "brrtools/brrlog.h"
-#endif
+#include "brrtools/brrlog.h"
 #include "brrtools/brrmem.h"
 #include "brrtools/brrtil.h"
 
