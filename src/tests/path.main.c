@@ -28,22 +28,22 @@ static void BRRCALL
 log_info(const brrpath_infoT *const info, brrsz i)
 {
 	BRRLOG_NORN("%5zu %zu %*.*s", i, info->depth, 2*info->depth, 2*info->depth, "");
-	BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
+	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    info->type == brrpath_type_directory?brrlog_color_cyan:
 		info->type == brrpath_type_file?brrlog_color_yellow:
 		info->type == brrpath_type_other?brrlog_color_magenta:
 		brrlog_color_red, brrlog_color_normal, brrlog_style_bold, brrlog_font_normal,
 	    "%s", pathtypes[info->type]);
 	BRRLOG_NORNP(" %-*s : ", 76-2*info->depth, BRRTIL_NULSTR((char *)info->full_path.opaque));
-	BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
+	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    brrlog_color_blue, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 	    "DIR");
 	BRRLOG_NORNP(" %-60s ", BRRTIL_NULSTR((char *)info->directory.opaque));
-	BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
+	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    brrlog_color_red, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 	    "BSE");
 	BRRLOG_NORNP(" %-20s ", BRRTIL_NULSTR((char *)info->base_name.opaque));
-	BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
+	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    brrlog_color_green, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 	    "EXT");
 	BRRLOG_NORNP(" %-8s", BRRTIL_NULSTR((char *)info->extension.opaque));

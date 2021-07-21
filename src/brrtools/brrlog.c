@@ -406,11 +406,16 @@ brrlog_text(_brrlog_log_params,
 	void (*vprint)(PRINT_PROTO, va_list lptr) = NULL;
 	void (*print)(PRINT_PROTO, ...) = NULL;
 	uselast(&priority, &destination, &foreground, &background, &style, &font);
-	if (!format || priority < st_minpri || priority > st_maxpri)
+	if (!format || priority < st_minpri || priority > st_maxpri) {
+		setlast(priority, destination, foreground, background, style, font);
 		return 0;
+	}
+/* If BRRTOOLS_DEBUG was defined, always print debug priority logs */
 #ifndef BRRTOOLS_DEBUG
-	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug)
+	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug) {
+		setlast(priority, destination, foreground, background, style, font);
 		return 0;
+	}
 #endif
 	if (destination != brrlog_destination_null)
 		dst = destination == brrlog_destination_stderr?stderr:stdout;

@@ -12,7 +12,7 @@ static char test_msg[2048] = {0};
 #define MSG(...) (snprintf(test_msg, 2048, __VA_ARGS__), test_msg)
 
 BRRTEST_TEST(LOG_INIT) {
-	BRRTEST_ASSERT(brrlog_init(), MSG("Failed to initialize log : %s", strerror(errno)));
+	BRRTEST_ASSERT(!brrlog_init(), MSG("Failed to initialize log : %s", strerror(errno)));
 	return "";
 }
 BRRTEST_TEST(LOG_MESSAGE) {
@@ -21,14 +21,14 @@ BRRTEST_TEST(LOG_MESSAGE) {
 	static const brrsz len = sizeof(msg) + sizeof(fmt) - 2 - 2;
 	static brrsz logged = 0;
 	gbrrlogctl.style_enabled = 0;
-	BRRTEST_ASSERT(brrlog_init(), "could not init log");
+	BRRTEST_ASSERT(!brrlog_init(), "could not init log");
 	BRRTEST_ASSERT(len == (logged = brrlog_text(-1, -1, NULL, -1, -1, -1, -1, NULL, 0, 0, __FILE__, __func__, 0, fmt, msg)), MSG("logged incorrect amount of bytes: %zu != %zu", len, logged));
 	return "";
 }
 BRRTEST_TEST(LOG_PRIORITIES) {
 	static const char fmt[] = "wow nice styles dude\n";
 	gbrrlogctl.style_enabled = 1;
-	BRRTEST_ASSERT(brrlog_init(), "could not init log");
+	BRRTEST_ASSERT(!brrlog_init(), "could not init log");
 	brrlog_setminpriority(brrlog_priority_none);
 	brrlog_setmaxpriority(brrlog_priority_count);
 	gbrrlogctl.debug_enabled = 1;
@@ -150,7 +150,7 @@ BRRTEST_TEST(LOG_SETLOGMAX) {
 		4096, 2048, 1024, 512, 0,
 	};
 	BRRTIL_ITERARR(brrsz, i, cases) {
-		BRRTEST_ASSERT(brrlog_setlogmax(cases[i]), MSG("Failed to set max to %zu : %s", cases[i], strerror(errno)));
+		BRRTEST_ASSERT(!brrlog_setlogmax(cases[i]), MSG("Failed to set max to %zu : %s", cases[i], strerror(errno)));
 	}
 	return "";
 }

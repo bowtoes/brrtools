@@ -1,1 +1,1 @@
-tests/path.main.c
+tests/tests.main.c
