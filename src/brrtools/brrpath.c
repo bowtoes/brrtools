@@ -37,19 +37,6 @@ limitations under the License.
 #include "brrtools/brrtil.h"
 #include "brrtools/noinstall/statics.h"
 
-void BRRCALL
-brrpath_walk_result_delete(brrpath_walk_resultT *const result)
-{
-	if (result) {
-		if (result->walk_results) {
-			for (brrsz i = 0; i < result->result_count; ++i) {
-				brrpath_info_delete(&(result->walk_results[i]));
-			}
-			brrlib_alloc((void **)&result->walk_results, 0, 0);
-		}
-	}
-}
-
 static brrpath_typeT BRRCALL
 int_determine_type(brru8 attr)
 {
@@ -66,7 +53,7 @@ int_determine_type(brru8 attr)
 	return type;
 }
 int BRRCALL
-brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st)
+brrpath_stat(brrpath_stat_resultT *const st, const brrstgT *const path)
 {
 	int error = 0;
 	if (!path || !st) {
@@ -189,6 +176,7 @@ int_path_clean(brrstgT *const path)
 	}
 	return brrsizestr(path, nl)?0:-1;
 }
+
 int BRRCALL
 brrpath_info_new(brrpath_infoT *const info, const brrstgT *const path)
 {
@@ -200,7 +188,7 @@ brrpath_info_new(brrpath_infoT *const info, const brrstgT *const path)
 		brrpath_stat_resultT st = {0};
 		int err = 0;
 		brrpath_info_delete(info);
-		if (!(err = brrpath_stat(path, &st))) {
+		if (!(err = brrpath_stat(&st, path))) {
 			info->type = st.type;
 			info->exists = st.exists;
 			info->size = st.size;
@@ -419,7 +407,6 @@ int_walk_filt(const char *const fpath, const struct stat *const sb, int type, st
 	return 0;
 }
 #endif
-
 int BRRCALL brrpath_walk(
     brrpath_walk_resultT *const result,
     const brrpath_walk_optionsT *const options,
@@ -433,7 +420,7 @@ int BRRCALL brrpath_walk(
 		return 0;
 	} else if (!options->path.opaque) {
 		return 1;
-	} else if (brrpath_stat(&options->path, &st)) {
+	} else if (brrpath_stat(&st, &options->path)) {
 		return -1;
 	} else if (!st.exists) {
 		brrpath_walk_result_delete(result);
@@ -464,4 +451,16 @@ int BRRCALL brrpath_walk(
 		brrpath_walk_result_delete(result);
 	}
 	return error;
+}
+void BRRCALL
+brrpath_walk_result_delete(brrpath_walk_resultT *const result)
+{
+	if (result) {
+		if (result->walk_results) {
+			for (brrsz i = 0; i < result->result_count; ++i) {
+				brrpath_info_delete(&(result->walk_results[i]));
+			}
+			brrlib_alloc((void **)&result->walk_results, 0, 0);
+		}
+	}
 }

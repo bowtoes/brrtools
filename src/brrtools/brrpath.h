@@ -108,6 +108,13 @@ typedef struct brrpath_walk_result {
 	brrsz result_count; /* Number of results in result array. */
 } brrpath_walk_resultT;
 
+/* Stats 'path' on disk and stores the resulting information in 'st' and returns 0.
+ * If 'path' or 'st' is NULL, nothing is done and 0 is returned.
+ * If 'path' is a NULL string, nothing is done and 1 is returned.
+ * If an error occurs, 'st' will be empty and -1 is returned.
+ * */
+BRRAPI int BRRCALL brrpath_stat(brrpath_stat_resultT *const st, const brrstgT *const path);
+
 /* Initializes 'info' from the path 'path' and returns 0.
  * If 'info' or 'path' is NULL, nothing is done and 0 is returned.
  * If 'path' is a NULL string, nothing is done and 1 is returned.
@@ -137,16 +144,7 @@ BRRAPI int BRRCALL brrpath_info_combine(brrstgT *const string, const brrpath_inf
  * If an error occurs while setting 'info->full_path' to result, 'info->full_path' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrpath_info_recombine(brrpath_infoT *const info);
-/* Deletes all infos in 'result' and deletes the array. Sets 'result_count' to 0.
- * If 'result' is NULL, nothing is done.
- * */
-BRRAPI void BRRCALL brrpath_walk_result_delete(brrpath_walk_resultT *const result);
-/* Stats 'path' on disk and stores the resulting information in 'st' and returns 0.
- * If 'path' or 'st' is NULL, nothing is done and 0 is returned.
- * If 'path' is a NULL string, nothing is done and 1 is returned.
- * If an error occurs, 'st' will be empty and -1 is returned.
- * */
-BRRAPI int BRRCALL brrpath_stat(const brrstgT *const path, brrpath_stat_resultT *const st);
+
 /* Walks all directories and subdirectories of 'options->path' according to the
  * fields specified in 'options', applying 'filter' to the results that are then
  * stored in 'result'; returns 0 on successful operation.
@@ -161,6 +159,10 @@ BRRAPI int BRRCALL brrpath_walk(
     brrpath_walk_resultT *const result,
     const brrpath_walk_optionsT *const options,
     int (*BRRCALL filter)(const brrpath_infoT *const path_info));
+/* Deletes all infos in 'result' and deletes the array. Sets 'result_count' to 0.
+ * If 'result' is NULL, nothing is done.
+ * */
+BRRAPI void BRRCALL brrpath_walk_result_delete(brrpath_walk_resultT *const result);
 
 BRRCPPEND
 
