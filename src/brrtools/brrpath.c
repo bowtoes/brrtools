@@ -242,6 +242,65 @@ brrpath_info_delete(brrpath_infoT *const info)
 		info->depth = info->exists = info->size = info->type = 0;
 	}
 }
+int BRRCALL
+brrpath_info_copy(brrpath_infoT *const destination, const brrpath_infoT *const source)
+{
+	int err = 0;
+	if (!destination || !source) {
+		return 0;
+	} else if (!(source->full_path.opaque && source->directory.opaque &&
+	    source->base_name.opaque && source->extension.opaque)) {
+		return 1;
+	} else if (!(err = brrstg_copy(&destination->full_path, &source->full_path))) {
+		if (!(err = brrstg_copy(&destination->directory, &source->directory))) {
+			if (!(err = brrstg_copy(&destination->base_name, &source->base_name))) {
+				if (!(err = brrstg_copy(&destination->extension, &source->extension))) {
+					destination->size = source->size;
+					destination->type = source->type;
+					destination->exists = source->exists;
+					destination->depth = 0;
+				}
+			}
+		}
+	}
+	if (err) {
+		brrpath_info_delete(destination);
+	}
+	return err;
+}
+int BRRCALL
+brrpath_info_combine(brrstgT *const string, const brrpath_infoT *const info)
+{
+	if (!string || !info) {
+		return 0;
+	} else {
+		if (info->extension.length) {
+			return brrstg_print(string, BRRPATH_MAX_PATH, 0, NULL, "%s"BRRPATH_SEP_STR"%s.%s",
+			    (char *)info->directory.opaque, (char *)info->base_name.opaque, (char *)info->extension.opaque);
+		} else {
+			return brrstg_print(string, BRRPATH_MAX_PATH, 0, NULL, "%s"BRRPATH_SEP_STR"%s",
+			    (char *)info->directory.opaque, (char *)info->base_name.opaque);
+		}
+	}
+}
+int BRRCALL
+brrpath_info_recombine(brrpath_infoT *const info)
+{
+	brrstgT temp = {0};
+	if (!info) {
+		return 0;
+	} else if (brrstg_new(&temp, NULL, 0)) {
+		return -1;
+	} else {
+		int err = 0;
+		if (!(err = brrpath_info_combine(&temp, info))) {
+			if ((err = brrstg_copy(&info->full_path, &temp)))
+				brrstg_delete(&info->full_path);
+		}
+		brrstg_delete(&temp);
+		return err;
+	}
+}
 
 static int BRRCALL
 int_add_res(brrpath_walk_resultT *const dst, const brrpath_infoT *const res)
@@ -265,7 +324,6 @@ int_walk_filt(const char *const fpath, brrsz current_depth)
 	HANDLE start;
 	WIN32_FIND_DATA find_data;
 	char path[BRRPATH_MAX_PATH+1] = {0};
-	/* TODO the depth seems to go one too far on windows specifically. */
 	snprintf(path, BRRPATH_MAX_PATH+1, "%s\\*.*", fpath);
 	if ((start = FindFirstFile(path, &find_data)) == INVALID_HANDLE_VALUE) {
 		return -1;

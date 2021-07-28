@@ -77,14 +77,14 @@ typedef struct brrpath_stat_result {
  * int exists : Non-zero if the path exists on disk.
  * */
 typedef struct brrpath_info {
-	brru8 size; /* Size of path in bytes; 0 if path is a directory. */
-	brrpath_typeT type; /* Type of path. */
 	brrstgT full_path; /* The directory component of the path. */
 	brrstgT directory; /* The base name component of the path. */
 	brrstgT base_name; /* The joining of 'directory' and 'base_name'. */
 	brrstgT extension; /* The extension that is on the base name component of the path; if the path is a directory, this is empty. */
-	brrsz depth; /* Depth that the path was found if it was constructed from 'brrpath_walk'. */
+	brru8 size; /* Size of path in bytes; 0 if path is a directory. */
+	brrpath_typeT type; /* Type of path. */
 	int exists; /* Non-zero if the path exists on disk. */
+	brrsz depth; /* Depth that the path was found if it was constructed from 'brrpath_walk'. */
 } brrpath_infoT;
 /* Options passed to 'brrpath_walk'.
  * Fields:
@@ -118,6 +118,25 @@ BRRAPI int BRRCALL brrpath_info_new(brrpath_infoT *const info, const brrstgT *co
  * If 'result' is NULL, nothing is done.
  * */
 BRRAPI void BRRCALL brrpath_info_delete(brrpath_infoT *const info);
+/* Copies the informations stored in 'source' into 'destination' and returns 0 on success.
+ * If 'destination' or 'source' is NULL, nothing is done and 0 is returned.
+ * If any 'source' element is a NULL string, nothing is done and 1 is returned.
+ * If an error occurs, 'destination' is deleted and -1 is returned.
+ * */
+BRRAPI int BRRCALL brrpath_info_copy(brrpath_infoT *const destination, const brrpath_infoT *const source);
+/* Combines the path components of 'info' into 'destination' and returns 0 on success.
+ * If 'string' or 'info' is NULL, nothing is done and 0 is returned.
+ * If any 'info' elements are a NULL string, nothing is done and 1 is returned.
+ * If an error occurs, 'destination' is deleted and -1 is returned.
+ * */
+BRRAPI int BRRCALL brrpath_info_combine(brrstgT *const string, const brrpath_infoT *const info);
+/* Combines the path components of 'info' into 'info->full_path' and returns 0 on success.
+ * If 'info' is NULL, nothing is done and 0 is returned.
+ * If any 'info' elements are a NULL string, nothing is done and 1 is returned.
+ * If an error occurs during combination, 'info->full_path' is left unaffected and -1 is returned.
+ * If an error occurs while setting 'info->full_path' to result, 'info->full_path' is deleted and -1 is returned.
+ * */
+BRRAPI int BRRCALL brrpath_info_recombine(brrpath_infoT *const info);
 /* Deletes all infos in 'result' and deletes the array. Sets 'result_count' to 0.
  * If 'result' is NULL, nothing is done.
  * */

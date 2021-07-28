@@ -106,13 +106,14 @@ BRRAPI int BRRCALL brrstg_vprint(brrstgT *const string, brrsz max_length, brrsz 
 BRRAPI int BRRCALL brrstg_print(brrstgT *const string, brrsz max_length, brrsz offset,
     brrsz *const written, const char *const fmt, ...);
 
-/* Copies 'source' into 'string' and returns 0.
+/* Copies 'source' into 'string' and returns 0 on success.
  * If 'string' or 'source' is NULL, nothing is done and 0 is returned.
- * If or 'source' is a NULL string, nothing is done and 1 is returned.
+ * If 'source' is a NULL string, nothing is done and 1 is returned.
  * 'string' may be a NULL string.
- * If an error occurs, -1 is returned.
+ * If an error occurs, 'string' is deleted and -1 is returned.
  * */
 BRRAPI int BRRCALL brrstg_copy(brrstgT *restrict const string, const brrstgT *restrict const source);
+
 /* Joins 'suffix' onto 'prefix' and stores the result in 'destination'.
  * If 'destination' is NULL, nothing is done and 0 is returned.
  * If 'prefix' and 'suffix' are NULL, 'destination' will be the empty string.
