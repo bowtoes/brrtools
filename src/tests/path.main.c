@@ -38,22 +38,22 @@ log_info(const brrpath_infoT *const info, brrsz i)
 	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    brrlog_color_blue, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 	    "DIR");
-	BRRLOG_NORNP(" %-60s ", BRRTIL_NULSTR((char *)info->directory.opaque));
+	BRRLOG_NORNP(" %-60s ", BRRTIL_NULSTR((char *)info->components.directory.opaque));
 	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    brrlog_color_red, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 	    "BSE");
-	BRRLOG_NORNP(" %-20s ", BRRTIL_NULSTR((char *)info->base_name.opaque));
+	BRRLOG_NORNP(" %-20s ", BRRTIL_NULSTR((char *)info->components.base_name.opaque));
 	BRRLOG_MESSAGEFN(gbrrlog_type_normal.level,
 	    brrlog_color_green, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
 	    "EXT");
-	BRRLOG_NORNP(" %-8s", BRRTIL_NULSTR((char *)info->extension.opaque));
+	BRRLOG_NORNP(" %-8s", BRRTIL_NULSTR((char *)info->components.extension.opaque));
 	if (info->type != brrpath_type_directory) {
 		BRRLOG_NORNP(" %zu", info->size);
 	}
 	BRRLOG_NORP("");
 }
 
-#if 1 /* Test path_info_new */
+#if 0 /* Test path_info_new */
 int main(int argc, char **argv)
 {
 	if (brrlog_init()) {
@@ -79,63 +79,49 @@ int main(int argc, char **argv)
 		brrstg_delete(&test);
 	}
 }
-#endif
-#if 0 /* Test path_walk */
+#else /* Test path_walk */
 int main(int argc, char **argv)
 {
-	brrstgT path = {0};
 	int error = 0;
+	brrpath_walk_optionsT opt = {0};
+	brrpath_walk_resultT result = {0};
+	const char *path = NULL;
 	brrlog_init();
 	if (argc < 2) {
 		BRRLOG_NOR("Please insert a path.");
 		return 0;
 	}
+	path = argv[1];
 
-	if (brrstg_new(&path, argv[1], -1)) {
-		BRRLOG_ERR("Failed to initialize search path : %s", strerror(errno));
-		return 1;
-	} else {
-		brrpath_walk_optionsT opt = {0};
-		brrpath_walk_resultT result = {0};
-		opt.path = path;
-		opt.min_depth = 1;
-		opt.max_depth = 2;
-		error = brrpath_walk(&result, &opt, NULL);
-		if (!error && !errno) {
-			BRRLOG_NOR("Found %zu paths", result.result_count);
-			for (brrsz i = 0; i < result.result_count; ++i) {
-				brrpath_infoT *info = &result.walk_results[i];
-				BRRLOG_NORN("%5zu %d %*.*s", i, info->depth, 2*info->depth, 2*info->depth, "");
-				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
-				    info->type == brrpath_type_directory?brrlog_color_cyan:
-					info->type == brrpath_type_file?brrlog_color_yellow:
-					info->type == brrpath_type_other?brrlog_color_magenta:
-					brrlog_color_darkgrey, brrlog_color_normal, brrlog_style_bold, brrlog_font_normal,
-				    "%s", pathtypes[info->type]);
-				BRRLOG_NORNP(" %-*s : ", 76-2*info->depth, BRRTIL_NULSTR((char *)info->full_path.opaque));
-				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
-				    brrlog_color_blue, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
-				    "DIR");
-				BRRLOG_NORNP(" %-60s ", BRRTIL_NULSTR((char *)info->directory.opaque));
-				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
-				    brrlog_color_red, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
-				    "BSE");
-				BRRLOG_NORNP(" %-20s ", BRRTIL_NULSTR((char *)info->base_name.opaque));
-				BRRLOG_MESSAGESN(gbrrlog_type_normal.level,
-				    brrlog_color_green, brrlog_color_normal, brrlog_style_normal, brrlog_font_normal,
-				    "EXT");
-				BRRLOG_NORNP(" %-8s", BRRTIL_NULSTR((char *)info->extension.opaque));
-				if (info->type != brrpath_type_directory) {
-					BRRLOG_NORNP(" %zu", info->size);
-				}
-				BRRLOG_NORP("");
+	opt.min_depth = 1;
+	opt.max_depth = 2;
+	error = brrpath_walk(path, &result, &opt, NULL);
+	if (!error && !errno) {
+		BRRLOG_NOR("Found %zu paths", result.result_count);
+		for (brrsz i = 0; i < result.result_count; ++i) {
+			brrpath_infoT *info = &result.walk_results[i];
+			BRRLOG_NORN("%5zu %d %*.*s", i, info->depth, 2*info->depth, 2*info->depth, "");
+			BRRLOG_STYLENP(info->type == brrpath_type_directory?brrlog_color_cyan:
+				info->type == brrpath_type_file?brrlog_color_yellow:
+				info->type == brrpath_type_other?brrlog_color_magenta:
+				brrlog_color_darkgrey, -1, brrlog_style_bold, "%s", pathtypes[info->type]);
+			BRRLOG_NORNP(" %-*s : ", 76-2*info->depth, BRRTIL_NULSTR((char *)info->full_path.opaque));
+			BRRLOG_FORENP(brrlog_color_blue, "DIR");
+			BRRLOG_NORNP(" %-60s ", BRRTIL_NULSTR((char *)info->components.directory.opaque));
+			BRRLOG_FORENP(brrlog_color_red, "BSE");
+			BRRLOG_NORNP(" %-20s ", BRRTIL_NULSTR((char *)info->components.base_name.opaque));
+			BRRLOG_FORENP(brrlog_color_green, "EXT");
+			BRRLOG_NORNP(" %-8s", BRRTIL_NULSTR((char *)info->components.extension.opaque));
+			if (info->type != brrpath_type_directory) {
+				BRRLOG_NORNP(" %zu", info->size);
 			}
-		} else {
-			BRRLOG_ERROR("ERROR %d (%d, %s)", error, errno, strerror(errno));
+			BRRLOG_NORP("");
 		}
-		brrpath_walk_result_delete(&result);
+	} else {
+		BRRLOG_ERROR("ERROR %d (%d, %s)", error, errno, strerror(errno));
 	}
-	brrstg_delete(&path);
+	brrpath_walk_result_delete(&result);
+
 	brrlog_deinit();
 	return error;
 }

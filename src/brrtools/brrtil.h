@@ -114,4 +114,7 @@ limitations under the License.
 # define BRRTIL_WIN_ULRG(_l_, _h_) ((ULARGE_INTEGER){.u={.LowPart=_l_, .HighPart=_h_}})
 #endif
 
+#define BRRTIL_BOOL(_x_) (!(!(_x_)))
+#define BRRTIL_XOR(_x_, _y_) (BRRTIL_BOOL(_x_) != BRRTIL_BOOL(_y_))
+
 #endif /* BRRTIL_H */

@@ -279,12 +279,14 @@ CHECK_SRC:=\
 	src/tests/log.c\
 	src/tests/mem.c\
 	src/tests/stg.c\
+	src/tests/path.c\
 
 CHECK_HDR:=\
 	src/tests/lib.h\
 	src/tests/log.h\
 	src/tests/mem.h\
 	src/tests/stg.h\
+	src/tests/path.h\
 
 # }
 

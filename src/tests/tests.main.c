@@ -4,6 +4,7 @@
 #include "tests/lib.h"
 #include "tests/mem.h"
 #include "tests/stg.h"
+#include "tests/path.h"
 
 int main(void)
 {
@@ -16,6 +17,7 @@ int main(void)
 	brrtools_brrmem_test(&total, &run, &skip, &succ, &fail);
 	brrtools_brrlib_test(&total, &run, &skip, &succ, &fail);
 	brrtools_brrstg_test(&total, &run, &skip, &succ, &fail);
+	brrtools_brrpath_test(&total, &run, &skip, &succ, &fail);
 
 	fprintf(stderr, "\nRan a total of %zu/%zu tests. %zu succeeded, %zu failed, %zu skipped.\n", run, total, succ, fail, skip);
 }
