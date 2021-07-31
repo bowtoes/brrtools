@@ -141,6 +141,12 @@ typedef struct brrlog_format {
 	brrlog_styleT style;      /* Format text style. */
 	brrlog_fontT  font;       /* Format format font. */
 } brrlog_formatT;
+/* There is almost certainly a very tricky way to pack these four macros into one. */
+#define BRRLOG_FORMAT_FONT(_f_, _b_, _s_, _F_) ((brrlog_formatT){_f_, _b_, _s_, _F_})
+#define BRRLOG_FORMAT_STYLE(_f_, _b_, _s_)     BRRLOG_FORMAT_FONT(_f_, _b_, _s_, brrlog_font_normal)
+#define BRRLOG_FORMAT_BACK(_f_, _b_)           BRRLOG_FORMAT_STYLE(_f_, _b_, brrlog_style_normal)
+#define BRRLOG_FORMAT_FORE(_f_)                BRRLOG_FORMAT_BACK(_f_, brrlog_color_normal)
+
 typedef struct brrlog_type {
 	brrlog_levelT level;
 	brrlog_formatT format;
