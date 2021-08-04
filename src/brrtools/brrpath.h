@@ -133,13 +133,17 @@ BRRAPI void BRRCALL brrpath_info_delete(brrpath_infoT *const info);
  * If an error occurs, 'string' is deleted and -1 is returned.
  * 'string' can be a NULL string.
  * */
-BRRAPI int BRRCALL brrpath_combine(brrstgT *const string, const char *const directory, const char *const base_name, const char *const extension);
-/* Splits 'path' into its directory, base name, and extension components.
+BRRAPI int BRRCALL brrpath_combine(brrstgT *const string, const char *const directory,
+    const char *const base_name, const char *const extension);
+/* Splits 'path' into its directory, base name, and extension components
  * and returns 0 on success.
- * If 'info' or 'path' are NULL, nothing is done and 0 is returned.
- * If an error occurs, 'info'
+ * All destinations 'directory', 'base_name', and 'extension' are optional.
+ * If 'path' is NULL, nothing is done and 0 is returned.
+ * If an error occurs, 'directory', 'base_name', and 'extension' are deleted
+ * and -1 is returned.
  * */
-BRRAPI int BRRCALL brrpath_split(brrstgT *const directory, brrstgT *const base_name, brrstgT *const extension, const char *const path);
+BRRAPI int BRRCALL brrpath_split(brrstgT *const directory, brrstgT *const base_name,
+    brrstgT *const extension, const char *const path);
 
 /* Walks all directories and subdirectories of 'path' according to the
  * fields specified in 'options', applying 'filter' to the results that are then

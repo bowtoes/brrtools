@@ -143,7 +143,8 @@ int_path_clean(brrstgT *const path)
 	return brrsizestr(path, nl)?0:-1;
 }
 int BRRCALL
-brrpath_combine(brrstgT *const string, const char *const directory, const char *const base_name, const char *const extension)
+brrpath_combine(brrstgT *const string, const char *const directory,
+    const char *const base_name, const char *const extension)
 {
 	static char tmp[BRRPATH_MAX_PATH + 1] = {0};
 	brrsz of = 0;
@@ -162,7 +163,8 @@ brrpath_combine(brrstgT *const string, const char *const directory, const char *
 	return e;
 }
 int BRRCALL
-brrpath_split(brrstgT *const directory, brrstgT *const base_name, brrstgT *const extension, const char *const path)
+brrpath_split(brrstgT *const directory, brrstgT *const base_name,
+    brrstgT *const extension, const char *const path)
 {
 	int e = 0;
 	brrstgT m = {0};
@@ -176,7 +178,11 @@ brrpath_split(brrstgT *const directory, brrstgT *const base_name, brrstgT *const
 		e = int_path_clean(&m);
 	}
 	if (!e) {
-		if (m.length > 0) {
+		if (m.length == 0) {
+			brrstg_delete(directory);
+			e = brrstg_new(base_name, NULL, 0);
+			brrstg_delete(extension);
+		} else {
 			last_sep = brrmem_search_reverse(m.opaque, m.length, BRRPATH_SEP_STR, 1, m.length - 1);
 			last_dot = brrmem_search_reverse(m.opaque, m.length, ".", 1, m.length - 1);
 			if (last_sep == m.length) {
@@ -202,10 +208,6 @@ brrpath_split(brrstgT *const directory, brrstgT *const base_name, brrstgT *const
 					e = brrstg_new(directory, m.opaque, last_sep);
 				}
 			}
-		} else {
-			brrstg_delete(directory);
-			e = brrstg_new(base_name, NULL, 0);
-			brrstg_delete(extension);
 		}
 	}
 	brrstg_delete(&m);
