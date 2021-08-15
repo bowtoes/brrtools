@@ -73,22 +73,42 @@ BRRAPI brrsz BRRCALL brrmem_search_reverse(const void *const data, brrsz data_si
 /* Reverses 'data_size' bytes of 'data' in-place and returns 'data'.
  * If 'data' is NULL or size == 0, nothing is done and NULL is returned.
  * */
-BRRAPI void *BRRCALL brrmem_static_reverse(void *const data, brrsz data_size);
+BRRAPI void *BRRCALL brrmem_reverse(void *const data, brrsz data_size);
 /* Creates a reversed copy of 'data' and returns the copy.
  * If 'data' is NULL or size == 0, nothing is done and NULL is returned.
  * If an error occurs, nothing is done and NULL is returned.
  * */
-BRRAPI void *BRRCALL brrmem_reverse(const void *const data, brrsz data_size);
-/* Reverses 'block_count' blocks of 'block_size' size bytes in data in-place and returns data.
- * If 'data' is NULL, nothing is done and NULL is returned.
- * If 'block_size' or 'block_count' is 0, nothing is done and 'data' is returned.
+BRRAPI void *BRRCALL brrmem_reverse_copy(const void *const data, brrsz data_size);
+/* Reverses the order of 'block_count' blocks of 'block_size' size bytes in
+ * data in-place and returns data.
+ * If 'data' is NULL or 'block_size' or 'block_count' is 0, nothing is done and
+ * 'data' is returned.
  * */
-BRRAPI void *BRRCALL brrmem_static_reverse_blocks(void *const data, brrsz block_size, brrsz block_count);
+BRRAPI void *BRRCALL brrmem_reverse_blocks(void *const data, brrsz block_size, brrsz block_count);
 /* Returns a copy of 'data', where blocks of 'block_size' are in reverse order.
- * If 'data' is NULL or size == 0 or block_size == 0, nothing is done and NULL is returned.
- * If an error occurs, nothing is done and NULL is returned.
+ * If 'data' is NULL or 'block_count' or 'block_size' is 0, nothing is done and
+ * NULL is returned.
+ * If the copy of 'data' fails to be allocated, nothing is done and NULL is
+ * returned.
  * */
-BRRAPI void *BRRCALL brrmem_reverse_blocks(const void *const data, brrsz block_size, brrsz block_count);
+BRRAPI void *BRRCALL brrmem_reverse_blocks_copy(const void *const data, brrsz block_size, brrsz block_count);
+/* Reverses the data of consecutive segments in 'data' with length specified in
+ * 'segment_list', of length 'segment_list_length'.
+ * If 'data' is NULL or 'segment_list_length' is 0 or 'segment_list' is NULL,
+ * nothing is done and 'data' is returned.
+ * */
+BRRAPI void *BRRCALL brrmem_reverse_segments(void *const data, brrsz segment_list_length,
+    const brrsz *const segment_list);
+/* Returns a copy of 'data' where the data of consecutive segments in 'data'
+ * with length specified in 'segment_list', of length 'segment_list_length' is
+ * reversed.
+ * If 'data' is NULL or 'segment_list_length' is 0 or 'segment_list' is NULL,
+ * nothing is done and NULL is returned.
+ * If an error occurs during reversal, data is left unaffected and NULL is
+ * returned.
+ * */
+BRRAPI void *BRRCALL brrmem_reverse_segments_copy(const void *const data, brrsz segment_list_length,
+    const brrsz *const segment_list);
 
 /* Concatenates the two memory regions 'data_a' and 'data_b' together into new
  * memory and returns a pointer to the new memory.
@@ -140,8 +160,26 @@ BRRAPI brrsz BRRCALL brrmem_slice(const void *const data, brrsz data_size,
         _b1_[_i_]=_; \
     } \
 } while (0)
-
+#define _brrmem_reverse(_d_, _ds_) do { \
+    brrby *_b_ = (brrby *)(_d_); \
+    brrsz _s_ = (_ds_); \
+    for (brrsz _i_ = 0; _i_ < _s_ / 2; ++_i_) { \
+        brrby _t_ = _b_[_i_]; \
+        _b_[_i_] = _b_[_s_ - 1 - _i_]; \
+		_b_[_s_ - 1 - _i_] = _t_; \
+    } \
+} while (0)
+#define _brrmem_copy_reverse(_di_, _do_, _ds_) do { \
+	brrby *_bi_ = (brrby *)(_di_); \
+	brrby *_bo_ = (brrby *)(_do_); \
+	brrsz _s_ = (_ds_); \
+	for (brrsz _i_ = 0; _i_ < _s_; ++_i_) { \
+		_bo_[_i_] = _bi_[_s_ - 1 - _i_]; \
+	} \
+} while (0)
 #define BRRMEM_BLOCK(_d_, _bs_, _bi_) (((brrby *)(_d_))+(_bs_)*(_bi_))
+
+#define BRRMEM_REVERSE_SEGMENTS(_d_, ...) brrmem_reverse_segments(_d_, sizeof((brrsz[]){__VA_ARGS__})/sizeof(brrsz), (brrsz[]){__VA_ARGS__})
 
 BRRCPPEND
 

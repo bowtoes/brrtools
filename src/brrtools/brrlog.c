@@ -507,7 +507,7 @@ brrlog_digits(_brrlog_log_params,
 	} while (div.quot);
 	if (isneg)
 		outstr[outlen++] = '-';
-	brrmem_static_reverse(outstr, outlen);
+	brrmem_reverse(outstr, outlen);
 	return brrlog_text(_brrlog_full_args, "%s", outstr);
 }
 

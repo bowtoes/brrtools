@@ -115,21 +115,17 @@ brrmem_search_reverse(const void *const data, brrsz data_size,
 }
 
 void *BRRCALL
-brrmem_static_reverse(void *const data, brrsz data_size)
+brrmem_reverse(void *const data, brrsz data_size)
 {
 	if (!BFVALID(data)) {
 		return NULL;
 	} else {
-		for (brrsz i = 0; i < data_size/2; ++i) {
-			brrby t=((brrby*)data)[i];
-			((brrby*)data)[i]=((brrby*)data)[data_size-1-i];
-			((brrby*)data)[data_size-1-i]=t;
-		}
-		return data;
+		_brrmem_reverse(data, data_size);
 	}
+	return data;
 }
 void *BRRCALL
-brrmem_reverse(const void *const data, brrsz data_size)
+brrmem_reverse_copy(const void *const data, brrsz data_size)
 {
 	void *r = NULL;
 	if (!BFVALID(data)) {
@@ -137,28 +133,24 @@ brrmem_reverse(const void *const data, brrsz data_size)
 	} else if (brrlib_alloc(&r, data_size, 0)) {
 		return NULL;
 	} else {
-		for (brrsz i = 0; i < data_size; ++i)
-			((brrby *)r)[i] = ((brrby *)data)[data_size - 1 - i];
+		_brrmem_copy_reverse(data, r, data_size);
 		return r;
 	}
 }
 void *BRRCALL
-brrmem_static_reverse_blocks(void *const data, brrsz block_size, brrsz block_count)
+brrmem_reverse_blocks(void *const data, brrsz block_size, brrsz block_count)
 {
-	if (!data) {
-		return NULL;
-	} else if (!block_size || !block_count) {
-		return data;
-	} else {
+	if (data && block_size && block_count) {
 		for (brrsz i = 0; i < block_count / 2; ++i) {
 			_brrmem_swap(BRRMEM_BLOCK(data, block_size, i),
 			    BRRMEM_BLOCK(data, block_size, block_count - i - 1), block_size);
 		}
-		return data;
 	}
+	return data;
 }
 void *BRRCALL
-brrmem_reverse_blocks(const void *const data, brrsz block_size, brrsz block_count)
+brrmem_reverse_blocks_copy(const void *const data, brrsz block_size,
+    brrsz block_count)
 {
 	void *r = NULL;
 	if (!data || !block_size || !block_count) {
@@ -172,6 +164,48 @@ brrmem_reverse_blocks(const void *const data, brrsz block_size, brrsz block_coun
 		}
 		return r;
 	}
+}
+void *BRRCALL
+brrmem_reverse_segments(void *const data, brrsz segment_list_length,
+    const brrsz *const segment_list)
+{
+	if (data && segment_list_length && segment_list) {
+		brrsz current_offset = 0;
+		for (brrsz i = 0; i < segment_list_length; ++i) {
+			brrsz seg = segment_list[i];
+			if (seg) {
+				if (seg > 1) {
+					_brrmem_reverse((brrby *)data + current_offset, seg);
+				}
+				current_offset += seg;
+			}
+		}
+	}
+	return data;
+}
+void *BRRCALL
+brrmem_reverse_segments_copy(const void *const data, brrsz segment_list_length,
+    const brrsz *const segment_list)
+{
+	if (!data || !segment_list_length || !segment_list) {
+		return NULL;
+	} else {
+		void *r = NULL;
+		brrsz dlen = 0, current_offset = 0;
+		for (brrsz i = 0; i < segment_list_length; ++i) {
+			brrsz seg = segment_list[i];
+			if (seg) {
+				dlen += seg;
+				if (brrlib_alloc((void **)&r, dlen, 0)) {
+					brrlib_alloc((void **)&r, 0, 0);
+					return NULL;
+				}
+				_brrmem_copy_reverse((brrby *)r + current_offset, (brrby *)data + current_offset, seg);
+				current_offset += seg;
+			}
+		}
+	}
+	return NULL;
 }
 
 void *BRRCALL
