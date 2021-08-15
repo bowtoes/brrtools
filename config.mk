@@ -338,6 +338,7 @@ SRC:=\
 	src/brrtools/brrlib.c\
 	src/brrtools/brrlog.c\
 	src/brrtools/brrmem.c\
+	src/brrtools/brrmeta.c\
 	src/brrtools/brrpath.c\
 	src/brrtools/brrstg.c\
 	src/brrtools/brrtest.c\
@@ -353,6 +354,7 @@ HDR:=\
 	src/brrtools/brrlib.h\
 	src/brrtools/brrlog.h\
 	src/brrtools/brrmem.h\
+	src/brrtools/brrmeta.h\
 	src/brrtools/brrpath.h\
 	src/brrtools/brrstg.h\
 	src/brrtools/brrtest.h\

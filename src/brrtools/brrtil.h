@@ -116,5 +116,7 @@ limitations under the License.
 
 #define BRRTIL_BOOL(_x_) (!(!(_x_)))
 #define BRRTIL_XOR(_x_, _y_) (BRRTIL_BOOL(_x_) != BRRTIL_BOOL(_y_))
+#define BRRTIL_AS_STRING(_x_) ((const char *)#_x_)
+#define BRRTIL_GET_OFFSET(_t_, _f_) ((brrsz)(&(((_t_*)(0))->_f_)))
 
 #endif /* BRRTIL_H */
