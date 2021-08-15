@@ -220,6 +220,24 @@ brrlib_trand(void)
 }
 
 brru8 BRRCALL
+brrlib_hash(const void *const data, brrsz data_size)
+{
+	/* These values taken from the wikipedia page on FNV hash */
+	static const brru8 offset = 0xcbf29ce484222325;
+	static const brru8 prime = 0x100000001b3;
+	const brru1 *const d = (brru1 *)data;
+	brru8 hash = offset;
+	brru1 *h = (brru1 *)&hash;
+	if (!data || !data_size)
+		return hash;
+	for (brrsz i = 0; i < data_size; ++i) {
+		h[4] ^= d[i];
+		hash *= prime;
+	}
+	return hash;
+}
+
+brru8 BRRCALL
 brrlib_umax(brru8 a, brru8 b)
 {
 	return a>b?a:b;

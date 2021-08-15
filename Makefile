@@ -104,7 +104,8 @@ ifeq ($(HOST),UNIX) # {
 	cp -fv $(OUTDIR)/$(LIBFILE) $(prefix)/lib/
 	mkdir -pv $(prefix)/include/$(PROJECT)
 	cp -fv $(HDR) $(prefix)/include/$(PROJECT)
-	ldconfig
+	#printf "%s/lib\n" "$(prefix)" > /etc/ld.so.conf.d/brrtools.conf
+	ldconfig $(prefix)
  else
 	@echo Nowhere to install when target is windows on unix host
  endif
@@ -116,7 +117,8 @@ ifeq ($(HOST),UNIX) # {
  ifeq ($(TARGET),UNIX)
 	rm -fv $(prefix)/lib/$(LIBFILE)
 	rm -fv $(addprefix $(prefix)/include/$(PROJECT)/,$(patsubst $(HDRDIR)/%,%,$(HDR)))
-	ldconfig
+	#rm /etc/ld.so.conf.d/brrtools.conf || :
+	ldconfig $(prefix)
  else
  endif
 else

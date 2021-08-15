@@ -70,6 +70,11 @@ BRRAPI brru8 BRRCALL brrlib_srand(brru8 seed);
 /* Generates a random number with microsecond time as the generator's seed. */
 BRRAPI brru8 BRRCALL brrlib_trand(void);
 
+/* Computes a FNV-1a hash on 'data' of length 'data_size'.
+ * If 'data' is NULL or 'data_size' is 0, nothing is done and a default value is returned.
+ * */
+BRRAPI brru8 BRRCALL brrlib_hash(const void *const data, brrsz data_size);
+
 /* Returns the maximum of the unsigned integers 'a' and 'b'. */
 BRRAPI brru8 BRRCALL brrlib_umax(brru8 a, brru8 b);
 /* Returns the minimum of the unsigned integers 'a' and 'b'. */
