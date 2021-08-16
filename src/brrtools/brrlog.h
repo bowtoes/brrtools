@@ -178,12 +178,13 @@ extern BRRAPI brrlog_typeT gbrrlog_type_last;     /* Settings last-used to log a
 
 /* Various control settings for the log system. */
 extern BRRAPI struct gbrrlogctl {
-	brru2 style_enabled:1;    /* Whether log styling is enabled at all. */
-	brru2 debug_enabled:1;    /* Whether the 'debug' log priority is enabled. */
-	brru2 flush_enabled:1;    /* Whether automatic stream flushing is enabled. */
-	brru2 verbose_enabled:1;  /* Whether file, function, and line information should also be logged. */
-	brru2 prefixes_enabled:1; /* Whether logs should print their prefixes by default. */
-	brru2 newline_enabled:1;  /* Whether logs should print a newline by default. */
+	brru2 style_enabled:1;    /* Whether log styling is enabled at all; disabled always on Windows. Default: 1 */
+	brru2 debug_enabled:1;    /* Whether the 'debug' log priority is enabled. Default: 0 */
+	brru2 flush_enabled:1;    /* Whether automatic stream flushing is enabled. Default: 1 */
+	brru2 flush_always:1;     /* Whether to always flush after logging; useful for debugging sometimes. Default: 0 */
+	brru2 verbose_enabled:1;  /* Whether file, function, and line information should also be logged. Default: 0 */
+	brru2 prefixes_enabled:1; /* Whether logs should print their prefixes by default. Default: 1 */
+	brru2 newline_enabled:1;  /* Whether logs should print a newline by default. Default: 1 */
 } gbrrlogctl;
 
 /* Get a string representation of the given color. */

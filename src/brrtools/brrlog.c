@@ -314,6 +314,7 @@ struct gbrrlogctl gbrrlogctl =
 #endif
 	.debug_enabled = 0,
 	.flush_enabled = 1,
+	.flush_always = 0,
 	.verbose_enabled = 0,
 	.prefixes_enabled = 1,
 	.newline_enabled = 1,
@@ -470,6 +471,8 @@ brrlog_text(_brrlog_log_params,
 		fprintf(dst, "%s", st_buffer);
 	setlast(priority, destination, foreground, background, style, font);
 	st_logcount++;
+	if (gbrrlogctl.flush_always && dst)
+		fflush(dst);
 	return write;
 }
 
