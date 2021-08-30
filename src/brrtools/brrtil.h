@@ -76,7 +76,7 @@ limitations under the License.
 #define _brrtil_narg_help00(_n_) 1
 #define _brrtil_narg_help01(_n_) 0
 #define _brrtil_narg_help11(_n_) _n_
-#define _brrtil_narg_help1(_a_, _b_, _n_) _brrtil_help##_a_##_b_(_n_)
+#define _brrtil_narg_help1(_a_, _b_, _n_) _brrtil_narg_help##_a_##_b_(_n_)
 #define _brrtil_narg_help0(_a_, _b_, _n_) _brrtil_narg_help1(_a_, _b_, _n_)
 
 #define BRRTIL_NARG(...) \
@@ -114,9 +114,10 @@ limitations under the License.
 # define BRRTIL_WIN_ULRG(_l_, _h_) ((ULARGE_INTEGER){.u={.LowPart=_l_, .HighPart=_h_}})
 #endif
 
+#define BRRTIL_STRINGIFY(_x_) #_x_
 #define BRRTIL_BOOL(_x_) (!(!(_x_)))
 #define BRRTIL_XOR(_x_, _y_) (BRRTIL_BOOL(_x_) != BRRTIL_BOOL(_y_))
-#define BRRTIL_AS_STRING(_x_) ((const char *)#_x_)
+#define BRRTIL_ASCSTR(_x_) ((const char *)#_x_)
 #define BRRTIL_GET_OFFSET(_t_, _f_) ((brrsz)(&(((_t_*)(0))->_f_)))
 
 #endif /* BRRTIL_H */
