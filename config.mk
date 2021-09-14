@@ -343,12 +343,13 @@ SRC:=\
 	src/brrtools/brrstg.c\
 	src/brrtools/brrtest.c\
 	src/brrtools/noinstall/statics.c\
-	#src/brrtools/brrbuffer.c\
 
 HDR:=\
 	src/brrtools/brrapi.h\
 	src/brrtools/brrmap.h\
 	src/brrtools/brrplatform.h\
+	src/brrtools/brrendian.h\
+	src/brrtools/brrdebug.h\
 	src/brrtools/brrtil.h\
 	src/brrtools/brrtypes.h\
 	src/brrtools/brrlib.h\
@@ -358,7 +359,6 @@ HDR:=\
 	src/brrtools/brrpath.h\
 	src/brrtools/brrstg.h\
 	src/brrtools/brrtest.h\
-	#src/brrtools/brrbuffer.h\
 
 NOINSTALL_HDR:=\
 	src/brrtools/noinstall/statics.h\

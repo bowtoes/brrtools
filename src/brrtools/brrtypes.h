@@ -19,6 +19,12 @@ limitations under the License.
 
 #include <stdint.h>
 
+#include <brrtools/brrplatform.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef int8_t      brrs1;
 typedef uint8_t     brru1;
 typedef int16_t     brrs2;
@@ -41,27 +47,22 @@ typedef uint64_t    brru8;
 #define BRRTOOLS_BRRS8_MIN  INT64_MIN
 #define BRRTOOLS_BRRU8_MAX  UINT64_MAX
 
-// Byte count or absolute byte offset.
-typedef brru8   brrsz;
-#define BRRTOOLS_BRRSZ_MAX BRRTOOLS_BRRU8_MAX
-// Relative byte offset.
-typedef brrs8   brrof;
-#define BRRTOOLS_BRROF_MAX BRRTOOLS_BRRS8_MAX
-#define BRRTOOLS_BRROF_MIN BRRTOOLS_BRRS8_MIN
-// Byte.
-typedef brru1   brrby;
-#define BRRTOOLS_BRRBY_MAX 255
+#if BRRBITDEPTH_SYSTEM == BRRBITDEPTH_64BIT
+typedef brru8 brrsz; // Byte count or absolute byte offset.
+typedef brrs8 brrof; // Relative byte offset.
+# define BRRTOOLS_BRRSZ_MAX BRRTOOLS_BRRU8_MAX
+# define BRRTOOLS_BRROF_MAX BRRTOOLS_BRRS8_MAX
+# define BRRTOOLS_BRROF_MIN BRRTOOLS_BRRS8_MIN
+#else
+typedef brru4 brrsz; // Byte count or absolute byte offset.
+typedef brrs4 brrof; // Relative byte offset.
+# define BRRTOOLS_BRRSZ_MAX BRRTOOLS_BRRU4_MAX
+# define BRRTOOLS_BRROF_MAX BRRTOOLS_BRRS4_MAX
+# define BRRTOOLS_BRROF_MIN BRRTOOLS_BRRS4_MIN
+#endif
 
-// Array element count.
-typedef brru2   brrct;
-#define BRRTOOLS_BRRCT_MAX BRRTOOLS_BRRU2_MAX
-
-/* Elements:
- *  * char fourcc[4];
- *  * brru4 code; */
-typedef union brrfcc {
-	char fourcc[4]; // Four-character char code.
-	brru4 code; // Numeric code.
-} brrfccT;
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* BRRTOOLS_TYPES_H */

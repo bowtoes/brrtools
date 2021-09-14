@@ -33,14 +33,14 @@ BRRAPI void BRRCALL brrmem_swap(void *const data0, void *const data1, brrsz data
  * If 'key' is not found, 'data_size' is returned.
  * */
 BRRAPI brrsz BRRCALL brrmem_next(const void *const data, brrsz data_size,
-    brrby key, brrsz offset);
+    brru1 key, brrsz offset);
 /* Searches 'data' for the first occurrence of 'key' at or before 'offset' and
  * returns the found offset, UTAI 'data_size - 1'.
  * If 'data' is NULL or size == 0, 'offset' is returned.
  * If 'key' is not found, 'data_size' is returned.
  * */
 BRRAPI brrsz BRRCALL brrmem_previous(const void *const data, brrsz data_size,
-    brrby key, brrsz offset);
+    brru1 key, brrsz offset);
 
 /* Allocates and creates a copy of 'data' and returns a pointer to the new memory.
  * If 'data' is NULL or size == 0, nothing is done and NULL is returned.
@@ -151,33 +151,33 @@ BRRAPI brrsz BRRCALL brrmem_slice(const void *const data, brrsz data_size,
     void *const destination, brrsz start, brrsz end_inclusive);
 
 #define _brrmem_swap(_d0_, _d1_, _ds_) do { \
-    brrby *_b0_ = (brrby *)(_d0_); \
-    brrby *_b1_ = (brrby *)(_d1_); \
+    brru1 *_b0_ = (brru1 *)(_d0_); \
+    brru1 *_b1_ = (brru1 *)(_d1_); \
     brrsz _s_ = (_ds_); \
     for (brrsz _i_=0;_i_<_s_;++_i_) { \
-        brrby _ = _b0_[_i_]; \
+        brru1 _ = _b0_[_i_]; \
         _b0_[_i_]=_b1_[_i_]; \
         _b1_[_i_]=_; \
     } \
 } while (0)
 #define _brrmem_reverse(_d_, _ds_) do { \
-    brrby *_b_ = (brrby *)(_d_); \
+    brru1 *_b_ = (brru1 *)(_d_); \
     brrsz _s_ = (_ds_); \
     for (brrsz _i_ = 0; _i_ < _s_ / 2; ++_i_) { \
-        brrby _t_ = _b_[_i_]; \
+        brru1 _t_ = _b_[_i_]; \
         _b_[_i_] = _b_[_s_ - 1 - _i_]; \
 		_b_[_s_ - 1 - _i_] = _t_; \
     } \
 } while (0)
 #define _brrmem_copy_reverse(_di_, _do_, _ds_) do { \
-	brrby *_bi_ = (brrby *)(_di_); \
-	brrby *_bo_ = (brrby *)(_do_); \
+	brru1 *_bi_ = (brru1 *)(_di_); \
+	brru1 *_bo_ = (brru1 *)(_do_); \
 	brrsz _s_ = (_ds_); \
 	for (brrsz _i_ = 0; _i_ < _s_; ++_i_) { \
 		_bo_[_i_] = _bi_[_s_ - 1 - _i_]; \
 	} \
 } while (0)
-#define BRRMEM_BLOCK(_d_, _bs_, _bi_) (((brrby *)(_d_))+(_bs_)*(_bi_))
+#define BRRMEM_BLOCK(_d_, _bs_, _bi_) (((brru1 *)(_d_))+(_bs_)*(_bi_))
 
 #define BRRMEM_REVERSE_SEGMENTS(_d_, ...) brrmem_reverse_segments(_d_, sizeof((brrsz[]){__VA_ARGS__})/sizeof(brrsz), (brrsz[]){__VA_ARGS__})
 

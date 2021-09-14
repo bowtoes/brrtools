@@ -549,23 +549,23 @@ brrlog_bits(_brrlog_log_params,
 		/* If there is no remainder then accessing [div.quot] is invalid */
 		if (div.rem) {
 			_brrlog_bytebits(outstr, outlen,
-			    ((brrby *)data)[div.quot], div.rem,
+			    ((brru1 *)data)[div.quot], div.rem,
 			    reverse_bits, nbits, bit_separator, separator_spacing, md);
 		}
 		for (brrsz B = 0; B < div.quot; ++B) {
 			_brrlog_bytebits(outstr, outlen,
-			    ((brrby *)data)[div.quot - B - 1], 8,
+			    ((brru1 *)data)[div.quot - B - 1], 8,
 			    reverse_bits, nbits, bit_separator, separator_spacing, md);
 		}
 	} else {
 		for (brrsz B = 0; B < div.quot; ++B) {
 			_brrlog_bytebits(outstr, outlen,
-			    ((brrby *)data)[B], 8,
+			    ((brru1 *)data)[B], 8,
 			    reverse_bits, nbits, bit_separator, separator_spacing, md);
 		}
 		if (div.rem) {
 			_brrlog_bytebits(outstr, outlen,
-			    ((brrby *)data)[div.quot], div.rem,
+			    ((brru1 *)data)[div.quot], div.rem,
 			    reverse_bits, nbits, bit_separator, separator_spacing, md);
 		}
 	}

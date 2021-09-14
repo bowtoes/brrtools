@@ -34,26 +34,26 @@ brrmem_swap(void *const data0, void *const data1, brrsz data_size)
 }
 
 brrsz BRRCALL
-brrmem_next(const void *const data, brrsz data_size, brrby key, brrsz offset)
+brrmem_next(const void *const data, brrsz data_size, brru1 key, brrsz offset)
 {
 	if (!data) {
 		return offset;
 	} else if (offset >= data_size) {
 		return data_size;
 	} else {
-		for (;((brrby *)data)[offset] != key && offset < data_size;++offset);
+		for (;((brru1 *)data)[offset] != key && offset < data_size;++offset);
 		return offset;
 	}
 }
 brrsz BRRCALL
-brrmem_previous(const void *const data, brrsz data_size, brrby key, brrsz offset)
+brrmem_previous(const void *const data, brrsz data_size, brru1 key, brrsz offset)
 {
 	if (!BFVALID(data)) {
 		return offset;
 	} else if (offset >= data_size) {
 		return data_size;
 	} else {
-		for (;((brrby *)data)[offset] != key && offset < data_size; --offset);
+		for (;((brru1 *)data)[offset] != key && offset < data_size; --offset);
 		return offset<data_size?offset:data_size;
 	}
 }
@@ -94,7 +94,7 @@ brrmem_search(const void *const data, brrsz data_size,
 	} else {
 		int cmp = 0;
 		for (brrsz tst = data_size - (key_size - 1);!cmp && offset < tst; ++offset)
-			cmp = (0 == memcmp((brrby *)data + offset, key, key_size));
+			cmp = (0 == memcmp((brru1 *)data + offset, key, key_size));
 		return cmp ? offset - 1 : data_size;
 	}
 }
@@ -109,7 +109,7 @@ brrmem_search_reverse(const void *const data, brrsz data_size,
 	} else {
 		int cmp = 0;
 		for (;!cmp && offset < data_size; --offset)
-			cmp = (0 == memcmp((brrby *)data + offset, key, key_size));
+			cmp = (0 == memcmp((brru1 *)data + offset, key, key_size));
 		return cmp ? offset + 1 : data_size;
 	}
 }
@@ -175,7 +175,7 @@ brrmem_reverse_segments(void *const data, brrsz segment_list_length,
 			brrsz seg = segment_list[i];
 			if (seg) {
 				if (seg > 1) {
-					_brrmem_reverse((brrby *)data + current_offset, seg);
+					_brrmem_reverse((brru1 *)data + current_offset, seg);
 				}
 				current_offset += seg;
 			}
@@ -200,7 +200,7 @@ brrmem_reverse_segments_copy(const void *const data, brrsz segment_list_length,
 					brrlib_alloc((void **)&r, 0, 0);
 					return NULL;
 				}
-				_brrmem_copy_reverse((brrby *)r + current_offset, (brrby *)data + current_offset, seg);
+				_brrmem_copy_reverse((brru1 *)r + current_offset, (brru1 *)data + current_offset, seg);
 				current_offset += seg;
 			}
 		}
@@ -219,7 +219,7 @@ brrmem_join(const void *const data_a, brrsz data_a_size,
 		return NULL;
 	} else {
 		memcpy(r, data_a, data_a_size);
-		memcpy((brrby *)r + data_a_size, data_b, data_b_size);
+		memcpy((brru1 *)r + data_a_size, data_b, data_b_size);
 		if (new_size)
 			*new_size = data_a_size + data_b_size;
 		return r;
@@ -279,11 +279,11 @@ brrmem_slice(const void *const data, brrsz data_size,
 		brrsz cp = 0;
 		if (start < end_inclusive) {
 			for (brrsz i = 0, l = end_inclusive - start; i < l; ++i, ++cp) {
-				((brrby *)destination)[i] = ((brrby *)data)[start + i];
+				((brru1 *)destination)[i] = ((brru1 *)data)[start + i];
 			}
 		} else {
 			for (brrsz i = 0, l = start - end_inclusive; i < l; ++i, ++cp) {
-				((brrby *)destination)[i] = ((brrby *)data)[start - i - 1];
+				((brru1 *)destination)[i] = ((brru1 *)data)[start - i - 1];
 			}
 		}
 		return cp;
