@@ -1,366 +1,209 @@
-# { Core configuration.
-CURDIR:=$(PWD)
-PROJECT:=brrtools
-UPROJECT:=BRRTOOLS
-ifndef prefix
- prefix=/usr/local
-endif
+# Each setting being set by '_verify_setting' or '_ternary_setting' are
+# user-settable when calling make; just do 'make ... VARIABLE_NAME=VALUE'
+# (note settings whose names start with an underscore are not intended to be overwritten manually)
 
-$(PROJECT)_MAJOR:=0
-$(PROJECT)_MINOR:=0
-$(PROJECT)_REVIS:=0
-# }
+include util.mk
 
-ifndef HOST # {
- HOST:=UNIX
-else ifneq ($(HOST),UNIX)
- ifneq ($(HOST),WINDOWS)
-  HOST:=UNIX
- else # Windows host always compiles windows target
-  TARGET:=WINDOWS
- endif
-endif ### }
-ifndef TARGET # {
- TARGET:=UNIX
-else ifneq ($(TARGET),UNIX)
- ifneq ($(TARGET),WINDOWS)
-  TARGET:=UNIX
- endif
-endif # }
-ifndef MODE # {
- MODE:=SHARED
-else ifneq ($(MODE),STATIC)
- ifneq ($(MODE),SHARED)
-  MODE:=SHARED
- endif
-endif # }
-ifndef BITS # {
- BITS:=64
-else ifneq ($(BITS),32)
- ifneq ($(BITS),64)
-  BITS:=64
- endif
-endif # }
+# BASIC -- Basic project settings and their defaults, all overridable
+PROJECT = brrtools
+# Uppercase project, used for c-macro prefixes
+UPROJECT = BRRTOOLS
+TARGET_LIB := $(PROJECT)
+TARGET_NAME := lib$(TARGET_LIB)
 
-ifeq ($(HOST),UNIX) # {
- NULL:=/dev/null
- RM:=rm -fv
-else
- NULL:=nul
- RM:=del /F
- RMDIR:=rmdir
-endif # }
+SRC_DIR = src
 
-ifndef SRCDIR # {
-SRCDIR:=src
-endif # }
-ifndef HDRDIR # {
-HDRDIR:=src/brrtools
-endif # }
-ifndef BLDDIR # {
-BLDDIR:=build
-endif # }
-ifndef UNIDIR # {
-UNIDIR:=uni
-endif # }
-ifndef WINDIR # {
-WINDIR:=win
-endif # }
-ifndef SHRDIR # {
-SHRDIR:=shared
-endif # }
-ifndef STADIR # {
-STADIR:=static
-endif # }
-ifndef B32DIR # {
-B32DIR:=x86
-endif # }
-ifndef B64DIR # {
-B64DIR:=x64
-endif # }
-ifndef CHKDIR # {
-CHKDIR:=check
-endif # }
-ifndef INTDIR # {
-INTDIR:=int
-endif # }
-ifndef ASSDIR # {
-ASSDIR:=ass
-endif # }
-ifndef OBJDIR # {
-OBJDIR:=obj
-endif # }
+MAKE_DEPS := Makefile config.mk util.mk aio_gen.mk
 
-ifndef UNISHRNAME # {
-UNISHRNAME:=$(PROJECT)
-endif # }
-ifndef UNISTANAME # {
-UNISTANAME:=$(PROJECT)
-endif # }
-ifndef WINSHRNAME # {
-WINSHRNAME:=$(PROJECT)
-endif # }
-ifndef WINDEFNAME # {
-WINDEFNAME:=$(PROJECT)
-endif # }
-ifndef WINIMPNAME # {
-WINIMPNAME:=$(PROJECT)
-endif # }
-ifndef WINSTANAME # {
-WINSTANAME:=$(PROJECT)
-endif # }
+PROJECT_MAJOR := 0
+PROJECT_MINOR := 0
+PROJECT_REVIS := 0
 
-ifndef UNISHRFILE # {
-UNISHRFILE:=lib$(PROJECT).so
-endif # }
-ifndef UNISTAFILE # {
-UNISTAFILE:=lib$(PROJECT).a
-endif # }
-ifndef WINSHRFILE # {
-WINSHRFILE:=$(PROJECT).dll
-endif # }
-ifndef WINDEFFILE # {
-WINDEFFILE:=$(PROJECT).def
-endif # }
-ifndef WINIMPFILE # {
-WINIMPFILE:=$(PROJECT).dll.lib
-endif # }
-ifndef WINSTAFILE # {
-WINSTAFILE:=lib$(PROJECT).lib
-endif # }
-
-ifndef CC_CUSTOM # {
- ifeq ($(HOST),UNIX)
-  ifeq ($(TARGET),UNIX)
-   CC:=gcc
-  else # Windows target, must have mingw
-   ifeq ($(BITS),32)
-    CC:=i686-w64-mingw32-gcc
-   else
-    CC:=x86_64-w64-mingw32-gcc
-   endif
-  endif
- else # Windows host, must have mingw
-  CC:=gcc
- endif
-else
- ifeq ($(HOST),UNIX)
-  ifeq ($(TARGET),UNIX)
-   # Custom cc only on unix, to unix for now
-   CC:=$(CC_CUSTOM)
-  else # Windows target, must have mingw
-   ifeq ($(BITS),32)
-    CC:=i686-w64-mingw32-gcc
-   else
-    CC:=x86_64-w64-mingw32-gcc
-   endif
-  endif
- else # Windows host, must have mingw
-  CC:=gcc
- endif
-endif # }
-ifndef AR_CUSTOM # {
- ifeq ($(HOST),UNIX)
-  ifeq ($(TARGET),UNIX)
-   AR:=gcc-ar
-  else # Windows target, must have mingw
-   ifeq ($(BITS),32)
-    AR:=i686-w64-mingw32-gcc-ar
-   else
-    AR:=x86_64-w64-mingw32-gcc-ar
-   endif
-  endif
- else # Windows host, must have mingw
-  AR:=gcc-ar
- endif
-else
- AR:=$(AR_CUSTOM)
-endif # }
-ifndef DLLTOOL # {
- ifeq ($(HOST),UNIX)
-  ifeq ($(TARGET),UNIX)
-   DLLTOOL:=echo There is no dlltool for unix
-  else # Windows target, must have mingw
-   ifeq ($(BITS),32)
-    DLLTOOL:=i686-w64-mingw32-dlltool
-   else
-    DLLTOOL:=x86_64-w64-mingw32-dlltool
-   endif
-  endif
- else # Windows host
-  DLLTOOL:=dlltool
- endif
-endif # }
-
-ifeq ($(TARGET),WINDOWS) # {
- OUTDIR:=$(BLDDIR)/$(WINDIR)
-else
- OUTDIR:=$(BLDDIR)/$(UNIDIR)
-endif # }
-ifeq ($(BITS),32) # {
- OUTDIR:=$(OUTDIR)/$(B32DIR)
-else
- OUTDIR:=$(OUTDIR)/$(B64DIR)
-endif # }
-ifeq ($(MODE),SHARED) # {
- OUTDIR:=$(OUTDIR)/$(SHRDIR)
-else
- OUTDIR:=$(OUTDIR)/$(STADIR)
-endif # }
-
-# { INCS & WRNS
-INCS:=-I$(SRCDIR)
-WRNS:=-Wall -Wextra\
-      -Werror=implicit-function-declaration -Werror=missing-declarations\
-      -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter
-#ifdef PEDANTIC
-WRNS:= $(WRNS) -Wpedantic -Werror=pedantic
-ifneq ($(CC),tcc)
- WRNS:=-pedantic -pedantic-errors $(WRNS)
-endif
-#endif # }
-# { DEFS
-DEFS:=-D$(UPROJECT)_MAJOR=$($(PROJECT)_MAJOR)\
-      -D$(UPROJECT)_MINOR=$($(PROJECT)_MINOR)\
-      -D$(UPROJECT)_REVIS=$($(PROJECT)_REVIS)\
-      -D$(UPROJECT)_VERSION='$($(PROJECT)_MAJOR).$($(PROJECT)_MINOR).$($(PROJECT)_REVIS)'
-
-ifdef DEBUG
- DEFS:=$(DEFS) -D$(UPROJECT)_DEBUG
- ifdef MEMCHECK
-  DEFS:=$(DEFS) -D$(UPROJECT)_MEMCHECK
- endif
-endif
-ifeq ($(TARGET),UNIX)
- DEFS:=$(DEFS) -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L
-else
- DEFS:=-DWIN32_LEAN_AND_MEAN $(DEFS)
- ifeq ($(MODE),SHARED)
-  DEFS:=-D$(UPROJECT)_EXPORTS $(DEFS)
- endif
-endif # }
-# { CC[LD]FLG
-ifdef DEBUG
-# CCLDFLG: Performance options (applied at compile- & link-time)
-# CCFLG: Optimization options (applied at compile-time)
- CCFLG:=-O0 -g
- ifdef MEMCHECK
-  CCLDFLG:=
- else
-  CCLDFLG:=-pg -no-pie
- endif ## MEMCHECK
-else
- CCFLG:=-O3 -Ofast
- ifeq ($(TARGET),SHARED)
-  CCLDFLG:=-s
- else
-  CCLDFLG:=
- endif
-endif
-ifeq ($(BITS),32)
- CCLDFLG:=$(CCLDFLG) -m32
-else
- CCLDFLG:=$(CCLDFLG) -m64
-endif # }
-
-# { CHECK
-$(PROJECT)_CHECK_CFLAGS:=-std=c99 $(WRNS) $(INCS) $(CCFLG) $(CCLDFLG) $(CFLAGS)
-$(PROJECT)_CHECK_CPPFLAGS:=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
-$(PROJECT)_CHECK_LDFLAGS:=$(CCLDFLG) $(LDFLAGS)
-ifeq ($(TARGET),WINDOWS)
- ifeq ($(MODE),SHARED)
-  $(PROJECT)_CHECK_CPPFLAGS:=-D$(PROJECT)_IMPORTS $($(PROJECT)_CHECK_CPPFLAGS)
- endif
-endif
-
-CHECK_SRC:=\
-	src/main.c\
-	src/tests/lib.c\
-	src/tests/log.c\
-	src/tests/mem.c\
-	src/tests/stg.c\
-	src/tests/path.c\
-
-CHECK_HDR:=\
-	src/tests/lib.h\
-	src/tests/log.h\
-	src/tests/mem.h\
-	src/tests/stg.h\
-	src/tests/path.h\
-
-# }
-
-ifeq ($(BITS),64) # {
- DEFS:=-D$(UPROJECT)_TARGET_BIT=64 $(DEFS)
-else
- DEFS:=-D$(UPROJECT)_TARGET_BIT=32 $(DEFS)
-endif # }
-LNK:=
-ifeq ($(TARGET),UNIX) # {
- ifeq ($(MODE),SHARED)
-  ifdef PIC2
-   CCFLG:=$(CCFLG) -fPIC
-  else
-   CCFLG:=$(CCFLG) -fpic
-  endif
-  LNK:=-shared
- endif
-else # Windows target
- LNK:=-Wl,--subsystem,windows
- ifeq ($(MODE),SHARED)
-  DEFS:=-D$(PROJECT)_EXPORTS $(DEFS)
-  LNK:=$(LNK) -shared
- endif
-endif # }
-ifeq ($(TARGET),UNIX) # {
- ifeq ($(MODE),SHARED)
-  LIBFILE:=$(UNISHRFILE)
-  LIBNAME:=$(UNISHRNAME)
- else
-  LIBFILE:=$(UNISTAFILE)
-  LIBNAME:=$(UNISTANAME)
- endif
-else # Windows target
- ifeq ($(MODE),SHARED)
-  LIBFILE:=$(WINSHRFILE)
-  LIBNAME:=$(WINSHRNAME)
- else
-  LIBFILE:=$(WINSTAFILE)
-  LIBNAME:=$(WINSTANAME)
- endif
-endif # }
-
-$(PROJECT)_CFLAGS=-std=c99 $(WRNS) $(INCS) $(CCFLG) $(CCLDFLG) $(CFLAGS)
-$(PROJECT)_CPPFLAGS=$(DEFS) $(STCPPFLAGS) $(CPPFLAGS)
-$(PROJECT)_LDFLAGS=$(CCLDFLG) $(LNK) $(LDFLAGS)
+$(call _verify_setting,INTDIR,,int,) # Subdirectory where intermediates go in the build directory
+$(call _verify_setting,OBJDIR,,obj,) # Subdirectory where objects go in the build directory
+$(call _verify_setting,ASSDIR,,ass,) # Subdirectory where individual assemblies go in the build directory
 
 SRC:=\
-	src/brrtools/brrlib.c\
-	src/brrtools/brrlog.c\
-	src/brrtools/brrmem.c\
-	src/brrtools/brrmeta.c\
-	src/brrtools/brrpath.c\
-	src/brrtools/brrstg.c\
-	src/brrtools/brrtest.c\
-	src/brrtools/noinstall/statics.c\
+	brrtools/brrlib.c\
+	brrtools/brrlog.c\
+	brrtools/brrmem.c\
+	brrtools/brrmeta.c\
+	brrtools/brrpath.c\
+	brrtools/brrstg.c\
+	brrtools/brrtest.c\
+	brrtools/noinstall/statics.c\
 
 HDR:=\
-	src/brrtools/brrapi.h\
-	src/brrtools/brrmap.h\
-	src/brrtools/brrplatform.h\
-	src/brrtools/brrendian.h\
-	src/brrtools/brrdebug.h\
-	src/brrtools/brrtil.h\
-	src/brrtools/brrtypes.h\
-	src/brrtools/brrlib.h\
-	src/brrtools/brrlog.h\
-	src/brrtools/brrmem.h\
-	src/brrtools/brrmeta.h\
-	src/brrtools/brrpath.h\
-	src/brrtools/brrstg.h\
-	src/brrtools/brrtest.h\
+	brrtools/brrapi.h\
+	brrtools/brrmap.h\
+	brrtools/brrplatform.h\
+	brrtools/brrendian.h\
+	brrtools/brrdebug.h\
+	brrtools/brrtil.h\
+	brrtools/brrtypes.h\
+	brrtools/brrlib.h\
+	brrtools/brrlog.h\
+	brrtools/brrmem.h\
+	brrtools/brrmeta.h\
+	brrtools/brrpath.h\
+	brrtools/brrstg.h\
+	brrtools/brrtest.h\
 
-NOINSTALL_HDR:=\
-	src/brrtools/noinstall/statics.h\
-	src/brrtools/noinstall/utils.h\
+HDR_NOINSTALL:=\
+	brrtools/noinstall/statics.h\
+	brrtools/noinstall/utils.h\
 
+# SYSTEM -- Meta compilation/system settings, overridable
+$(call _verify_setting,HOST,_not_host,UNIX,WINDOWS)
+$(call _verify_setting,HOST_BIT,_not_host_bit,64,32)
+
+$(call _verify_setting,TARGET,,$(HOST),$(_not_host))
+$(call _verify_setting,TARGET_BIT,,$(HOST_BIT),$(_not_host_bit))
+$(call _verify_setting,TARGET_MODE,,SHARED,STATIC)
+
+ifeq ($(HOST),WINDOWS)
+ ifeq ($(TARGET),UNIX)
+  $(error Windows cross-compilation to unix unsupported)
+ endif
+endif
+
+# Installation prefix
+$(call _ternary_setting,prefix,$(HOST),UNIX,/usr/local,$(CURDIR)/install)
+
+# Parallel threads to run for compilation
+$(call _ternary_setting,PARALLEL,$(HOST),UNIX,$(shell nproc),1)
+
+$(call _verify_setting,STD,,c99,)
+$(call _verify_setting,PEDANTIC,,1,)
+
+# COMMAND -- System commands used by make recipes, overridable (though not recommended)
+$(call _ternary_setting,NULL,$(HOST),UNIX,/dev/null,null)
+$(call _ternary_setting,RM_FILE,$(HOST),UNIX,rm -v,del)
+$(call _ternary_setting,RM_EMPTY_DIR,$(HOST),UNIX,rmdir -v --ignore-fail-on-non-empty,rmdir)
+$(call _ternary_setting,RM_FULL_DIR,$(HOST),UNIX,rm -rv,rmdir /s /q)
+$(call _ternary_setting,MK_DIR,$(HOST),UNIX,mkdir -pv,helpers/win/mkdir_tree.bat)
+$(call _ternary_setting,COPY_FILE,$(HOST),UNIX,cp -fv,copy /y)
+
+# BUILD -- Build directory structure, all overridable
+$(call _verify_setting,BUILD_DIR_NAME,,build,)
+# Build tree element based on TARGET
+$(call _verify_setting,_build_dir_target_uni,,uni,)
+$(call _verify_setting,_build_dir_target_win,,win,)
+$(call _ternary_setting,BUILD_DIR_TARGET,$(TARGET),UNIX,$(_build_dir_target_uni),$(_build_dir_target_win))
+# Build tree element based on TARGET_MODE
+$(call _verify_setting,_build_dir_mode_dyn,,dyn,)
+$(call _verify_setting,_build_dir_mode_sta,,sta,)
+$(call _ternary_setting,BUILD_DIR_MODE,$(TARGET_MODE),SHARED,$(_build_dir_mode_dyn),$(_build_dir_mode_sta))
+# Build tree element based on TARGET_BIT
+$(call _verify_setting,_build_dir_bit_64,,64,)
+$(call _verify_setting,_build_dir_bit_32,,32,)
+$(call _ternary_setting,BUILD_DIR_BIT,$(TARGET_BIT),64,$(_build_dir_bit_64),$(_build_dir_bit_32))
+
+$(call _verify_setting,BUILD_TREE,,$(BUILD_DIR_NAME)/$(BUILD_DIR_TARGET)/$(BUILD_DIR_MODE)/$(BUILD_DIR_BIT),)
+$(call _verify_setting,BUILD_TREE_ROOT,,$(CURDIR),)
+$(call _verify_setting,OUTPUT_DIRECTORY,,$(BUILD_TREE_ROOT)/$(BUILD_TREE),)
+
+# Target name extension based on TARGET and TARGET_MODE
+$(call _ternary_setting,_target_name_extension_dyn,$(TARGET),UNIX,.so,.dll)
+$(call _ternary_setting,_target_name_extension_sta,$(TARGET),UNIX,.a,.lib)
+$(call _ternary_join_right,TARGET_NAME,$(TARGET_MODE),SHARED,$(_target_name_extension_dyn),$(_target_name_extension_sta))
+$(call _verify_setting,OUTPUT_FILE,,$(OUTPUT_DIRECTORY)/$(TARGET_NAME),)
+# Target definitions/imports files for windows TARGET
+$(call _ternary_setting,TARGET_DEF,$(TARGET),UNIX,,$(TARGET_NAME).def)
+$(call _ternary_setting,TARGET_IMPORT,$(TARGET),UNIX,,$(TARGET_NAME).dll.lib)
+$(call _verify_setting,OUTPUT_DEF,,$(OUTPUT_DIRECTORY)/$(TARGET_DEF),)
+$(call _verify_setting,OUTPUT_IMPORT,,$(OUTPUT_DIRECTORY)/$(TARGET_IMPORT),)
+
+
+# CC -- Compilation executables (CC, AR, etc...), overridable
+# Appropriate system tuple
+$(call _ternary_setting,_sys_arch,$(TARGET_BIT),64,x86_64,i686)
+$(call _ternary_setting,_sys_vendor,$(TARGET),UNIX,pc,w64)
+$(call _ternary_setting,_sys_os,$(TARGET),UNIX,linux-gnu,mingw32)
+_sys = $(_sys_arch)-$(_sys_vendor)-$(_sys_os)
+
+# Specify 'DEFAULT_CC' to decide the name of your compiler (and build the appropriate
+# executable name) or specify 'CC_CUSTOM' to directly set the compiler executable to use.
+DEFAULT_CC:=gcc
+ifeq ($(HOST),UNIX)
+ $(call _ternary_setting,CC_CUSTOM,$(TARGET),UNIX,$(DEFAULT_CC),$(_sys)-$(DEFAULT_CC))
+else
+ $(call _verify_setting,CC_CUSTOM,,$(DEFAULT_CC),)
+endif
+CC = $(CC_CUSTOM)
+
+# Same as above
+DEFAULT_AR:=gcc-ar
+ifeq ($(HOST),UNIX)
+ $(call _ternary_setting,AR_CUSTOM,$(TARGET),UNIX,$(DEFAULT_AR),$(_sys)-$(DEFAULT_AR))
+else
+ $(call _verify_setting,AR_CUSTOM,,$(DEFAULT_AR),)
+endif
+AR = $(AR_CUSTOM)
+
+# Same as above, except UNIX has no DLLTOOL, so that is left blank by default
+# if UNIX is the target
+$(call _ternary_setting,DEFAULT_DLLTOOL,$(TARGET),UNIX,,dlltool)
+ifeq ($(HOST),UNIX)
+ $(call _ternary_setting,DLLTOOL_CUSTOM,$(TARGET),UNIX,$(DEFAULT_DLLTOOL),$(_sys)-$(DEFAULT_DLLTOOL))
+else
+ $(call _verify_setting,DLLTOOL_CUSTOM,,$(DEFAULT_DLLTOOL),)
+endif
+DLLTOOL = $(DLLTOOL_CUSTOM)
+
+$(call _ternary_setting,DEFAULT_LDCONFIG,$(TARGET),UNIX,ldconfig,)
+$(call _verify_setting,LDCONFIG_CUSTOM,,$(DEFAULT_LDCONFIG),)
+LDCONFIG = $(LDCONFIG_CUSTOM)
+
+_cc_includes = -I$(SRC_DIR)
+_cc_warnings = -Wall -Wextra\
+	-Werror=implicit-function-declaration -Werror=missing-declarations\
+	-Wno-unused-function -Wno-sign-compare -Wno-unused-parameter\
+
+_cc_defines = \
+	-D$(UPROJECT)_MAJOR=$(PROJECT_MAJOR)\
+	-D$(UPROJECT)_MINOR=$(PROJECT_MINOR)\
+	-D$(UPROJECT)_REVIS=$(PROJECT_REVIS)\
+	-D$(UPROJECT)_VERSION='$(PROJECT_MAJOR).$(PROJECT_MINOR).$(PROJECT_REVIS)'
+
+ifneq ($(PEDANTIC),0)
+ _cc_warnings := -pedantic -pedantic-errors -Wpedantic $(_cc_warnings)
+endif
+
+$(call _binary_append,_cc_defines,DEBUG,-D$(UPROJECT)_DEBUG,)
+$(call _binary_append,_cc_defines,MEMCHECK,-D$(UPROJECT)_MEMCHECK,)
+$(call _ternary_append,_cc_defines,$(TARGET_BIT),64,-D$(UPROJECT)_TARGET_BIT=64,-D$(UPROJECT)_TARGET_BIT=32)
+$(call _ternary_prepend,_cc_defines,$(TARGET),UNIX,-D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L,-DWIN32_LEAN_AND_MEAN)
+ifeq ($(TARGET),WINDOWS)
+ $(call _ternary_prepend,_cc_defines,$(TARGET_MODE),SHARED,-D$(UPROJECT)_EXPORTS,)
+endif
+
+# _cc_optimize: Compilation optimization or other settings
+# _cc_performance: Compilation & linkage shared parameters (I can't think of a better name)
+$(call _binary_setting,_cc_optimize,DEBUG,-O0 -g,-O3 -Ofast)
+$(call _ternary_setting,_cc_performance,$(TARGET_MODE),SHARED,-s,-static-pie)
+$(call _binary_append,_cc_performance,MEMCHECK,-pg -no-pie,)
+$(call _ternary_append,_cc_performance,$(TARGET_BIT),64,-m64,-m32)
+
+ifeq ($(TARGET),UNIX)
+ ifeq ($(TARGET_MODE),SHARED)
+  $(call _binary_append,_cc_optimize,PIC2,-fPIC,-fpic)
+ endif
+endif
+
+# _cc_linkage: Linkage parameters
+$(call _ternary_setting,_cc_linkage,$(TARGET_MODE),SHARED,-shared)
+$(call _ternary_prepend,_cc_linkage,$(TARGET),WINDOWS,-Wl$(_util_comma)--subsystem$(_util_comma)windows,)
+ifeq ($(TARGET),WINDOWS)
+ $(call _ternary_prepend,_cc_defines,$(TARGET_MODE),SHARED,-D$(UPROJECT)_EXPORTS,)
+endif
+
+ifndef DEBUG
+ ifndef MEMCHECK
+  $(call _binary_prepend,_cc_linkage,NO_STRIP,,-Wl$(_util_comma)--strip-all)
+ endif
+endif
+
+PROJECT_CFLAGS = -std=$(STD) $(_cc_warnings) $(_cc_includes) $(_cc_optimize) $(_cc_performance) $(CFLAGS)
+PROJECT_CPPFLAGS = $(_cc_defines) $(STCPPFLAGS) $(CPPFLAGS)
+PROJECT_LDFLAGS = $(_cc_performance) $(_cc_linkage) $(LDFLAGS)

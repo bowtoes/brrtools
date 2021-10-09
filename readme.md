@@ -1,6 +1,6 @@
 # BRRTOOLS
-A custom C99 library with the goal to have a single place for multiple cross-platform,
-miscellaneous utilities that are generally useful.
+A custom C99 library with the goal to have a single place for multiple
+cross-platform, miscellaneous utilities that are generally useful.
 
 Has absolutely no relation to [BRRtools][otherbrr]
 ## Contents
@@ -8,21 +8,25 @@ Has absolutely no relation to [BRRtools][otherbrr]
 
 1. [Compilation](#compilation)  
 2. [Installation](#installation)  
-3. [Customization](#customization)  
+3. [Customization](#build-customization)  
 3. [Usage](#usage)  
 
 ## Compilation
 [Contents](#contents)  
 
-|Host |Target   |Requirements|
-|:---:|:---:    |:---       |
-|\*NIX|\*NIX    |[GNU `make`][gmake] and [`gcc` toolchain][gcc]|
-|\*NIX|Windows  |[GNU `make`][gmake] and [`mingw` toolchain][mingww64]|
-|Windows|\*NIX  |N/A|
+|Host   |Target |Requirements                                            |
+|:---:  |:---:  |:---                                                    |
+|\*NIX  |\*NIX  |[GNU `make`][gmake] and [`gcc` toolchain][gcc]          |
+|\*NIX  |Windows|[GNU `make`][gmake] and [`mingw` toolchain][mingww64]   |
+|Windows|\*NIX  |Windows-to-\*NIX compilation is not and likely won't be implemented|
 |Windows|Windows|[GNU `make`][gmakewin] and [`mingw` toolchain][mingwwin]|
 
-To compile, just run `make` with `HOST` set to either `UNIX` or `WINDOWS`, depending on your host system
-and set `TARGET` likewise. `HOST` and `TARGET` default to `UNIX`.  
+To compile, just run `make` with `HOST` set to either `UNIX` or `WINDOWS`,
+depending on your host system and set `TARGET` likewise. `HOST` defaults to
+`UNIX`, and `TARGET` defaults to `HOST`.
+
+**Note** that to cross-compile from 64-bit to 32-bit or vice-versa (though
+vice-versa isn't implemented yet) will also require the `mingw` toolchain.
 
 Example:  
   * Unix host with Unix target:  
@@ -36,44 +40,47 @@ make HOST=UNIX TARGET=WINDOWS
   * Windows host with windows target:  
 ```shell
 make HOST=WINDOWS TARGET=WINDOWS
-```
-NOTE: Windows-based compilation is untested; don't be surprised if it fails for
-whatever reason.
+```  
+
+**NOTE** Windows-based compilation is untested; don't be surprised if it fails
+for whatever reason.
 
 To customize the type of binary to generate, there are different environment
-varivariables that can be set before compilation:
-  * `BITS`: Set to `32` to generate a 32-bit binary, or `64` for a 64-bit
-  binary.  
-  Defaults to `64`
-  * `MODE`: Set to `SHARED` to generate a shared library or dll depending on
-  what the target system is.  
-  Defaults to `SHARED`  
-  * 'PEDANTIC': Set to anything in order to enable GCC pedantic compilation
-  checks.  
+variables that can be set before compilation:
+  * `HOSTBIT`: Set to specify what bitness your system is, either `32` or
+    `64`.  
+    Defaults to `64`
+  * `TARGETBIT`: Set to specify what bitness compilation should target, either 
+    `32` to generate a 32-bit binary, or `64` for a 64-bit binary.  
+    Defaults to `HOSTBIT`
+  * `TARGETMODE`: Set to `SHARED` to generate a shared library or dll depending
+    on what the target system is.  
+    Defaults to `SHARED`  
+  * `PEDANTIC`: Enables GCC pedantic compilation checks; on by default, set to
+    `0` to disable.  
 
-These settings are very much case-sensitive.
+All settings are case-sensitive.
 
 ## Installation
 [Contents](#contents)  
 ### Unix:
 ```shell
-make prefix=/custom/install/root
+make install [prefix=/custom/install/root]
 ```
-to install the library to the custom prefix.
-The default prefix is `/usr/local`.
+to install the library to the custom prefix.  
+The default prefix on \*NIX is `/usr/local` and `./install` on Windows.
 
 ### Windows:
-Put the binary of your choosing, together with the headers, into whatever search
-paths you have set for your project.
+If calling `make install` fails with some error approximating `unrecognized
+command` or `no such file or directory` or the like,  please let me know.
 
 ## Build Customization
 [Contents](#contents)  
-It's possible to set various environment variables to customize the build
-process:
+There are various variables you can set after to customize the build process:
   * `DEBUG`: Enables compiling with debugging
   symbols, and does little-to-no optimization.  
-  * `MEMCHECK`: Changes the behavior of `DEBUG` to so that the compiled binaries
-  are `valgrind`-compatible.  
+  * `MEMCHECK`: Changes the behavior of `DEBUG` to so that the compiled
+    binaries are `valgrind`-compatible.  
 
 Custom compiler/linker/archiver executables can be set:
   * `CC_CUSTOM`: Set a custom c-compiler. Only useable on Unix.  
@@ -84,18 +91,27 @@ Custom compiler/linker/archiver executables can be set:
   Defaults to `dlltool` on Windows, or appropriate mingw version if on Unix and
   targeting Windows.
 
-Output build directories can be changed:
+Build output is generated in a set of subdirectories, typically following the
+form  
+```shell
+BLDROOT/BLDNAME/BLDTARGET/BLDMODE/BLDBIT
+```
+where each element can be manually set, or left to be a default value,
+depending on what output configurations are set to.
 
-|Variable         |Default          |Description                              |
-|:---             |:---             |:---                                     |
-|`BLDDIR`         |`build`          |Root                                     |
-|`UNIDIR`/`WINDIR`|`uni`/`win`      |Unix/Windows output                      |
-|`SHRDIR`/`STADIR`|`shared`/`static`|Shared/static output                     |
-|`B32DIR`/`B64DIR`|`x86`/`x64`      |32-/64-bit output                        |
-|`CHKDIR`         |`check`          |Name of check executable output directory|
-|`INTDIR`         |`int`            |Name of intermediates output directory   |
-|`ASSDIR`         |`ass`            |Name of assembly output directory        |
-|`OBJDIR`         |`obj`            |Name of objects output directory         |
+|Variable   |Default              |Description                                                                                     |
+|:---       |:---                 |:---                                                                                            |
+|`BLDROOT`  |The project directory|The root of build output.                                                                       |
+|`BLDNAME`  |`build`              |The name of the directory in `BLDROOT` where all output will be placed.                         |
+|`BLDTARGET`|`uni`/`win`          |Defaults to `uni` if `TARGET=UNIX` or `win` if `TARGET=WINDOWS`.                            |
+|`BLDMODE`  |`dyn`/`sta`          |Defaults to `dyn` (dynamic) if `TARGETMODE=SHARED` or `sta` (static) if `TARGETMODE=STATIC`.|
+|`BLDBIT`   |`64`/`32`            |Defaults to `64` if `TARGETBIT=64` or `32` if `TARGETBIT`=`32`.                               |
+
+Setting any target to be empty (`''`) effectively removes it from the output
+path.
+
+There are a few other such options that can be configured; see near the end of
+`config.mk` to find what can and shouldn't be changed.
 
 ## Usage
 [Contents](#contents)  
@@ -104,7 +120,8 @@ Output build directories can be changed:
 ```shell
 {compiler} /path/to/libbrrtools.a {compilerargs}
 ```
-or if you can pass arguments to the linker through the compiler (like with `gcc`):
+or if you can pass arguments to the linker through the compiler (like with
+`gcc`):
 ```shell
 {compiler} {compilerargs} -Wl,-Bstatic -lbrrtools -Wl,-Bdynamic {moreargs}
 ```

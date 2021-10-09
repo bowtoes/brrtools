@@ -1,21 +1,18 @@
+## Ctags/vimtags/othertags files
 tags
-types_*.types
-tags.cfg
+*.types
 
+## Build files
 *.o
 *.e
 *.s
 *.out
+
+## Local things
+*.cache/
+*.old/
+*.stor/
+build/
 *.sh
 *.tmp
-
 compile_commands*
-*.old/
-*.cache/
-*.idea/
-build/
-
-*temp
-*.temp*
-*tmp
-*.tmp*
