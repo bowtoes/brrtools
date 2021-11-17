@@ -1,9 +1,6 @@
 .POSIX:
 .SUFFIXES:
 
-# I may be bad at making make files, ...
-
-# Here to make sure 'all' is default
 all:
 include config.mk
 include aio_gen.mk
@@ -12,27 +9,26 @@ all: options $(OUTPUT_FILE)
 options:
 	@echo "<------------------------>"
 	@echo "$(PROJECT) Build Settings:"
-	@echo "Project name   : $(PROJECT)"
-	@echo "Project binary : $(TARGET_LIB)"
-	@echo "Linker name    : $(TARGET_NAME)"
-	@echo "Install prefix : $(prefix)"
+	@echo "Project name    : $(PROJECT)"
+	@echo "Project binary  : $(TARGET_NAME)"
+	@echo "Ultimate output : $(OUTPUT_FILE)"
 	@echo ""
-	@echo "Build Host     : $(HOST), $(HOST_BIT)-bit"
-	@echo "Build Target   : $(TARGET), $(TARGET_BIT)-bit"
-	@echo "Build Mode     : $(TARGET_MODE)"
-	@echo "Build Tree     : $(BUILD_TREE)"
-	@echo "Debug Build    : $(if $(DEBUG),On,Off)"
-	@echo "Memcheck Build : $(if $(MEMCHECK),On,Off)"
+	@echo "Build Host      : $(HOST), $(HOST_BIT)-bit"
+	@echo "Build Target    : $(TARGET), $(TARGET_BIT)-bit"
+	@echo "Build Mode      : $(TARGET_MODE)"
+	@echo "Build Tree      : $(BUILD_TREE)"
+	@echo "Debug Build     : $(if $(DEBUG),On,Off)"
+	@echo "Memcheck Build  : $(if $(MEMCHECK),On,Off)"
 	@echo ""
-	@echo "Includes       : $(_cc_includes)"
-	@echo "Warnings       : $(_cc_warnings)"
-	@echo "Defines        : $(_cc_defines)"
-	@echo "DllTool        : $(DLLTOOL)"
-	$(if $(DEBUG)$(MEMCHECK),\
-	@echo "Compilation Flags   : $(PROJECT_CFLAGS)"$(_util_newline)\
-	@echo "Preprocessing Flags : $(PROJECT_CPPFLAGS)"$(_util_newline)\
-	@echo "Linking Flags       : $(PROJECT_LDFLAGS)"$(_util_newline)\
-	)
+	@echo "Includes        : $(_cc_includes)"
+	@echo "Warnings        : $(_cc_warnings)"
+	@echo "Defines         : $(_cc_defines)"
+	@echo "CC              : $(CC)"
+	@echo "AR              : $(AR)"
+	@echo "DllTool         : $(DLLTOOL)"
+	@echo "Compilation Flags   : $(PROJECT_CFLAGS)"
+	@echo "Preprocessing Flags : $(PROJECT_CPPFLAGS)"
+	@echo "Linking Flags       : $(PROJECT_LDFLAGS)"
 	@echo "<========================>"
 
 $(call _aio_settings,,$(OUTPUT_DIRECTORY),$(SRC))
@@ -42,7 +38,7 @@ $(call _aio_directory_rules,)
 $(call _aio_phony_rules,)
 $(call _aio_clean_rules,)
 
-$(OUTPUT_FILE): $(MAKE_DEPS) | obj
+$(OUTPUT_FILE): options | obj
 ifeq ($(TARGET_MODE),SHARED)
  ifeq ($(TARGET),UNIX)
 	$(CC) $(OBJ) -o '$@' $(PROJECT_LDFLAGS)
@@ -63,6 +59,7 @@ ifeq ($(TARGET),WINDOWS)
 endif
 	@$(RM_EMPTY_DIR) $(OUTDIR) 2>$(NULL) || :
 again: clean all
+
 .PHONY: all clean again options
 
 install-libs:
@@ -87,9 +84,9 @@ install-headers: $(_target_headers)
 install: all install-libs install-headers
 ifeq ($(HOST),UNIX)
  ifeq ($(TARGET),UNIX)
-  ifndef NO_LDCONFIG
+  ifneq ($(DOLDCONFIG),0)
 	$(LDCONFIG) $(realpath $(prefix)) || :
-   endif
+  endif
  endif
 endif
 .PHONY: install install-libs install-headers
@@ -107,14 +104,10 @@ uninstall-headers:
 uninstall: uninstall-lib uninstall-headers
 ifeq ($(HOST),UNIX)
  ifeq ($(TARGET),UNIX)
-  ifndef NO_LDCONFIG
+  ifneq ($(DOLDCONFIG),0)
 	$(LDCONFIG) $(realpath $(prefix)) || :
-   endif
+  endif
  endif
 endif
 .PHONY: uninstall uninstall-lib uninstall-headers
-
-check:
-	$(error AAAAAAHHHHH!)
-
 nop: ; @echo Nice!

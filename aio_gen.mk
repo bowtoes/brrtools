@@ -20,7 +20,6 @@ $1INT := $(addprefix $2/$(INTDIR)/,$(3:.c=.e))$(_util_newline)\
 $1OBJ := $(addprefix $2/$(OBJDIR)/,$(3:.c=.o))$(_util_newline)\
 $1AIO := $$($1ASS) $$($1INT) $$($1OBJ)$(_util_newline)\
 $(_util_newline)\
-$(_util_newline)\
 $1ASS_DIRECTORIES := $$(call _get_directories,$$($1ASS))$(_util_newline)\
 $1INT_DIRECTORIES := $$(call _get_directories,$$($1INT))$(_util_newline)\
 $1OBJ_DIRECTORIES := $$(call _get_directories,$$($1OBJ))$(_util_newline)\
