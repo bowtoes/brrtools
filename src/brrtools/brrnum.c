@@ -1,0 +1,82 @@
+/*
+Copyright 2021 BowToes (bow.toes@mailfence.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+#include "brrtools/brrnum.h"
+
+brrsz BRRCALL
+brrnum_ndigits(brru8 number, brru1 base, brrbl is_signed)
+{
+	brrsz c = 1;
+	if (base < 2)
+		return 0;
+	else if (!number)
+		return 1;
+	else if (is_signed && (brrs8)number < 0)
+		number = -(brrs8)number;
+	while (number/=base)
+		c++; /* teehee */
+	return c;
+}
+brrs8 BRRCALL
+brrnum_wrap(brrs8 number, brru8 wrap, brrs8 offset)
+{
+	if (!wrap)
+		return 0;
+	else if (number >= 0)
+		return (brrs8)((brru8)number % wrap);
+	else
+		return (brrs8)(wrap - 1 - ((brru8)(-(number + 1)) % wrap)) + offset;
+}
+
+brru8 BRRCALL
+brrnum_ugcf(brru8 a, brru8 b)
+{
+	if (a == b)
+		return a;
+	else if (!a || !b)
+		return 0;
+	while (b != 0) {
+		brru8 t = b;
+		b = a % t;
+		a = t;
+	}
+	return a;
+}
+brrs8 BRRCALL
+brrnum_sgcf(brrs8 a, brrs8 b)
+{
+	if (a == b)
+		return a;
+	else if (!a || !b)
+		return 0;
+	while (b != 0) {
+		brrs8 t = b;
+		b = a % t;
+		a = t;
+	}
+	return a;
+}
+
+// Windows(mingw) ld seems to greatly dislike doing inlines like this, no idea why.
+// Will use static inlines for now instead.
+// Maybe it's something to do with __dllexport? No idea.
+//extern inline brru8 BRRCALL brrnum_umax(brru8 a, brru8 b);
+//extern inline brru8 BRRCALL brrnum_umin(brru8 a, brru8 b);
+//extern inline brru8 BRRCALL brrnum_uclamp(brru8 x, brru8 min, brru8 max);
+//extern inline brrs8 BRRCALL brrnum_smax(brrs8 a, brrs8 b);
+//extern inline brrs8 BRRCALL brrnum_smin(brrs8 a, brrs8 b);
+//extern inline brrs8 BRRCALL brrnum_sclamp(brrs8 x, brrs8 min, brrs8 max);
+//extern inline brrbl BRRCALL brrnum_bxor(brrbl a, brrbl b);

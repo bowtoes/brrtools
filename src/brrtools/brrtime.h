@@ -14,17 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef BRRNOINSTALL_STATICS_H
-#define BRRNOINSTALL_STATICS_H
+#ifndef BRRTIME_H
+#define BRRTIME_H
 
-#include "brrtools/brrapi.h"
-#include "brrtools/brrtypes.h"
+#include <brrtools/brrapi.h>
+#include <brrtools/brrtypes.h>
 
-struct brrstg;
+_brrcppstart
 
-/* Resizes 'str' to have 'ns' length.
- * Returns 1 on success; deletes 'str' and returns 0 on error.
+/* Returns the current time in microseconds, useful for timing things.
+ * Should not be used as an accurate indication of real-world time.
  * */
-BRRAPI int BRRCALL brrsizestr(struct brrstg *const str, brrsz ns);
+BRRAPI brru8 BRRCALL brrtime_utime(void);
+/* Pauses program execution for 'usec' microseconds. */
+BRRAPI void BRRCALL brrtime_sleep(brru8 usec);
 
-#endif /* STATICS_H */
+_brrcppend
+
+#endif /* BRRTIME_H */

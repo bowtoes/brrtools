@@ -1,31 +1,24 @@
-#include "tests/log.h"
-
 #include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include "brrtools/brrlog.h"
 #include "brrtools/brrtest.h"
+#include "brrtools/brrlog.h"
 
-static char test_msg[2048] = {0};
-#define MSG(...) (snprintf(test_msg, 2048, __VA_ARGS__), test_msg)
-
-BRRTEST_TEST(LOG_INIT) {
-	BRRTEST_ASSERT(!brrlog_init(), MSG("Failed to initialize log : %s", strerror(errno)));
+BRRTEST_NEW_TEST(LOG_INIT) {
+	BRRTEST_ASSERT(!brrlog_init(), brrtools_test_message("Failed to initialize log : %s", strerror(errno)));
 	return "";
 }
-BRRTEST_TEST(LOG_MESSAGE) {
+BRRTEST_NEW_TEST(LOG_MESSAGE) {
 	static const char fmt[] = "%s wow\n";
 	static const char msg[] = "wow";
 	static const brrsz len = sizeof(msg) + sizeof(fmt) - 2 - 2;
 	static brrsz logged = 0;
 	gbrrlogctl.style_enabled = 0;
 	BRRTEST_ASSERT(!brrlog_init(), "could not init log");
-	BRRTEST_ASSERT(len == (logged = brrlog_text(-1, -1, NULL, -1, -1, -1, -1, NULL, 0, 0, __FILE__, __func__, 0, fmt, msg)), MSG("logged incorrect amount of bytes: %zu != %zu", len, logged));
+	BRRTEST_ASSERT(len == (logged = brrlog_text(-1, -1, NULL, -1, -1, -1, -1, NULL, 0, 0, __FILE__, __func__, 0, fmt, msg)), brrtools_test_message("logged incorrect amount of bytes: %zu != %zu", len, logged));
 	return "";
 }
-BRRTEST_TEST(LOG_PRIORITIES) {
+BRRTEST_NEW_TEST(LOG_PRIORITIES) {
 	static const char fmt[] = "wow nice styles dude\n";
 	gbrrlogctl.style_enabled = 1;
 	BRRTEST_ASSERT(!brrlog_init(), "could not init log");
@@ -47,7 +40,7 @@ BRRTEST_TEST(LOG_PRIORITIES) {
 	BRRTEST_ASSERT(0 == BRRLOG_DEBN(fmt), "logged debug while disabled");
 	return "";
 }
-BRRTEST_TEST(LOG_DIGITS) {
+BRRTEST_NEW_TEST(LOG_DIGITS) {
 	struct testcase {
 		brru8 number;
 		int base;
@@ -80,19 +73,19 @@ BRRTEST_TEST(LOG_DIGITS) {
 	};
 #undef NEWCASE
 	gbrrlogctl.style_enabled = 0;
-	for (brrsz i = 0; i < (BRRTIL_ARRLEN(cases)); ++i) {
+	for (brrsz i = 0; i < (BRR_ARRAY_LENGTH(cases)); ++i) {
 		struct testcase cse = cases[i];
 		cse.res_print = BRRLOGD_NORBNP(cse.result, cse.number, cse.base, cse.is_signed, cse.separator, cse.spacing);
 		cse.res_length = strlen(cse.result);
-		BRRTEST_ASSERT(cse.res_print == cse.res_length, MSG("case %zu bytes printed does not match measured length : %zu != %zu ('%s' , expected '%s')", i, cse.res_print, cse.res_length, cse.result, cse.correct));
-		BRRTEST_ASSERT(cse.res_length == cse.correct_length, MSG("case %zu res length does not match correct length : %zu != %zu ('%s' , expected '%s')", i, cse.res_length, cse.correct_length, cse.result, cse.correct));
+		BRRTEST_ASSERT(cse.res_print == cse.res_length, brrtools_test_message("case %zu bytes printed does not match measured length : %zu != %zu ('%s' , expected '%s')", i, cse.res_print, cse.res_length, cse.result, cse.correct));
+		BRRTEST_ASSERT(cse.res_length == cse.correct_length, brrtools_test_message("case %zu res length does not match correct length : %zu != %zu ('%s' , expected '%s')", i, cse.res_length, cse.correct_length, cse.result, cse.correct));
 		cse.cmp = strcmp(cse.correct, cse.result);
-		BRRTEST_ASSERT(cse.cmp == 0, MSG("case %zu string does not match expected : '%s' != '%s'", i, cse.result, cse.correct));
+		BRRTEST_ASSERT(cse.cmp == 0, brrtools_test_message("case %zu string does not match expected : '%s' != '%s'", i, cse.result, cse.correct));
 	}
 
 	return "";
 }
-BRRTEST_TEST(LOG_BITS) {
+BRRTEST_NEW_TEST(LOG_BITS) {
 	struct testcase {
 		brru1 data[8];
 		brru1 reverse_bytes;
@@ -130,31 +123,31 @@ BRRTEST_TEST(LOG_BITS) {
 	};
 #undef NEWCASE
 	gbrrlogctl.style_enabled = 0;
-	for (brrsz i = 0; i < (BRRTIL_ARRLEN(cases)); ++i) {
+	for (brrsz i = 0; i < (BRR_ARRAY_LENGTH(cases)); ++i) {
 		struct testcase cse = cases[i];
 		cse.res_print = BRRLOGB_NORBNP(cse.result, cse.data, cse.bits_to_print, cse.reverse_bytes, cse.reverse_bits, cse.separator, cse.spacing);
 		cse.res_length = strlen(cse.result);
-		BRRTEST_ASSERT(cse.res_print == cse.res_length, MSG("case %zu bytes printed does not match measured length : %zu != %zu ('%s' , expected '%s')", i, cse.res_print, cse.res_length, cse.result, cse.correct));
-		BRRTEST_ASSERT(cse.res_length == cse.correct_length, MSG("case %zu res length does not match correct length : %zu != %zu ('%s' , expected '%s')", i, cse.res_length, cse.correct_length, cse.result, cse.correct));
+		BRRTEST_ASSERT(cse.res_print == cse.res_length, brrtools_test_message("case %zu bytes printed does not match measured length : %zu != %zu ('%s' , expected '%s')", i, cse.res_print, cse.res_length, cse.result, cse.correct));
+		BRRTEST_ASSERT(cse.res_length == cse.correct_length, brrtools_test_message("case %zu res length does not match correct length : %zu != %zu ('%s' , expected '%s')", i, cse.res_length, cse.correct_length, cse.result, cse.correct));
 		cse.cmp = strcmp(cse.correct, cse.result);
-		BRRTEST_ASSERT(cse.cmp == 0, MSG("case %zu string does not match expected : '%s' != '%s'", i, cse.result, cse.correct));
+		BRRTEST_ASSERT(cse.cmp == 0, brrtools_test_message("case %zu string does not match expected : '%s' != '%s'", i, cse.result, cse.correct));
 	}
 	return "";
 }
-BRRTEST_TEST(LOG_DEINIT) {
+BRRTEST_NEW_TEST(LOG_DEINIT) {
 	brrlog_deinit();
 	return "";
 }
-BRRTEST_TEST(LOG_SETLOGMAX) {
+BRRTEST_NEW_TEST(LOG_SETLOGMAX) {
 	static const brrsz cases[] = {
 		4096, 2048, 1024, 512, 0,
 	};
-	BRRTIL_ITERARR(brrsz, i, cases) {
-		BRRTEST_ASSERT(!brrlog_setlogmax(cases[i]), MSG("Failed to set max to %zu : %s", cases[i], strerror(errno)));
+	BRR_ITER_ARRAY(brrsz, i, cases) {
+		BRRTEST_ASSERT(!brrlog_setlogmax(cases[i]), brrtools_test_message("Failed to set max to %zu : %s", cases[i], strerror(errno)));
 	}
 	return "";
 }
-BRRTEST_SUITE(log, 0
+BRRTEST_NEW_SUITE(log, 0
 	,LOG_INIT
 	,LOG_MESSAGE
 	,LOG_PRIORITIES
@@ -163,24 +156,3 @@ BRRTEST_SUITE(log, 0
 	,LOG_DEINIT
 	,LOG_SETLOGMAX
 )
-
-void BRRCALL
-brrtools_brrlog_test(brrsz *total, brrsz *ran, brrsz *skipped, brrsz *succeeded, brrsz *failed)
-{
-	BRRTEST_RUN_SUITE(log);
-	if (total) {
-		*total += BRRTEST_SUITE_TOTAL(log);
-	}
-	if (ran) {
-		*ran += BRRTEST_SUITE_RUN(log);
-	}
-	if (skipped) {
-		*skipped += BRRTEST_SUITE_SKIP(log);
-	}
-	if (succeeded) {
-		*succeeded += BRRTEST_SUITE_SUCCEED(log);
-	}
-	if (failed) {
-		*failed += BRRTEST_SUITE_FAIL(log);
-	}
-}

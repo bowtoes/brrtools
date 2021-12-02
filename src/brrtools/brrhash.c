@@ -14,25 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "brrtools/noinstall/statics.h"
+#include "brrtools/brrhash.h"
 
-#include <stdlib.h>
-
-#include "brrtools/brrstg.h"
-
-int BRRCALL
-brrsizestr(struct brrstg *const str, brrsz ns)
+brru8 BRRCALL
+brrhash_fnv1a(const void *const data, brrsz data_size)
 {
-	if (ns != str->length) {
-		void *t = realloc(str->opaque, ns+1);
-		if (!t) {
-			free(str->opaque);
-			str->opaque = NULL;
-			return 0;
+	/* These values taken from the wikipedia page on FNV hash */
+	static const brru8 offset = 0xcbf29ce484222325;
+	static const brru8 prime = 0x100000001b3;
+	const char *const max = (char *)data + data_size;
+	union { brru8 v; brru1 a[8]; } hash = {.v = offset};
+	if (data && data_size) {
+		for (char *i = (char *)data; i < max; ++i) {
+			hash.a[4] ^= *i;
+			hash.v *= prime;
 		}
-		str->opaque = t;
-		str->length = ns;
-		((char *)str->opaque)[str->length] = 0;
 	}
-	return 1;
+	return hash.v;
 }

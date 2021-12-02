@@ -14,23 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef BRRTOOLS_BRRLIB_H
-#define BRRTOOLS_BRRLIB_H
+#ifndef BRRRAND_H
+#define BRRRAND_H
 
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
 _brrcppstart
 
-/* Appropriately allocates memory to the pointer pointed to by 'current', depending
- * on 'size' and 'zero'.
- * Returns 0 on success.
- * If allocation fails, 'current' is left unaffected and -1 is returned.
- * If 'size' is 0, the data pointed to by 'current' is freed if it is not NULL.
- * If 'zero' is true, the allocated memory will be initialized to 0.
+/* Generates the next random unsigned 64-bit integer and returns the result.
  * */
-BRRAPI int BRRCALL brrlib_alloc(void **current, brrsz size, brrbl zero);
+BRRAPI brru8 BRRCALL brrrand_rand(void);
+/* Generates 'iter' random numbers seeded with 'seed' and returns the
+ * last.
+ * */
+BRRAPI brru8 BRRCALL brrrand_srand(brru8 seed, brru8 iter);
+/* Generates 'iter' random numbers with seeded with the current time in
+ * microseconds and returns the last.
+ * */
+BRRAPI brru8 BRRCALL brrrand_trand(brru8 iter);
 
 _brrcppend
 
-#endif /* BRRTOOLS_BRRLIB_H */
+#endif /* BRRRAND_H */

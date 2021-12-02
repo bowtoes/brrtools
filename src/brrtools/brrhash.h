@@ -14,28 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifndef BRRHASH_H
+#define BRRHASH_H
 
-#include "brrtools/brrlib.h"
+#include <brrtools/brrapi.h>
+#include <brrtools/brrtypes.h>
 
-int BRRCALL
-brrlib_alloc(void **current, brrsz size, brrbl zero)
-{
-	if (!current)
-		return 0;
-	if (size) {
-		void *t;
-		t = *current?realloc(*current, size):malloc(size);
-		if (!t)
-			return -1;
-		if (zero)
-			memset(t, 0, size);
-		*current = t;
-	} else if (*current) {
-		free(*current);
-		*current = NULL;
-	}
-	return 0;
-}
+/* Computes a FNV-1a hash on 'data' of length 'data_size'.
+ * If 'data' is NULL or 'data_size' is 0, nothing is done and a default value
+ * is returned.
+ * */
+BRRAPI brru8 BRRCALL brrhash_fnv1a(const void *const data, brrsz data_size);
+
+#endif /* BRRHASH_H */

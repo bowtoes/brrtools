@@ -5,8 +5,8 @@
 extern "C" {
 #endif
 
-/* Debug stuff */
-#if !defined(BRRTOOLS_NO_DEBUG)
+/* Debugging defines */
+#if defined(BRRTOOLS_DEBUG) && !defined(BRRTOOLS_NO_DEBUG)
 /* https://github.com/nemequ/portable-snippets debug-trap.h */
 # if defined(__has_builtin) && !defined(__ibmxl__)
 #  if __has_builtin(__builtin_debugtrap)
@@ -44,10 +44,10 @@ extern "C" {
 
 # if defined(BRRDEBUG_TRACING) && !defined(BRRDEBUG_NOTRACING)
 #  if defined(BRRDEBUG_HASBREAK)
-#   define BRRDEBUG_TRACE(...) { BRRLOG_CRI(__VA_ARGS__); BRRDEBUG_BREAK(); }
+#   define BRRDEBUG_TRACE(...) do { BRRLOG_CRI(__VA_ARGS__); BRRDEBUG_BREAK(); } while (0)
 #  else
 #   include <stdlib.h>
-#   define BRRDEBUG_TRACE(...) { BRRLOG_CRI(__VA_ARGS__); abort(); }
+#   define BRRDEBUG_TRACE(...) do { BRRLOG_CRI(__VA_ARGS__); abort(); } while (0)
 #  endif
 # else
 #  define BRRDEBUG_TRACE(...)
@@ -55,6 +55,7 @@ extern "C" {
 
 # if defined(BRRDEBUG_ASSERTS) && !defined(BRRDEBUG_NOASSERTS)
 #  if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+//  C11 has static asserts, though windows calls them differently.
 #   if defined(__WIN32) || defined(__WIN32__)
 #    define BRRDEBUG_STATIC_ASSERT(n) static_assert(n, "")
 #    define BRRDEBUG_STATIC_ASSERTM(n, m) static_assert(n, m)
@@ -64,11 +65,11 @@ extern "C" {
 #   endif // __WIN32
 #  else
 /* https://stackoverflow.com/a/64272144/13528679 */
-#   define BRRDEBUG_STATIC_ASSERT(n) { typedef char test[(n)?1:-1]; (void)(test*) "Assertion failed"; }
-#   define BRRDEBUG_STATIC_ASSERTM(n, m) { typedef char test[(n)?1:-1]; (void)(test*) #m; }
+#   define BRRDEBUG_STATIC_ASSERT(n) do { typedef char test[(n)?1:-1]; (void)(test*) "Assertion failed"; } while (0)
+#   define BRRDEBUG_STATIC_ASSERTM(n, m) do { typedef char test[(n)?1:-1]; (void)(test*) m; } while (0)
 #  endif // __STDC_VERSION__ >= 201112L
-#  define BRRDEBUG_ASSERT(n) { if (!(n)) { BRRDEBUG_TRACE("Assertion '%s' failed", #n); } }
-#  define BRRDEBUG_ASSERTM(n, ...) { if (!(n)) { BRRDEBUG_TRACE(__VA_ARGS__); } }
+#  define BRRDEBUG_ASSERT(n) do { if (!(n)) { BRRDEBUG_TRACE("Assertion '%s' failed", #n); } } while (0)
+#  define BRRDEBUG_ASSERTM(n, ...) do { { if (!(n)) { BRRDEBUG_TRACE(__VA_ARGS__); } } } while (0)
 #  define BRRDEBUG_ASSERTI(n) BRRDEBUG_ASSERT(n)
 #  define BRRDEBUG_ASSERTIM(n, ...) BRRDEBUG_ASSERTM(n, __VA_ARGS__)
 # else

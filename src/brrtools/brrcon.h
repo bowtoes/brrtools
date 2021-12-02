@@ -14,28 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifndef BRRCON_H
+#define BRRCON_H
 
-#include "brrtools/brrlib.h"
+#include <brrtools/brrapi.h>
 
-int BRRCALL
-brrlib_alloc(void **current, brrsz size, brrbl zero)
-{
-	if (!current)
-		return 0;
-	if (size) {
-		void *t;
-		t = *current?realloc(*current, size):malloc(size);
-		if (!t)
-			return -1;
-		if (zero)
-			memset(t, 0, size);
-		*current = t;
-	} else if (*current) {
-		free(*current);
-		*current = NULL;
-	}
-	return 0;
-}
+_brrcppstart
+
+/* Pauses console until a character is pushed to stdin.
+ * Returns 1.
+ * */
+BRRAPI int BRRCALL brrcon_pause(void);
+/* Clears console and puts cursor at start position.
+ * Returns 1.
+ * */
+BRRAPI int BRRCALL brrcon_clear(void);
+
+_brrcppend
+
+#endif /* BRRCON_H */

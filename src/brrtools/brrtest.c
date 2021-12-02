@@ -23,74 +23,74 @@ limitations under the License.
 #include <string.h>
 
 #include "brrtools/brrlib.h"
+#include "brrtools/brrnum.h"
 
 static void BRRCALL
-addtest(const char *const test_name, const char *(*const test_fn)(void), brrtest_suiteT *const suite)
+addtest(const char *const test_name, const char *(*const test_fn)(void), brrtest_suite_t *const suite)
 {
 	brrsz tnlen;
-	if (brrlib_alloc((void **)&suite->tests, (suite->ntests + 1) * sizeof(*suite->tests), 0)) {
+	if (brrlib_alloc((void **)&suite->tests, (suite->n_tests + 1) * sizeof(*suite->tests), 0)) {
 		fprintf(stderr, "FAILED TO ALLOCATE TEST: %s", strerror(errno));
 		exit(1);
 	}
 	tnlen = strlen(test_name);
-	if (tnlen > suite->maxtnlen)
-		suite->maxtnlen = tnlen;
-	suite->tests[suite->ntests] = (brrtest_testT){.name = test_name, .test = test_fn};
-	suite->ntests++;
+	if (tnlen > suite->max_test_name_length)
+		suite->max_test_name_length = tnlen;
+	suite->tests[suite->n_tests] = (brrtest_test_t){.name = test_name, .test = test_fn};
+	suite->n_tests++;
 }
 static void BRRCALL
-runtest(brrtest_testT *const test)
+runtest(brrtest_test_t *const test)
 {
 	test->message = test->test();
 	if (!test->message) /* NULL msg means test is skipped. */
-		test->skip = 1;
+		test->skipped = brrtrue;
 	else if (test->message[0]) /* Non-empty means test failed, with error being in message. */
-		test->fail = 1;
+		test->failed = brrtrue;
 }
 
 void BRRCALL
-(BRRTEST_ADD_TESTS)(brrtest_suiteT *const suite, ...)
+brrtest_add_tests(brrtest_suite_t *const suite, ...)
 {
 	va_list lptr;
-	brrtest_testT *test;
+	brrtest_test_t *test;
 	va_start(lptr, suite);
-	while ((test = va_arg(lptr, brrtest_testT *))) {
+	while ((test = va_arg(lptr, brrtest_test_t *)))
 		addtest(test->name, test->test, suite);
-	}
 	va_end(lptr);
 
 }
 void BRRCALL
-(BRRTEST_RUN_SUITE)(brrtest_suiteT *const suite)
+brrtest_run_suite(brrtest_suite_t *const suite)
 {
-	int ndigits = brrlib_ndigits(suite->ntests, 0, 10);
-	printf("Running suite '%s' with %zu...\n", suite->name, suite->ntests);
-	for (brru8 i = 0; i < suite->ntests; ++i) {
-		brrtest_testT *const t = &suite->tests[i];
-		printf("SUITE %s Running test %*zu/%zu %-*s ... ", suite->name, ndigits, i + 1, suite->ntests, suite->maxtnlen, t->name);
+	int ndigits = brrnum_ndigits(suite->n_tests, 0, 10);
+	printf("Running suite '%s' with %zu...\n", suite->name, suite->n_tests);
+	for (brru8 i = 0; i < suite->n_tests; ++i) {
+		brrtest_test_t *const t = &suite->tests[i];
+		printf("SUITE %s Running test %*zu/%zu %-*s ... ", suite->name, ndigits, i + 1, suite->n_tests, suite->max_test_name_length, t->name);
 		fflush(stdout);
 		fflush(stderr);
 		runtest(t);
-		if (t->skip) {
+		if (t->skipped) {
 			printf("SKIPPED\n");
-			suite->nskip++;
+			suite->n_tests_skipped++;
 		} else {
-			suite->nrun++;
-			if (t->fail) {
+			suite->n_tests_run++;
+			if (t->failed) {
+				suite->n_tests_failed++;
 				printf("FAILED : %s\n", t->message);
-				suite->nfail++;
-				if (suite->skip_on_fail) {
-					suite->nskip += suite->ntests - (i + 1);
+				if (suite->skip_on_failure) {
+					suite->n_tests_skipped += suite->n_tests - (i + 1);
 					break;
 				}
 			} else {
+				suite->n_tests_passed++;
 				printf("SUCCEEDED\n");
-				suite->nsucc++;
 			}
 		}
 	}
-	printf("Ran a total of %zu/%zu tests. Skipped %zu.\n", suite->nrun, suite->ntests, suite->nskip);
-	if (suite->nrun)
-		printf("Succeeded: %zu/%zu.\n", suite->nsucc, suite->nrun);
+	printf("Ran a total of %zu/%zu tests. Skipped %zu.\n", suite->n_tests_run, suite->n_tests, suite->n_tests_skipped);
+	if (suite->n_tests_run)
+		printf("Succeeded: %zu/%zu.\n", suite->n_tests_passed, suite->n_tests_run);
 	brrlib_alloc((void **)&suite->tests, 0, 0);
 }

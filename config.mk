@@ -18,36 +18,37 @@ PROJECT_MINOR := 0
 PROJECT_REVIS := 0
 
 SRC :=\
-	brrtools/brrpack.c\
+	brrtools/brrcon.c\
+	brrtools/brrhash.c\
+	brrtools/brrheap.c\
 	brrtools/brrlib.c\
 	brrtools/brrlog.c\
-	brrtools/brrmem.c\
-	brrtools/brrmeta.c\
+	brrtools/brrnum.c\
 	brrtools/brrpath.c\
-	brrtools/brrstg.c\
+	brrtools/brrrand.c\
+	brrtools/brrstringr.c\
 	brrtools/brrtest.c\
-	brrtools/noinstall/statics.c\
+	brrtools/brrtime.c\
 
 HDR :=\
 	brrtools/brrapi.h\
-	brrtools/brrpack.h\
-	brrtools/brrmap.h\
-	brrtools/brrplatform.h\
-	brrtools/brrendian.h\
+	brrtools/brrcon.h\
 	brrtools/brrdebug.h\
-	brrtools/brrtil.h\
-	brrtools/brrtypes.h\
+	brrtools/brrendian.h\
+	brrtools/brrhash.h\
+	brrtools/brrheap.h\
 	brrtools/brrlib.h\
 	brrtools/brrlog.h\
-	brrtools/brrmem.h\
-	brrtools/brrmeta.h\
+	brrtools/brrmacro.h\
+	brrtools/brrmacro_map.h\
+	brrtools/brrnum.h\
 	brrtools/brrpath.h\
-	brrtools/brrstg.h\
+	brrtools/brrplatform.h\
+	brrtools/brrrand.h\
+	brrtools/brrstringr.h\
 	brrtools/brrtest.h\
-
-HDR_NOINSTALL :=\
-	brrtools/noinstall/statics.h\
-	brrtools/noinstall/utils.h\
+	brrtools/brrtime.h\
+	brrtools/brrtypes.h\
 
 # Set the default installation prefix to whatever, or just override 'prefix' in the make command to set it outright.
 DEFAULT_UNIX_PREFIX=/usr/local
@@ -94,8 +95,8 @@ DEFAULT_PEDANTIC=1
 PEDANTIC=$(DEFAULT_PEDANTIC)
 # Whether to enabled stripping of output binaries; set specifically to '0' to disable
 # Stripping is not enabled when DEBUG or MEMCHECK are set, regardless.
-DEFAULT_STRIP=1
-STRIP=$(DEFAULT_STRIP)
+DEFAULT_DOSTRIP=1
+DOSTRIP=$(DEFAULT_DOSTRIP)
 DEFAULT_DOLDCONFIG=1
 DOLDCONFIG=$(DEFAULT_DOLDCONFIG)
 
@@ -129,8 +130,8 @@ BUILD_TREE=$(BUILD_ROOT_NAME)/$(BUILD_SUBDIR_TARGET)/$(BUILD_SUBDIR_MODE)/$(BUIL
 BUILD_TREE_ROOT=$(CURDIR)
 OUTPUT_DIRECTORY=$(BUILD_TREE_ROOT)/$(BUILD_TREE)
 
-TARGET_NAME_BASE := $(PROJECT)
-TARGET_LIB := $(TARGET_NAME_BASE)
+TARGET_LIB := $(PROJECT)
+TARGET_NAME_BASE := lib$(TARGET_LIB)
 
 DEFAULT_TARGET_PART_UNIX_SHARED=.so
 DEFAULT_TARGET_PART_UNIX_STATIC=.a
@@ -142,9 +143,9 @@ DEFAULT_TARGET_PART=$(DEFAULT_TARGET_PART_$(TARGET)_$(TARGET_MODE))
 TARGET_NAME=$(TARGET_NAME_BASE)$(DEFAULT_TARGET_PART)
 OUTPUT_FILE=$(OUTPUT_DIRECTORY)/$(TARGET_NAME)
 
-TARGET_DEF=$(TARGET_LIB).def
+TARGET_DEF=$(TARGET_NAME_BASE).def
 OUTPUT_DEF=$(OUTPUT_DIRECTORY)/$(TARGET_DEF)
-TARGET_IMPORT=$(TARGET_LIB).dll.lib
+TARGET_IMPORT=$(TARGET_NAME_BASE).dll.lib
 OUTPUT_IMPORT=$(OUTPUT_DIRECTORY)/$(TARGET_IMPORT)
 
 # CC -- Compilation executables (CC, AR, etc...), overridable
@@ -164,29 +165,23 @@ DEFAULT_OS_WINDOWS=mingw32
 _sys_os=$(DEFAULT_OS_$(TARGET))
 _sys=$(_sys_arch)-$(_sys_vendor)-$(_sys_os)
 
-DEFAULT_CC:=gcc
-ifeq ($(HOST),UNIX)
- $(call _ternary_setting,CC_CUSTOM,$(TARGET),UNIX,$(DEFAULT_CC),$(_sys)-$(DEFAULT_CC))
-else
- $(call _verify_setting,CC_CUSTOM,,$(DEFAULT_CC),)
-endif
-CC=$(CC_CUSTOM)
 
-DEFAULT_AR:=gcc-ar
-ifeq ($(HOST),UNIX)
- $(call _ternary_setting,AR_CUSTOM,$(TARGET),UNIX,$(DEFAULT_AR),$(_sys)-$(DEFAULT_AR))
-else
- $(call _verify_setting,AR_CUSTOM,,$(DEFAULT_AR),)
-endif
-AR=$(AR_CUSTOM)
+# $1 = variable name
+# $2 = default exe name (for linux)
+# $3 = system tuple (_sys)
+_gen_compile_exe = $(eval \
+DEFAULT_$1=$2$(_util_newline)\
+ifeq ($(HOST),UNIX)$(_util_newline)\
+ $$(call _ternary_setting,$1_CUSTOM,$(TARGET),UNIX,$$(DEFAULT_$1),$3-$$(DEFAULT_$1))$(_util_newline)\
+else$(_util_newline)\
+ $$(call _verify_setting,$1_CUSTOM,,$$(DEFAULT_$1),)$(_util_newline)\
+endif$(_util_newline)\
+$1=$$($1_CUSTOM)$(_util_newline)\
+)
 
-$(call _ternary_setting,DEFAULT_DLLTOOL,$(TARGET),UNIX,,dlltool)
-ifeq ($(HOST),UNIX)
- $(call _ternary_setting,DLLTOOL_CUSTOM,$(TARGET),UNIX,$(DEFAULT_DLLTOOL),$(_sys)-$(DEFAULT_DLLTOOL))
-else
- $(call _verify_setting,DLLTOOL_CUSTOM,,$(DEFAULT_DLLTOOL),)
-endif
-DLLTOOL=$(DLLTOOL_CUSTOM)
+$(call _gen_compile_exe,CC,gcc,$(_sys))
+$(call _gen_compile_exe,AR,gcc-ar,$(_sys))
+$(call _gen_compile_exe,DLLTOOL,dlltool,$(_sys))
 
 DEFAULT_LDCONFIG_UNIX=ldconfig
 DEFAULT_LDCONFIG_WINDOWS=
@@ -211,11 +206,11 @@ _cc_defines:=\
 	-D$(UPROJECT)_MINOR=$(PROJECT_MINOR)\
 	-D$(UPROJECT)_REVIS=$(PROJECT_REVIS)\
 	-D$(UPROJECT)_VERSION='$(PROJECT_MAJOR).$(PROJECT_MINOR).$(PROJECT_REVIS)'\
-	-D$(UPROJECT)_HOST=$(HOST)\
+	-D$(UPROJECT)_HOST_$(HOST)\
 	-D$(UPROJECT)_HOST_BIT=$(HOST_BIT)\
-	-D$(UPROJECT)_TARGET=$(TARGET)\
+	-D$(UPROJECT)_TARGET_$(TARGET)\
 	-D$(UPROJECT)_TARGET_BIT=$(TARGET_BIT)\
-	-D$(UPROJECT)_TARGET_MODE=$(TARGET_MODE)\
+	-D$(UPROJECT)_TARGET_MODE_$(TARGET_MODE)\
 	-D$(UPROJECT)_DEBUG=$(if $(DEBUG),1,0)\
 	-D$(UPROJECT)_MEMCHECK=$(if $(MEMCHECK),1,0)\
 
@@ -264,7 +259,7 @@ endif
 
 ifndef DEBUG
  ifndef MEMCHECK
-  ifneq ($(STRIP),0)
+  ifneq ($(DOSTRIP),0)
    _cc_linkage += -Wl,--strip-all
   endif
  endif

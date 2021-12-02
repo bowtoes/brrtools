@@ -7,12 +7,12 @@ extern "C" {
 
 /* ---------- Bitdepth detection */
 #if !defined(BRRTOOLS_NO_BITDEPTH)
-# define BRRBITDEPTH_64BIT   64
-# define BRRBITDEPTH_32BIT   32
+# define BRRBITDEPTH_64      64
+# define BRRBITDEPTH_32      32
 # define BRRBITDEPTH_UNKNOWN 0
 
 # if !defined(BRRBITDEPTH_SYSTEM) || \
-     !(BRRBITDEPTH_SYSTEM == BRRBITDEPTH_32BIT || BRRBITDEPTH_SYSTEM == BRRBITDEPTH_64BIT)
+     (BRRBITDEPTH_SYSTEM != BRRBITDEPTH_32 && BRRBITDEPTH_SYSTEM != BRRBITDEPTH_64)
 #  if defined(BRRBITDEPTH_SYSTEM)
 #   undef BRRBITDEPTH_SYSTEM
 #  endif
@@ -21,20 +21,20 @@ extern "C" {
      defined(__ia64) || defined(__aarch64__) || \
      defined(__ppc64__) || defined(__powerpc64__) || defined(_ARCH_PPC64) || \
      (defined(__x86_64__) && !defined(__ILP32__))
-#   define BRRBITDEPTH_SYSTEM BRRBITDEPTH_64BIT
+#   define BRRBITDEPTH_SYSTEM BRRBITDEPTH_64
 #  else
-#   define BRRBITDEPTH_SYSTEM BRRBITDEPTH_32BIT
+#   define BRRBITDEPTH_SYSTEM BRRBITDEPTH_32
 #  endif
 # endif // !BRRBITDEPTH_SYSTEM
 
 /* Enum representing different system bitdepths. */
 typedef enum brrbitdepth {
-	/* Value for a 64-bit system. */
-	brrbitdepth_64bit = BRRBITDEPTH_64BIT,
 	/* Value for a 32-bit system. */
-	brrbitdepth_32bit = BRRBITDEPTH_32BIT,
+	brrbitdepth_32 = BRRBITDEPTH_32,
+	/* Value for a 64-bit system. */
+	brrbitdepth_64 = BRRBITDEPTH_64,
 	/* Value representing current system bitdepth.
-	 * May be 'BRRBITDEPTH_64BIT', 'BRRBITDEPTH_32BIT', or 'BRRBITDEPTH_UNKNOWN'. */
+	 * May be 'BRRBITDEPTH_64', 'BRRBITDEPTH_32', or 'BRRBITDEPTH_UNKNOWN'. */
 	brrbitdepth_system = BRRBITDEPTH_SYSTEM,
 } brrbitdepthT;
 #endif /* !BRRTOOLS_NO_BITDEPTH */
