@@ -15,7 +15,7 @@ MAKE_DEPS := Makefile config.mk util.mk aio_gen.mk
 
 PROJECT_MAJOR := 0
 PROJECT_MINOR := 0
-PROJECT_REVIS := 0
+PROJECT_REVIS := 1
 
 SRC :=\
 	brrtools/brrcon.c\
@@ -123,7 +123,7 @@ BUILD_SUBDIR_BIT   ?= $(BUILD_SUBDIR_$(TARGET_BIT)BIT)
 # the final directories on the commandline with these variables.
 BUILD_TREE        ?= $(BUILD_ROOT_NAME)/$(BUILD_SUBDIR_TARGET)/$(BUILD_SUBDIR_MODE)/$(BUILD_SUBDIR_BIT)
 BUILD_TREE_ROOT   ?= $(CURDIR)
-OUTPUT_DIRECTORY? ?= $(BUILD_TREE_ROOT)/$(BUILD_TREE)
+OUTPUT_DIRECTORY ?= $(BUILD_TREE_ROOT)/$(BUILD_TREE)
 
 TARGET_LIB := $(PROJECT)
 TARGET_NAME_BASE := lib$(TARGET_LIB)

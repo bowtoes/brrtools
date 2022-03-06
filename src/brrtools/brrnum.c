@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <stdarg.h>
+
 #include "brrtools/brrnum.h"
 
 brrsz BRRCALL
@@ -70,13 +72,35 @@ brrnum_sgcf(brrs8 a, brrs8 b)
 	return a;
 }
 
-// Windows(mingw) ld seems to greatly dislike doing inlines like this, no idea why.
+// Windows(mingw) ld seems to greatly dislike doing 'extern inline'-s, no idea why.
 // Will use static inlines for now instead.
 // Maybe it's something to do with __dllexport? No idea.
-//extern inline brru8 BRRCALL brrnum_umax(brru8 a, brru8 b);
-//extern inline brru8 BRRCALL brrnum_umin(brru8 a, brru8 b);
-//extern inline brru8 BRRCALL brrnum_uclamp(brru8 x, brru8 min, brru8 max);
-//extern inline brrs8 BRRCALL brrnum_smax(brrs8 a, brrs8 b);
-//extern inline brrs8 BRRCALL brrnum_smin(brrs8 a, brrs8 b);
-//extern inline brrs8 BRRCALL brrnum_sclamp(brrs8 x, brrs8 min, brrs8 max);
-//extern inline brrbl BRRCALL brrnum_bxor(brrbl a, brrbl b);
+brru8 BRRCALL brrnum_umax(brru8 a, brru8 b)
+{
+	return a > b ? a : b;
+}
+brru8 BRRCALL brrnum_umin(brru8 a, brru8 b)
+{
+	return a < b ? a : b;
+}
+brru8 BRRCALL brrnum_uclamp(brru8 x, brru8 min, brru8 max)
+{
+	return x < min ? min : x > max ? max : x;
+}
+brrs8 BRRCALL brrnum_smax(brrs8 a, brrs8 b)
+{
+	return a < b ? a : b;
+}
+brrs8 BRRCALL brrnum_smin(brrs8 a, brrs8 b)
+{
+	return a > b ? a : b;
+}
+brrs8 BRRCALL brrnum_sclamp(brrs8 x, brrs8 min, brrs8 max)
+{
+	return x < min ? min : x > max ? max : x;
+}
+
+brrbl BRRCALL brrnum_bxor(brrbl a, brrbl b)
+{
+	return a != b;
+}
