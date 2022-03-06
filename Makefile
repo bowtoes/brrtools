@@ -84,12 +84,13 @@ install-headers: $(_target_headers)
 install: all install-libs install-headers
 ifeq ($(HOST),UNIX)
  ifeq ($(TARGET),UNIX)
-  ifneq ($(DOLDCONFIG),0)
+  ifneq ($(DO_LDCONFIG),0)
 	$(LDCONFIG) $(realpath $(prefix)) || :
   endif
  endif
 endif
 .PHONY: install install-libs install-headers
+
 uninstall-lib:
 	@$(RM_FILE) $(prefix)/lib/$(TARGET_NAME) 2>$(NULL) || :
 ifeq ($(TARGET),WINDOWS)
@@ -104,10 +105,10 @@ uninstall-headers:
 uninstall: uninstall-lib uninstall-headers
 ifeq ($(HOST),UNIX)
  ifeq ($(TARGET),UNIX)
-  ifneq ($(DOLDCONFIG),0)
+  ifneq ($(DO_LDCONFIG),0)
 	$(LDCONFIG) $(realpath $(prefix)) || :
   endif
  endif
 endif
 .PHONY: uninstall uninstall-lib uninstall-headers
-nop: ; @echo Nice!
+nop: ; @echo Nop!

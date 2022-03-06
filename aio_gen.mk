@@ -1,3 +1,5 @@
+# TODO I don't like this file, but so far, it's the nicest way I've been able to
+# figure out how to automatically rebuild the source tree into the build output.
 
 # These functions are used to generate the rules used for
 # assembling/preprocessing/compiling a set of input files.
