@@ -73,8 +73,10 @@ typedef struct brrpath_stat_result {
  * Returns 0 on success.
  * If an error occurs or 'st' or 'path' are NULL, 'st' is unaffected and -1 is
  * returned.
+ * Will not err if 'path' is non-existent.
  * */
-BRRAPI int BRRCALL brrpath_stat(brrpath_stat_result_t *const st, const brrstringr_t *const path);
+BRRAPI int BRRCALL
+brrpath_stat(brrpath_stat_result_t *const st, const brrstringr_t *const path);
 
 /* Listing for the distinct components of a path.
  * - brrstringr_t directory : The part of the path preceding the base_name
@@ -93,8 +95,10 @@ typedef struct brrpath_components {
  * If an error occurs or 'path' or 'components' are NULL, 'components' is left
  * unaffected and -1 is returned.
  * */
-BRRAPI int BRRCALL brrpath_split(brrpath_components_t *const components, const brrstringr_t *const path);
-BRRAPI void BRRCALL brrpath_components_free(brrpath_components_t *const components);
+BRRAPI int BRRCALL
+brrpath_split(brrpath_components_t *const components, const brrstringr_t *const path);
+BRRAPI void BRRCALL
+brrpath_components_free(brrpath_components_t *const components);
 
 /* Combines pathname components in 'components' into 'path' formatted as:
  * 'directory' + '/' + 'base_name' + '.extension'
@@ -102,9 +106,11 @@ BRRAPI void BRRCALL brrpath_components_free(brrpath_components_t *const componen
  * Returns 0 on success.
  * If an error occurs or 'path' is NULL, 'path' is unaffected and -1 is returned.
  * */
-BRRAPI int BRRCALL brrpath_combine(const brrpath_components_t *const components, brrstringr_t *const path);
+BRRAPI int BRRCALL
+brrpath_combine(const brrpath_components_t *const components, brrstringr_t *const path);
 
-BRRAPI int BRRCALL brrpath_extract_directory(brrstringr_t *const string, const brrstringr_t *const path);
+BRRAPI int BRRCALL
+brrpath_extract_directory(brrstringr_t *const string, const brrstringr_t *const path);
 
 /* The primary struct holding various information about a path on disk.
  * Fields:
@@ -124,9 +130,11 @@ typedef struct brrpath_info {
 	brrbl exists;                    // Non-zero if the path exists on disk
 } brrpath_info_t;
 
-BRRAPI void BRRCALL brrpath_info_free(brrpath_info_t *const info);
+BRRAPI void BRRCALL
+brrpath_info_free(brrpath_info_t *const info);
 
-typedef int (*BRRCALL brrpath_walk_filter_t)(const brrpath_info_t *);
+typedef int (*BRRCALL
+brrpath_walk_filter_t)(const brrpath_info_t *);
 /* Options passed to 'brrpath_walk'.
  * Fields:
  * - brrsz min_depth;              : Minimum depth to include in results
@@ -158,12 +166,14 @@ typedef struct brrpath_walk_result {
  * A NULL filter can be used, in which case every encountered directory entry
  * is included in 'result'.
  * */
-BRRAPI int BRRCALL brrpath_walk(brrpath_walk_result_t *const result,
+BRRAPI int BRRCALL
+brrpath_walk(brrpath_walk_result_t *const result,
     const brrstringr_t *const path, brrpath_walk_options_t options);
 /* Deletes all infos in 'result' and deletes the array.
  * Sets 'n_results' to 0.
  * */
-BRRAPI void BRRCALL brrpath_walk_result_free(brrpath_walk_result_t *const result);
+BRRAPI void BRRCALL
+brrpath_walk_result_free(brrpath_walk_result_t *const result);
 
 _brrcppend
 

@@ -58,8 +58,7 @@ brrheap_resize(void **const array, brrsz n_elements, brrsz data_size,
 }
 
 int BRRCALL
-brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size,
-    const void *const new_data)
+brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data)
 {
 	if (!array || !n_elements || !new_data || !data_size)
 		return -1;
@@ -70,8 +69,7 @@ brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size,
 	return 0;
 }
 int BRRCALL
-brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size,
-    const void *const new_data)
+brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data)
 {
 	if (!array || !n_elements || !new_data || !data_size)
 		return -1;
@@ -84,8 +82,7 @@ brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size,
 }
 
 int BRRCALL
-brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size,
-    const void *const other, brrsz other_elements)
+brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements)
 {
 	if (!array || !n_elements || !other || !data_size)
 		return -1;
@@ -128,8 +125,7 @@ brrheap_split(const void *const array, brrsz n_elements, brrsz data_size,
 }
 
 int BRRCALL
-brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size,
-    brrsz element, const void *const new_data)
+brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element, const void *const new_data)
 {
 	if (!array || !n_elements || !new_data || !data_size || element >= *n_elements)
 		return -1;
@@ -143,8 +139,7 @@ brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size,
 	return 0;
 }
 int BRRCALL
-brrheap_remove(void **const array, brrsz *const n_elements, brrsz data_size,
-    brrsz element)
+brrheap_remove(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element)
 {
 	void *copy = NULL;
 	if (!array || !n_elements || !data_size || element >= *n_elements)
@@ -181,8 +176,7 @@ i_swap(void *const array, brrsz data_size, brrsz a, brrsz b)
 	}
 }
 int BRRCALL
-brrheap_swap(void *const array, brrsz n_elements, brrsz data_size,
-    brrsz a, brrsz b)
+brrheap_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrsz b)
 {
 	if (!array || !data_size || a >= n_elements || b >= n_elements)
 		return -1;
@@ -191,8 +185,7 @@ brrheap_swap(void *const array, brrsz n_elements, brrsz data_size,
 }
 
 int BRRCALL
-brrheap_read(const void *const array, brrsz n_elements, brrsz data_size,
-    brrsz element, void *const destination)
+brrheap_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz element, void *const destination)
 {
 	if (!array || !destination || !data_size || element >= n_elements)
 		return -1;
@@ -200,8 +193,7 @@ brrheap_read(const void *const array, brrsz n_elements, brrsz data_size,
 	return 0;
 }
 int BRRCALL
-brrheap_write(void *const array, brrsz n_elements, brrsz data_size,
-    brrsz element, const void *const source)
+brrheap_write(void *const array, brrsz n_elements, brrsz data_size, brrsz element, const void *const source)
 {
 	if (!array || !source || !data_size || element >= n_elements)
 		return -1;
@@ -209,8 +201,7 @@ brrheap_write(void *const array, brrsz n_elements, brrsz data_size,
 	return 0;
 }
 int BRRCALL
-brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size,
-    brrsz start_element, brrsz n, void *const destination)
+brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz start_element, brrsz n, void *const destination)
 {
 	if (!array || !destination || !data_size || start_element + n >= n_elements)
 		return -1;
@@ -218,8 +209,7 @@ brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size,
 	return 0;
 }
 int BRRCALL
-brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size,
-    brrsz n_remove)
+brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz n_remove)
 {
 	if (!array || !n_elements || !*array || !data_size)
 		return -1;
@@ -234,8 +224,7 @@ brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size,
 	return 0;
 }
 void BRRCALL
-brrheap_clear(void **const array, brrsz *const n_elements, brrsz data_size,
-    void (*clearer)(void *))
+brrheap_clear(void **const array, brrsz *const n_elements, brrsz data_size, void (*clearer)(void *))
 {
 	if (array) {
 		if (*array) {
@@ -270,8 +259,7 @@ i_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_comparer_t 
 	return 0;
 }
 int BRRCALL
-brrheap_sort(void *const array, brrsz n_elements, brrsz data_size,
-	brrheap_comparer_t compare, void *parameter)
+brrheap_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_comparer_t compare, void *parameter)
 {
 	if (!array || !data_size)
 		return -1;

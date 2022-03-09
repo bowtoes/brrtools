@@ -168,20 +168,20 @@ brrpath_split(brrpath_components_t *const components, const brrstringr_t *const 
 				e = brrstringr_copy(&c.base_name, &clean);
 			} else {
 				/* clean contains a dot, extension */
-				e = brrstringr_new(&c.base_name, clean.cstr, last_dot);
+				e = brrstringr_new(&c.base_name, clean.cstr, last_dot - 1);
 				if (!e)
-					e = brrstringr_new(&c.extension, clean.cstr + last_dot + 1, clean.length - last_dot - 1);
+					e = brrstringr_new(&c.extension, clean.cstr + last_dot, clean.length - last_dot);
 			}
 		} else {
 			/* clean contains a separator, directory */
-			if (last_dot < last_sep || last_dot == clean.length) {
+			if (last_dot < last_sep) {
 				/* clean does not contain a dot in the base name, no extension */
-				e = brrstringr_new(&c.base_name, clean.cstr + last_sep + 1, clean.length - last_sep);
+				e = brrstringr_new(&c.base_name, clean.cstr + last_sep, clean.length - last_sep);
 			} else {
 				/* clean contains a dot in the base name, extension */
-				e = brrstringr_new(&c.base_name, clean.cstr + last_sep + 1, last_dot - last_sep - 1);
+				e = brrstringr_new(&c.base_name, clean.cstr + last_sep, last_dot - last_sep - 1);
 				if (!e)
-					e = brrstringr_new(&c.extension, clean.cstr + last_dot + 1, clean.length - last_dot - 1);
+					e = brrstringr_new(&c.extension, clean.cstr + last_dot, clean.length - last_dot);
 			}
 			if (!e)
 				e = brrstringr_new(&c.directory, clean.cstr, last_sep);
@@ -240,8 +240,13 @@ brrpath_extract_directory(brrstringr_t *const string, const brrstringr_t *const 
 		return -1;
 	brrsz e = path->length;
 	for (;e > 0 && !i_issep(path->cstr[e - 1]); --e);
-	if (brrstringr_new(string, path->cstr, e))
-		return -1;
+	if (e > 0) {
+		if (brrstringr_new(string, path->cstr, e))
+			return -1;
+	} else {
+		if (brrstringr_new(string, "." BRRPATH_SEP_STR, 2))
+			return -1;
+	}
 	return 0;
 }
 
