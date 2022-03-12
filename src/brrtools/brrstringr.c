@@ -89,7 +89,7 @@ brrstringr_copy(brrstringr_t *const string, const brrstringr_t *const source)
 	char *t = NULL;
 	if (!string || !source)
 		return -1;
-	else if (string->shallow)
+	else if (string->shallow) /* String is shallow, so it's safe to forget the current pointer */
 		return brrstringr_new(string, source->cstr, source->length);
 	if (!(t = realloc(string->cstr, source->length + 1)))
 		return -1;
@@ -151,7 +151,10 @@ i_vprint(brrstringr_t *const string, brrsz offset, brrsz max_length,
 	s.length = offset + wrote;
 	if (s.length <= string->length) {
 		/* New string is entirely inside old string, no need for allocation */
-		s.cstr = string->cstr;
+		if (!string->cstr)
+			s.cstr = malloc(1 + s.length);
+		else
+			s.cstr = string->cstr;
 	} else {
 		/* New string lengthens old string, allocate */
 		if (!string->cstr)
@@ -160,12 +163,12 @@ i_vprint(brrstringr_t *const string, brrsz offset, brrsz max_length,
 			s.cstr = realloc(string->cstr, 1 + s.length);
 		if (!s.cstr)
 			return BRRSZ_MAX;
-		/* New string starts past old string, figll the gap with spaces */
-		if (offset > string->length)
-			memset(s.cstr + string->length, ' ', s.length - string->length);
 	}
 	if (!s.cstr)
 		return BRRSZ_MAX;
+	/* New string starts past old string, fill the gap with spaces */
+	if (offset > string->length)
+		memset(s.cstr + string->length, ' ', s.length - string->length);
 	/* Consume 'lptr' */
 	wrote = vsnprintf(s.cstr + offset, wrote + 1, format, lptr);
 	*string = s;
@@ -202,10 +205,10 @@ i_find_next_delimni(const brrstringr_t *const string,
 	brrsz current, const brrstringr_t *const delim,
 	i_str_ncmp_t comparer)
 {
+	brrsz ln = string->length - delim->length;
 	while (current < string->length && 0 != comparer(string->cstr + current, delim->cstr, delim->length)) {
-		if (current+1 > string->length)
+		if (++current >= string->length)
 			return string->length;
-		current++;
 	}
 	return current;
 }
@@ -218,34 +221,34 @@ i_find_next_delimm(const brrstringr_t *const string, brrsz current,
 	brrsz min = string->length;
 	for (brrsz i = 0; i < n_delims; ++i) {
 		const brrstringr_t *const d = &delims[i];
-		brrsz j = 0;
 		if (d->length && d->length < string->length - current) {
-			if ((j = i_find_next_delimni(string, current, d, comparer)) < string->length) {
-				if (j < min) {
-					min = j;
-					dlm = i;
-				}
+			brrsz j = 0;
+			if ((j = i_find_next_delimni(string, current, d, comparer)) < min) {
+				min = j;
+				dlm = i;
 			}
 		}
 	}
 	*delim = dlm;
-	return string->length;
+	return min;
 }
 static int BRRCALL
 i_add_next_str(brrstringr_t **array, brrsz *n,
     brrbl skip_consecutive,
     const brrstringr_t *const string, brrsz max_split,
-    const brrstringr_t *const prev_delim, const brrstringr_t *const cur_delim,
-    brrsz previous, brrsz current)
+    const brrstringr_t *const delimeter,
+    brrsz start, brrsz end)
 {
 	brrstringr_t str = {0};
-	brrsz len = current - previous - cur_delim->length;
+	brrsz len = end - start;
+	if (delimeter)
+		len -= delimeter->length - 1;
 	len = max_split>len?len:max_split;
-	if (skip_consecutive && len <= cur_delim->length)
+	if (skip_consecutive && delimeter && len < delimeter->length)
 		return 0;
-	else if (brrstringr_new(&str, string->cstr + previous, len))
+	if (brrstringr_new(&str, string->cstr + start, len))
 		return -1;
-	else if (brrheap_append((void **)array, n, sizeof(str), &str))
+	if (brrheap_append((void **)array, n, sizeof(str), &str))
 		return -1;
 	return 0;
 }
@@ -257,19 +260,17 @@ i_split_str(brrstringr_t **strings, brrsz *const n_strings,
 {
 	i_str_ncmp_t comparer = case_sensitive?strncmp:strncasecmp;
 	brrstringr_t *array = NULL;
-	brrsz current = 0, previous = 0;
-	brrsz n = 0, j = 0, pj = 0;
-	while ((current = i_find_next_delimm(string, current, delims, n_delims, &j, comparer)) < string->length) {
-		if (i_add_next_str(&array, &n, skip_consecutive, string, max_split,
-			    &delims[pj], &delims[j], previous, current)) {
+	brrsz end = 0, start = 0;
+	brrsz n = 0, j = 0;
+	while ((end = i_find_next_delimm(string, end, delims, n_delims, &j, comparer)) < string->length) {
+		if (i_add_next_str(&array, &n, skip_consecutive, string, max_split, &delims[j], start, end)) {
 			brrheap_clear((void **)&array, &n, sizeof(*array), (void (*)(void*))brrstringr_free);
 			return -1;
 		}
-		pj = j;
-		previous = current;
+		end += delims[j].length;
+		start = end;
 	}
-	if (i_add_next_str(&array, &n, skip_consecutive, string, max_split,
-		    &delims[pj], &delims[j], previous, current)) {
+	if (i_add_next_str(&array, &n, skip_consecutive, string, max_split, NULL, start, end)) {
 		brrheap_clear((void **)&array, &n, sizeof(*array), (void (*)(void*))brrstringr_free);
 		return -1;
 	}
@@ -284,34 +285,34 @@ brrstringr_split(brrstringr_t **const strings, brrsz *n_strings,
 {
 	if (!strings || !n_strings)
 		return -1;
-	if (string) {
-		if (!max_split || max_split > string->length)
-			max_split = string->length;
-		if (i_split_str(strings, n_strings,
-			    skip_consecutive, case_sensitive,
-			    string, max_split,
-			    delimiter, 1))
-			return -1;
-	}
+	if (!string)
+		return 0;
+	if (!max_split || max_split > string->length)
+		max_split = string->length;
+	if (i_split_str(strings, n_strings,
+		    skip_consecutive, case_sensitive,
+		    string, max_split,
+		    delimiter, 1))
+		return -1;
 	return 0;
 }
 int BRRCALL
 brrstringr_split_multiple(brrstringr_t **const strings, brrsz *n_strings,
     const brrstringr_t *const delimiters, brrsz n_delimiters,
-    brrbl skip_consecutive, brrbl case_insensitive,
+    brrbl skip_consecutive, brrbl case_sensitive,
     const brrstringr_t *const string, brrsz max_split)
 {
-	if (!strings || !n_strings) {
+	if (!strings || !n_strings)
 		return -1;
-	} else if (string) {
-		if (!max_split || max_split > string->length)
-			max_split = string->length;
-		if (i_split_str(strings, n_strings,
-			    skip_consecutive, case_insensitive,
-				string, max_split,
-				delimiters, n_delimiters))
-			return -1;
-	}
+	if (!string)
+		return 0;
+	if (!max_split || max_split > string->length)
+		max_split = string->length;
+	if (i_split_str(strings, n_strings,
+		    skip_consecutive, case_sensitive,
+			string, max_split,
+			delimiters, n_delimiters))
+		return -1;
 	return 0;
 }
 int BRRCALL

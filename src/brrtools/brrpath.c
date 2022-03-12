@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 #include "brrtools/brrpath.h"
+#include "brrtools/brrlog.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -138,90 +139,30 @@ i_pathsep_filter(int current, int next)
 	}
 	return 1;
 }
-
 int BRRCALL
-brrpath_split(brrpath_components_t *const components, const brrstringr_t *const path)
+brrpath_clean(brrstringr_t *const out, const brrstringr_t *const path)
 {
+	if (!out || !path)
+		return -1;
 	int e = 0;
-	brrbl did_have_sep = 0;
-	brrstringr_t clean = {0};
-	brrpath_components_t c = {0};
-	if (!path || !components)
+	brrstringr_t c = {0};
+	if ((e = brrstringr_copy(&c, path))) {
 		return -1;
-	if (!(e = brrstringr_new(&clean, path->cstr, brrstringr_length(path->cstr, BRRPATH_MAX_PATH)))) {
-		if (brrstringr_filter_chars(&clean, i_pathsep_filter)) {
-			brrstringr_free(&clean);
-			return -1;
-		}
-		did_have_sep = i_issep(path->cstr[path->length]);
 	}
-	/* TODO this is very ugly in terms of layout */
-	if (clean.length) {
-		brrsz last_sep = clean.length;
-		brrsz last_dot = clean.length;
-		for (;last_sep > 0 && !i_issep(clean.cstr[last_sep - 1]); --last_sep);
-		for (;last_dot > 0 && clean.cstr[last_dot - 1] != '.'; --last_dot);
-		if (!last_sep) {
-			/* clean contains no separators, no directory */
-			if (!last_dot) {
-				/* clean contains no dot, no extension */
-				e = brrstringr_copy(&c.base_name, &clean);
-			} else {
-				/* clean contains a dot, extension */
-				e = brrstringr_new(&c.base_name, clean.cstr, last_dot - 1);
-				if (!e)
-					e = brrstringr_new(&c.extension, clean.cstr + last_dot, clean.length - last_dot);
-			}
-		} else {
-			/* clean contains a separator, directory */
-			if (last_dot < last_sep) {
-				/* clean does not contain a dot in the base name, no extension */
-				e = brrstringr_new(&c.base_name, clean.cstr + last_sep, clean.length - last_sep);
-			} else {
-				/* clean contains a dot in the base name, extension */
-				e = brrstringr_new(&c.base_name, clean.cstr + last_sep, last_dot - last_sep - 1);
-				if (!e)
-					e = brrstringr_new(&c.extension, clean.cstr + last_dot, clean.length - last_dot);
-			}
-			if (!e)
-				e = brrstringr_new(&c.directory, clean.cstr, last_sep);
-		}
+	if (brrstringr_filter_chars(&c, i_pathsep_filter)) {
+		brrstringr_free(&c);
+		return -1;
 	}
+	if (c.length > BRRPATH_MAX_PATH)
+		c.length = BRRPATH_MAX_PATH;
+	if (brrstringr_copy(out, &c)) {
+		brrstringr_free(&c);
+		return -1;
+	}
+	brrstringr_free(&c);
+	return 0;
+}
 
-	brrstringr_free(&clean);
-	if (e) {
-		brrpath_components_free(&c);
-		return -1;
-	}
-	*components = c;
-	return 0;
-}
-int BRRCALL
-brrpath_combine(const brrpath_components_t *const components, brrstringr_t *const path)
-{
-	brrstringr_t s = {0};
-	int err = 0;
-	if (!path || !components)
-		return -1;
-	if (!err && components->directory.cstr) {
-		if (brrstringr_print(&s, s.length, BRRPATH_MAX_PATH - s.length, "%s%c", components->directory.cstr, BRRPATH_SEP_CHR))
-			err = -1;
-	}
-	if (!err && components->base_name.cstr) {
-		if (brrstringr_print(&s, s.length, BRRPATH_MAX_PATH - s.length, "%s", components->base_name.cstr))
-			err = -1;
-	}
-	if (!err && components->extension.cstr) {
-		if (brrstringr_print(&s, s.length, BRRPATH_MAX_PATH - s.length, ".%s", components->extension.cstr))
-			err = -1;
-	}
-	if (err) {
-		brrstringr_free(&s);
-		return -1;
-	}
-	*path = s;
-	return 0;
-}
 void BRRCALL
 brrpath_components_free(brrpath_components_t *const components)
 {
@@ -232,21 +173,166 @@ brrpath_components_free(brrpath_components_t *const components)
 		memset(components, 0, sizeof(*components));
 	}
 }
+int BRRCALL
+brrpath_split_parts(brrstringr_t *const directory, brrstringr_t *const base_name, brrstringr_t *const extension, const brrstringr_t *const path)
+{
+	if (!path)
+		return -1;
+	int e = 0;
+	brrstringr_t D = {0}, B = {0}, E = {0};
+	brrsz last_separator = path->length;
+	brrsz last_dot = path->length;
+	for(;last_separator > 0 && !i_issep(path->cstr[last_separator - 1]);--last_separator);
+	for(;last_dot > last_separator && !(path->cstr[last_dot - 1] == '.');--last_dot);
+
+	if (!e && last_separator > 0 && directory) {
+		const char *const s = path->cstr;
+		brrsz ln = last_separator - 1;
+		e = brrstringr_new(&D, s, ln);
+	}
+	if (!e && last_dot > last_separator && extension) {
+		const char *const s = path->cstr + last_dot;
+		brrsz ln = path->length - last_dot;
+		e = brrstringr_new(&E, s, ln);
+	}
+	if (!e && base_name) {
+		const char *const s = path->cstr + last_separator;
+		brrsz ln = path->length - last_separator;
+		if (last_dot != last_separator && extension)
+			ln = last_dot - last_separator - 1;
+		e = brrstringr_new(&B, s, ln);
+	}
+
+	if (e) {
+		brrstringr_free(&D);
+		brrstringr_free(&B);
+		brrstringr_free(&E);
+	} else {
+		if (directory)
+			*directory = D;
+		if (base_name)
+			*base_name = B;
+		if (extension)
+			*extension = E;
+	}
+	return e;
+}
+int BRRCALL
+brrpath_split(brrpath_components_t *const out, const brrstringr_t *const path)
+{
+	if (!path || !out)
+		return -1;
+	return brrpath_split_parts(&out->directory, &out->base_name, &out->extension, path);
+}
+int BRRCALL
+brrpath_join_parts(brrstringr_t *const out,
+	const brrstringr_t *const directory, const brrstringr_t *const base_name, const brrstringr_t *const extension)
+{
+	if (!out)
+		return -1;
+	int e = 0;
+	brrstringr_t s = {0};
+	if (!e && directory) {
+		if (BRRSZ_MAX == brrstringr_print(&s, s.length, BRRPATH_MAX_PATH - s.length, "%s%c", directory->cstr, BRRPATH_SEP_CHR)) {
+			e = -1;
+		}
+	}
+	if (!e && base_name) {
+		if (BRRSZ_MAX == brrstringr_print(&s, s.length, BRRPATH_MAX_PATH - s.length, "%s", base_name->cstr)) {
+			e = -1;
+		}
+	}
+	if (!e && extension) {
+		if (BRRSZ_MAX == brrstringr_print(&s, s.length, BRRPATH_MAX_PATH - s.length, ".%s", extension->cstr)) {
+			e = -1;
+		}
+	}
+	if (e) {
+		brrstringr_free(&s);
+		return -1;
+	}
+	*out = s;
+	return e;
+}
+int BRRCALL
+brrpath_join(brrstringr_t *const out, const brrpath_components_t *const components)
+{
+	if (!out || !components)
+		return -1;
+
+	brrstringr_t s = {0};
+	int err = 0;
+	return brrpath_join_parts(out,
+		components->directory.cstr?&components->directory:NULL,
+		components->base_name.cstr?&components->base_name:NULL,
+		components->extension.cstr?&components->extension:NULL);
+}
 
 int BRRCALL
-brrpath_extract_directory(brrstringr_t *const string, const brrstringr_t *const path)
+brrpath_directory(brrstringr_t *const out, const brrstringr_t *const path)
 {
-	if (!string || !path)
+	/* TODO TEST */
+	if (!path || !out)
 		return -1;
-	brrsz e = path->length;
-	for (;e > 0 && !i_issep(path->cstr[e - 1]); --e);
-	if (e > 0) {
-		if (brrstringr_new(string, path->cstr, e))
-			return -1;
+
+	brrstringr_t s = {0};
+	brrsz last_sep = path->length;
+	for (;last_sep > 0 && !i_issep(path->cstr[last_sep - 1]);--last_sep);
+
+	const char *const S = path->cstr;
+	brrsz ln = last_sep;
+	if (brrstringr_new(&s, S, ln))
+		return -1;
+
+	*out = s;
+	return 0;
+}
+int BRRCALL
+brrpath_base_name(brrstringr_t *const out, const brrstringr_t *const path)
+{
+	/* TODO TEST */
+	if (!path || !out)
+		return -1;
+
+	brrstringr_t s = {0};
+	brrsz last_sep = path->length;
+	brrsz last_dot = path->length;
+	for (;last_sep > 0 && !i_issep(path->cstr[last_sep - 1]);--last_sep);
+	for (;last_dot > last_sep && !(path->cstr[last_dot - 1] == '.');--last_dot);
+
+	const char *const S = path->cstr + last_sep;
+	brrsz ln = path->length - last_sep;
+	if (last_dot > last_sep)
+		ln = last_dot - last_sep - 1;
+	if (brrstringr_new(&s, S, ln))
+		return -1;
+	*out = s;
+	return 0;
+}
+int BRRCALL
+brrpath_extension(brrstringr_t *const out, const brrstringr_t *const path)
+{
+	/* TODO TEST */
+	if (!out || !path)
+		return -1;
+
+	brrstringr_t s = {0};
+	brrsz last_sep = path->length;
+	brrsz last_dot = path->length;
+	for (;last_sep > 0 && !i_issep(path->cstr[last_sep - 1]);--last_sep);
+	for (;last_dot > last_sep && !(path->cstr[last_dot - 1] == '.');--last_dot);
+	const char *S;
+	brrsz ln;
+	if (last_dot == last_sep) {
+		S = path->cstr + path->length;
+		ln = 0;
 	} else {
-		if (brrstringr_new(string, "." BRRPATH_SEP_STR, 2))
-			return -1;
+		S = path->cstr + last_dot - 1;
+		ln = path->length - last_dot + 1;
 	}
+	if (brrstringr_new(&s, S, ln))
+		return -1;
+	*out = s;
 	return 0;
 }
 
@@ -254,6 +340,7 @@ static brrpath_walk_result_t *walk_result;
 static const brrpath_walk_options_t *walk_options;
 #if defined(BRRPLATFORMTYPE_Windows)
 /* TODO minimize 'i_walk' and 'i_walk_filt' to be a single function? */
+/* TODO WINDOWS IS UNTESTED DEAR GOD */
 static int BRRCALL
 i_walk_filt(const char *const fpath, brrsz current_depth)
 {
@@ -279,7 +366,7 @@ i_walk_filt(const char *const fpath, brrsz current_depth)
 				st.type = i_determine_type(find_data.dwFileAttributes);
 				st.size = _brrpath_ulrg(find_data.nFileSizeLow, find_data.nFileSizeHigh);
 				/* Init 'res' */
-				if ((err = brrpath_combine(&res.components, &res.full_path))) {
+				if ((err = brrpath_join(&res.full_path, &res.components))) {
 					break;
 				} else if ((err = brrpath_split(&res.components, &res.full_path))) {
 					brrpath_info_free(&res);
@@ -317,7 +404,7 @@ i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 	brrpath_info_t res = {.components = {
 		.directory = brrstringr_cast(fpath),
 	}};
-	if (brrpath_combine(&res.components, &res.full_path)) {
+	if (brrpath_join(&res.full_path, &res.components)) {
 		return -1;
 	} else if (brrpath_split(&res.components, &res.full_path)) {
 		brrpath_info_free(&res);
@@ -327,7 +414,7 @@ i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 	res.type = st->type;
 	res.size = st->size;
 	res.depth = 0;
-	if (res.depth >= walk_options->min_depth && res.depth < walk_options->max_depth &&
+	if (res.depth >= walk_options->min_depth && res.depth <= walk_options->max_depth &&
 	   (!walk_options->filter || !walk_options->filter(&res))) {
 		if (brrheap_append((void**)&walk_result->results,
 		        &walk_result->n_results, sizeof(res), &res)) {
@@ -340,30 +427,36 @@ i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 	return i_walk_filt(fpath, 1);
 
 }
-#else
+#elif defined(BRRPLATFORMTYPE_unix)
 static int BRRCALL
 i_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
 {
-	if ((unsigned)ftw->level < walk_options->min_depth || (unsigned)ftw->level > walk_options->max_depth) {
+	if ((unsigned)ftw->level < walk_options->min_depth) {
+		return 0;
+	} else if ((unsigned)ftw->level > walk_options->max_depth) {
 		return 0;
 	} else if (type == FTW_NS) {
 		return -1;
 		//return 0; /* TODO should this count as an error? */
 	} else {
-		brrstringr_t ffpath = brrstringr_cast(fpath);
 		brrpath_info_t res = {0};
+		switch (type) {
+			case FTW_F: res.type = brrpath_type_file; break;
+			case FTW_D: res.type = brrpath_type_directory; break;
+			default: res.type = brrpath_type_other; break;
+		}
 		res.exists = 1;
 		res.size = sb->st_size;
-		res.type = type == FTW_F?brrpath_type_file:
-			type == FTW_D?brrpath_type_directory:
-			brrpath_type_other;
 		res.depth = ftw->level;
+		brrstringr_t ffpath = brrstringr_cast(fpath);
 		if (brrpath_split(&res.components, &ffpath)) {
 			return -1;
-		} else if (brrpath_combine(&res.components, &res.full_path)) {
+		}
+		if (brrpath_join(&res.full_path, &res.components)) {
 			brrpath_info_free(&res);
 			return -1;
-		} else if (!walk_options->filter || walk_options->filter(&res)) {
+		}
+		if (!walk_options->filter || !walk_options->filter(&res)) {
 			if (brrheap_append((void**)&walk_result->results,
 			        &walk_result->n_results, sizeof(res), &res)) {
 				brrpath_info_free(&res);
@@ -376,37 +469,55 @@ i_walk_filt(const char *const fpath, const struct stat *const sb, int type, stru
 	return 0;
 }
 #endif
-int BRRCALL brrpath_walk(brrpath_walk_result_t *const result,
+int BRRCALL
+brrpath_walk(brrpath_walk_result_t *const result,
     const brrstringr_t *const path, brrpath_walk_options_t options)
 {
-	brrpath_stat_result_t st = {0};
-	brrpath_walk_result_t rs = {0};
 	int error = 0;
 	if (!result || !path)
 		return -1;
+
+	brrpath_stat_result_t st = {0};
 	if (brrpath_stat(&st, path))
 		return -1;
 	if (st.exists) {
-		brrstringr_t start_dir = {0};
-		if (brrpath_extract_directory(&start_dir, path))
-			return -1;
+		brrpath_walk_result_t rs = {0};
+		brrstringr_t dir = {0};
+
+		if (st.type == brrpath_type_directory) {
+			dir = *path;
+		} else {
+			/* Path is not a directory */
+			if (brrpath_directory(&dir, path)) {
+				return -1;
+			}
+			if (dir.length == 0) {
+				/* Path is a file local to the current directory */
+				if (brrstringr_copy(&dir, &(brrstringr_t)brrstringr_literal("."))) {
+					brrstringr_free(&dir);
+					return -1;
+				}
+			}
+		}
 		walk_result = &rs;
 		walk_options = &options;
 		#if defined(BRRPLATFORMTYPE_Windows)
-		error = i_walk(start_dir.cstr, &st);
+		error = i_walk(dir.cstr, &st);
 		#else
-		error = nftw(start_dir.cstr, i_walk_filt, 15, FTW_MOUNT);
+		error = nftw(dir.cstr, i_walk_filt, 15, FTW_MOUNT);
 		#endif
-		brrstringr_free(&start_dir);
 		walk_result = NULL;
 		walk_options = NULL;
 		if (error) {
 			brrpath_walk_result_free(&rs);
-			return -1;
+			error = -1;
 		}
+		if (st.type != brrpath_type_directory)
+			brrstringr_free(&dir);
+		if (!error)
+			*result = rs;
 	}
-	*result = rs;
-	return 0;
+	return error;
 }
 void BRRCALL
 brrpath_walk_result_free(brrpath_walk_result_t *const result)

@@ -1,6 +1,7 @@
 # BRRTOOLS
-A custom C99 library with the goal to have a single place for multiple
-cross-platform, miscellaneous utilities that are generally useful.
+A custom ~C99~ C11 library with the goal to have a single place for multiple
+cross-platform, miscellaneous utilities that are generally useful (to me
+anyways).
 
 Has absolutely no relation to [BRRtools][otherbrr]
 ## Contents
@@ -136,6 +137,9 @@ than when linking against any other library.
 
 However, for `Dynamic` linkage, `BRRTOOLS_IMPORTS` must be `#define`d before
 compilation.
+
+## TODO
+This is NOT memory efficient (at least nothing to do with strings/path walking)
 
 [otherbrr]:https://github.com/Optiroc/BRRtools
 [gawk]:https://www.gnu.org/software/gawk/manual/html_node/index.html
