@@ -22,6 +22,12 @@ limitations under the License.
 #include <stdlib.h>
 #include <string.h>
 
+/* TODO at some point, for all failing argument checks in functions should set
+ * errno to EINVAL */
+/* TODO also at some point, there should be such a thing as internal error
+ * codes for more precise error reporting, based on the function that produces
+ * the error */
+
 #if defined(BRRPLATFORMTYPE_Windows)
 #elif defined(BRRPLATFORMTYPE_unix)
 /* FIXME need to figure out which nixes do/don't have <ftw.h> */
@@ -101,11 +107,31 @@ brrpath_info_free(brrpath_info_t *const info)
 {
 	if (info) {
 		brrstringr_free(&info->full_path);
-		brrstringr_free(&info->components.directory);
-		brrstringr_free(&info->components.base_name);
-		brrstringr_free(&info->components.extension);
+		brrpath_components_free(&info->components);
 		memset(info, 0, sizeof(*info));
 	}
+}
+int BRRCALL
+brrpath_info_get(brrpath_info_t *const info, const brrstringr_t *const path)
+{
+	if (!info || !path)
+		return -1;
+
+	brrpath_info_t I = {0};
+	if (brrpath_stat(&I.st, path)) {
+		return -1;
+	}
+	if (brrpath_split(&I.components, path)) {
+		return -1;
+	}
+	if (brrpath_join(&I.full_path, &I.components)) {
+		brrpath_info_free(&I);
+		return -1;
+	}
+	if (I.exists)
+		I.depth = 1;
+	*info = I;
+	return 0;
 }
 
 static brrbl BRRCALL

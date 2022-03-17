@@ -162,12 +162,18 @@ BRRAPI int BRRCALL brrpath_extension(brrstringr_t *const out, const brrstringr_t
 typedef struct brrpath_info {
 	brrstringr_t full_path;          // The pathname used the initialize the 'brrpath_info_t'
 	brrpath_components_t components; // The components of 'full_path'
-	brru8 size;                      // Size of path in bytes; 0 if path is a directory
 	brrsz depth;                     // Depth that the path was found if it was constructed from 'brrpath_walk'
-	brrpath_type_t type;             // Type of path; 0 if path doesn't exist
-	brrbl exists;                    // Non-zero if the path exists on disk
+	union {
+		brrpath_stat_result_t st;
+		struct {
+			brru8 size;              // Size of path in bytes; 0 if path is a directory
+			brrpath_type_t type;     // Type of path; 0 if path doesn't exist
+			brrbl exists;            // Non-zero if the path exists on disk
+		};
+	};
 } brrpath_info_t;
 BRRAPI void BRRCALL brrpath_info_free(brrpath_info_t *const info);
+BRRAPI int BRRCALL brrpath_info_get(brrpath_info_t *const info, const brrstringr_t *const path);
 
 typedef int (*BRRCALL brrpath_walk_filter_t)(const brrpath_info_t *);
 /* Options passed to 'brrpath_walk'.
