@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 /* Debugging defines */
-#if defined(BRRTOOLS_DEBUG) && !defined(BRRTOOLS_NO_DEBUG)
+#if BRRTOOLS_DEBUG
 /* https://github.com/nemequ/portable-snippets debug-trap.h */
 # if defined(__has_builtin) && !defined(__ibmxl__)
 #  if __has_builtin(__builtin_debugtrap)

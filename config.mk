@@ -16,6 +16,8 @@ MAKE_DEPS := Makefile config.mk util.mk aio_gen.mk
 PROJECT_MAJOR := 0
 PROJECT_MINOR := 0
 PROJECT_REVIS := 1
+PROJECT_VERSION := $(PROJECT_MAJOR).$(PROJECT_MINOR).$(PROJECT_REVIS)
+PROJECT_DATE := $(shell git show -s --date=format:'%Y/%m/%d %l:%M%p' --format=%ad) # The date of the most recent commit
 
 SRC :=\
 	brrtools/brrcon.c\
@@ -123,15 +125,15 @@ BUILD_SUBDIR_BIT   ?= $(BUILD_SUBDIR_$(TARGET_BIT)BIT)
 # the final directories on the commandline with these variables.
 BUILD_TREE        ?= $(BUILD_ROOT_NAME)/$(BUILD_SUBDIR_TARGET)/$(BUILD_SUBDIR_MODE)/$(BUILD_SUBDIR_BIT)
 BUILD_TREE_ROOT   ?= $(CURDIR)
-OUTPUT_DIRECTORY ?= $(BUILD_TREE_ROOT)/$(BUILD_TREE)
+OUTPUT_DIRECTORY  ?= $(BUILD_TREE_ROOT)/$(BUILD_TREE)
 
-TARGET_LIB := $(PROJECT)
-TARGET_NAME_BASE := lib$(TARGET_LIB)
+TARGET_LIB ?= $(PROJECT)
+TARGET_NAME_BASE ?= lib$(TARGET_LIB)
 
-TARGET_PART_UNIX_SHARED = .so
-TARGET_PART_UNIX_STATIC = .a
-TARGET_PART_WINDOWS_SHARED = .dll
-TARGET_PART_WINDOWS_STATIC = .lib
+TARGET_PART_UNIX_SHARED ?= .so
+TARGET_PART_UNIX_STATIC ?= .a
+TARGET_PART_WINDOWS_SHARED ?= .dll
+TARGET_PART_WINDOWS_STATIC ?= .lib
 
 TARGET_PART ?= $(TARGET_PART_$(TARGET)_$(TARGET_MODE))
 
@@ -149,33 +151,38 @@ OUTPUT_IMPORT ?= $(OUTPUT_DIRECTORY)/$(TARGET_IMPORT)
 
 # Currently, these defaults are set for compilation on a unix HOST, not sure what
 # to use for windows HOST.
-ARCH_64BIT ?= x86_64
-ARCH_32BIT ?= i686
-_sys_arch=$(ARCH_$(TARGET_BIT)BIT)
+ARCH_64 ?= x86_64
+ARCH_32 ?= i686
+_host_arch=$(ARCH_$(HOST_BIT))
+_target_arch=$(ARCH_$(TARGET_BIT))
 VENDOR_UNIX    ?= pc
 VENDOR_WINDOWS ?= w64
-_sys_vendor=$(VENDOR_$(TARGET))
+_host_vendor=$(VENDOR_$(HOST))
+_target_vendor=$(VENDOR_$(TARGET))
 OS_UNIX    ?= linux-gnu
 OS_WINDOWS ?= mingw32
-_sys_os=$(OS_$(TARGET))
-_sys=$(_sys_arch)-$(_sys_vendor)-$(_sys_os)
+_host_os=$(OS_$(HOST))
+_target_os=$(OS_$(TARGET))
+
+_host=$(_host_arch)-$(_host_vendor)-$(_host_os)
+_target=$(_target_arch)-$(_target_vendor)-$(_target_os)
 
 # $1 = variable name
 # $2 = default exe name (for linux)
-# $3 = system tuple (_sys)
+# $3 = system tuple (_target)
 _gen_compile_exe = $(eval \
 DEFAULT_$1=$2$(_util_newline)\
 ifeq ($(HOST),UNIX)$(_util_newline)\
- $$(call _ternary_setting,$1_CUSTOM,$(TARGET),UNIX,$$(DEFAULT_$1),$3-$$(DEFAULT_$1))$(_util_newline)\
+ $$(call _ternary_setting,CUSTOM_$1,$(TARGET),UNIX,$$(DEFAULT_$1),$3-$$(DEFAULT_$1))$(_util_newline)\
 else$(_util_newline)\
- $$(call _verify_setting,$1_CUSTOM,,$$(DEFAULT_$1),)$(_util_newline)\
+ $$(call _verify_setting,CUSTOM_$1,,$$(DEFAULT_$1),)$(_util_newline)\
 endif$(_util_newline)\
-$1=$$($1_CUSTOM)$(_util_newline)\
+$1=$$(CUSTOM_$1)$(_util_newline)\
 )
 
-$(call _gen_compile_exe,CC,gcc,$(_sys))
-$(call _gen_compile_exe,AR,gcc-ar,$(_sys))
-$(call _gen_compile_exe,DLLTOOL,dlltool,$(_sys))
+$(call _gen_compile_exe,CC,gcc,$(_target))
+$(call _gen_compile_exe,AR,gcc-ar,$(_target))
+$(call _gen_compile_exe,DLLTOOL,dlltool,$(_target))
 
 LDCONFIG_UNIX ?= ldconfig
 LDCONFIG_WINDOWS ?=
@@ -198,7 +205,8 @@ _cc_defines:=\
 	-D$(UPROJECT)_MAJOR=$(PROJECT_MAJOR)\
 	-D$(UPROJECT)_MINOR=$(PROJECT_MINOR)\
 	-D$(UPROJECT)_REVIS=$(PROJECT_REVIS)\
-	-D$(UPROJECT)_VERSION='$(PROJECT_MAJOR).$(PROJECT_MINOR).$(PROJECT_REVIS)'\
+	-D$(UPROJECT)_VERSION='$(PROJECT_VERSION)'\
+	-D$(UPROJECT)_DATE='$(PROJECT_DATE)'\
 	-D$(UPROJECT)_HOST_$(HOST)\
 	-D$(UPROJECT)_HOST_BIT=$(HOST_BIT)\
 	-D$(UPROJECT)_TARGET_$(TARGET)\

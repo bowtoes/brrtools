@@ -1,5 +1,5 @@
 /*
-Copyright 2021 BowToes (bow.toes@mailfence.com)
+Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -328,7 +328,7 @@ brrlog_text(_brrlog_log_params, const char *const format, ...)
 		return 0;
 	}
 /* If BRRTOOLS_DEBUG was defined, always print debug priority logs */
-#ifndef BRRTOOLS_DEBUG
+#if !BRRTOOLS_DEBUG
 	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug) {
 		setlast(priority, destination, foreground, background, style, font);
 		return 0;

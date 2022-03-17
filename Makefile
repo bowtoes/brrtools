@@ -8,7 +8,8 @@ include aio_gen.mk
 all: options $(OUTPUT_FILE)
 options:
 	@echo "<------------------------>"
-	@echo "$(PROJECT) Build Settings:"
+	@echo "$(PROJECT) v$(PROJECT_VERSION) - commit date $(PROJECT_DATE)"
+	@echo "Build Settings:"
 	@echo "Project name    : $(PROJECT)"
 	@echo "Project binary  : $(TARGET_NAME)"
 	@echo "Ultimate output : $(OUTPUT_FILE)"
@@ -57,7 +58,7 @@ ifeq ($(TARGET),WINDOWS)
 	@$(RM_FILE) $(OUTPUT_DEF) 2>$(NULL) || :
 	@$(RM_FILE) $(OUTPUT_IMPORT) 2>$(NULL) || :
 endif
-	@$(RM_EMPTY_DIR) $(OUTDIR) 2>$(NULL) || :
+	@$(RM_EMPTY_DIR) $(OUTPUT_DIRECTORY) 2>$(NULL) || :
 again: clean all
 
 .PHONY: all clean again options

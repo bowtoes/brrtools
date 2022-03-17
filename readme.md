@@ -1,5 +1,5 @@
 # BRRTOOLS
-A custom ~C99~ C11 library with the goal to have a single place for multiple
+A personal ~C99~ C11 library with the goal to have a single place for multiple
 cross-platform, miscellaneous utilities that are generally useful (to me
 anyways).
 
