@@ -212,7 +212,9 @@ ifneq ($(PEDANTIC),0)
 endif
 
 ifeq ($(TARGET),UNIX)
- _cc_defines:=-D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L $(_cc_defines)
+ # yeah yeah, gnu isn't portable I get it
+ # todo have to reimplement dirtree walking manually, with opendir or something like that
+ _cc_defines:=-D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L -D_GNU_SOURCE $(_cc_defines)
 else
  _cc_defines:=-DWIN32_LEAN_AND_MEAN $(_cc_defines)
 endif

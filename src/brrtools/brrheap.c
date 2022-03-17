@@ -45,8 +45,7 @@ i_resize_array(void **const array, brrsz new_size, brrsz old_size)
 	return 0;
 }
 int BRRCALL
-brrheap_resize(void **const array, brrsz n_elements, brrsz data_size,
-    brrsz new_elements)
+brrheap_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_elements)
 {
 	if (!array)
 		return -1;
@@ -84,7 +83,7 @@ brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, co
 int BRRCALL
 brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements)
 {
-	if (!array || !n_elements || !other || !data_size)
+	if (!array || !n_elements || (!other && other_elements) || !data_size)
 		return -1;
 	else if (!other_elements)
 		return 0;

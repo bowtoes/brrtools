@@ -458,11 +458,11 @@ static int BRRCALL
 i_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
 {
 	if ((unsigned)ftw->level < walk_options->min_depth) {
-		return 0;
+		return FTW_SKIP_SIBLINGS;
 	} else if ((unsigned)ftw->level > walk_options->max_depth) {
-		return 0;
+		return FTW_SKIP_SUBTREE;
 	} else if (type == FTW_NS) {
-		return -1;
+		return FTW_STOP;
 		//return 0; /* TODO should this count as an error? */
 	} else {
 		brrpath_info_t res = {0};
@@ -476,23 +476,23 @@ i_walk_filt(const char *const fpath, const struct stat *const sb, int type, stru
 		res.depth = ftw->level;
 		brrstringr_t ffpath = brrstringr_cast(fpath);
 		if (brrpath_split(&res.components, &ffpath)) {
-			return -1;
+			return FTW_STOP;
 		}
 		if (brrpath_join(&res.full_path, &res.components)) {
 			brrpath_info_free(&res);
-			return -1;
+			return FTW_STOP;
 		}
 		if (!walk_options->filter || !walk_options->filter(&res)) {
 			if (brrheap_append((void**)&walk_result->results,
 			        &walk_result->n_results, sizeof(res), &res)) {
 				brrpath_info_free(&res);
-				return -1;
+				return FTW_STOP;
 			}
 		} else {
 			brrpath_info_free(&res);
 		}
 	}
-	return 0;
+	return FTW_CONTINUE;
 }
 #endif
 int BRRCALL
@@ -530,20 +530,20 @@ brrpath_walk(brrpath_walk_result_t *const result,
 		#if defined(BRRPLATFORMTYPE_Windows)
 		error = i_walk(dir.cstr, &st);
 		#else
-		error = nftw(dir.cstr, i_walk_filt, 15, FTW_MOUNT);
+		error = nftw(dir.cstr, i_walk_filt, 15, FTW_MOUNT | FTW_ACTIONRETVAL);
 		#endif
 		walk_result = NULL;
 		walk_options = NULL;
-		if (error) {
+		if (error < 0) {
 			brrpath_walk_result_free(&rs);
 			error = -1;
 		}
 		if (st.type != brrpath_type_directory)
 			brrstringr_free(&dir);
-		if (!error)
+		if (error >= 0)
 			*result = rs;
 	}
-	return error;
+	return -(error < 0) ;
 }
 void BRRCALL
 brrpath_walk_result_free(brrpath_walk_result_t *const result)

@@ -51,8 +51,9 @@ brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, co
  * n_elements', incrementing 'n_elements' appropriately, each element of
  * 'data_size' bytes.
  * Returns 0 on success.
- * If an error occurs or 'array', 'n_elements', or 'other' are NULL or
- * 'data_size' is 0, 'array' is unaffected and -1 is returned.
+ * If an error occurs or 'array' or 'n_elements' are NULL or 'other' is NULL
+ * while 'other_elements' is not 0 or'data_size' is 0, 'array' is unaffected
+ * and -1 is returned.
  * */
 BRRAPI int BRRCALL
 brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements);
