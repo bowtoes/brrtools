@@ -42,7 +42,7 @@ limitations under the License.
 #endif
 
 #include "brrtools/brrlib.h"
-#include "brrtools/brrheap.h"
+#include "brrtools/brrdata.h"
 
 static brrpath_type_t BRRCALL
 i_determine_type(brru8 attr)
@@ -406,7 +406,7 @@ i_walk_filt(const char *const fpath, brrsz current_depth)
 					/* Filter+add */
 					if (!walk_options->filter || !walk_options->filter(&res)) {
 						added = 1;
-						err = brrheap_append((void **)&walk_result->results,
+						err = brrdata_append((void **)&walk_result->results,
 						    &walk_result->n_results, sizeof(res), &res);
 					}
 				}
@@ -442,7 +442,7 @@ i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 	res.depth = 0;
 	if (res.depth >= walk_options->min_depth && res.depth <= walk_options->max_depth &&
 	   (!walk_options->filter || !walk_options->filter(&res))) {
-		if (brrheap_append((void**)&walk_result->results,
+		if (brrdata_append((void**)&walk_result->results,
 		        &walk_result->n_results, sizeof(res), &res)) {
 			brrpath_info_free(&res);
 			return -1;
@@ -483,7 +483,7 @@ i_walk_filt(const char *const fpath, const struct stat *const sb, int type, stru
 			return FTW_STOP;
 		}
 		if (!walk_options->filter || !walk_options->filter(&res)) {
-			if (brrheap_append((void**)&walk_result->results,
+			if (brrdata_append((void**)&walk_result->results,
 			        &walk_result->n_results, sizeof(res), &res)) {
 				brrpath_info_free(&res);
 				return FTW_STOP;
@@ -549,7 +549,7 @@ void BRRCALL
 brrpath_walk_result_free(brrpath_walk_result_t *const result)
 {
 	if (result) {
-		brrheap_clear((void**)&result->results, &result->n_results, sizeof(*result->results),
+		brrdata_clear((void**)&result->results, &result->n_results, sizeof(*result->results),
 		    (void(*)(void*))brrpath_info_free);
 		memset(result, 0, sizeof(*result));
 	}

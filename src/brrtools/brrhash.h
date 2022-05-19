@@ -20,10 +20,14 @@ limitations under the License.
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
+_brrcppstart
+
 /* Computes a FNV-1a hash on 'data' of length 'data_size'.
  * If 'data' is NULL or 'data_size' is 0, nothing is done and a default value
  * is returned.
  * */
 BRRAPI brru8 BRRCALL brrhash_fnv1a(const void *const data, brrsz data_size);
+
+_brrcppend
 
 #endif /* BRRHASH_H */

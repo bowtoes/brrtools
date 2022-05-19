@@ -22,7 +22,7 @@ PROJECT_DATE := $(shell git show -s --date=format:'%Y/%m/%d %l:%M%p' --format=%a
 SRC :=\
 	brrtools/brrcon.c\
 	brrtools/brrhash.c\
-	brrtools/brrheap.c\
+	brrtools/brrdata.c\
 	brrtools/brrlib.c\
 	brrtools/brrlog.c\
 	brrtools/brrnum.c\
@@ -38,7 +38,7 @@ HDR :=\
 	brrtools/brrdebug.h\
 	brrtools/brrendian.h\
 	brrtools/brrhash.h\
-	brrtools/brrheap.h\
+	brrtools/brrdata.h\
 	brrtools/brrlib.h\
 	brrtools/brrlog.h\
 	brrtools/brrmacro.h\
@@ -262,7 +262,7 @@ endif
 
 ifndef DEBUG
  ifndef MEMCHECK
-  ifneq ($(DOSTRIP),0)
+  ifneq ($(DO_STRIP),0)
    _cc_linkage += -Wl,--strip-all
   endif
  endif

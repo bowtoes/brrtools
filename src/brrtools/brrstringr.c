@@ -28,7 +28,7 @@ limitations under the License.
 
 #include "brrtools/brrlib.h"
 #include "brrtools/brrstringr.h"
-#include "brrtools/brrheap.h"
+#include "brrtools/brrdata.h"
 
 typedef int (*i_str_ncmp_t)(const char *const, const char *const b, brrsz);
 typedef int (*i_str_cmp_t)(const char *const, const char *const b);
@@ -248,7 +248,7 @@ i_add_next_str(brrstringr_t **array, brrsz *n,
 		return 0;
 	if (brrstringr_new(&str, string->cstr + start, len))
 		return -1;
-	if (brrheap_append((void **)array, n, sizeof(str), &str))
+	if (brrdata_append((void **)array, n, sizeof(str), &str))
 		return -1;
 	return 0;
 }
@@ -264,14 +264,14 @@ i_split_str(brrstringr_t **strings, brrsz *const n_strings,
 	brrsz n = 0, j = 0;
 	while ((end = i_find_next_delimm(string, end, delims, n_delims, &j, comparer)) < string->length) {
 		if (i_add_next_str(&array, &n, skip_consecutive, string, max_split, &delims[j], start, end)) {
-			brrheap_clear((void **)&array, &n, sizeof(*array), (void (*)(void*))brrstringr_free);
+			brrdata_clear((void **)&array, &n, sizeof(*array), (void (*)(void*))brrstringr_free);
 			return -1;
 		}
 		end += delims[j].length;
 		start = end;
 	}
 	if (i_add_next_str(&array, &n, skip_consecutive, string, max_split, NULL, start, end)) {
-		brrheap_clear((void **)&array, &n, sizeof(*array), (void (*)(void*))brrstringr_free);
+		brrdata_clear((void **)&array, &n, sizeof(*array), (void (*)(void*))brrstringr_free);
 		return -1;
 	}
 	*n_strings = n;

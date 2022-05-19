@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "brrtools/brrheap.h"
+#include "brrtools/brrdata.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +45,7 @@ i_resize_array(void **const array, brrsz new_size, brrsz old_size)
 	return 0;
 }
 int BRRCALL
-brrheap_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_elements)
+brrdata_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_elements)
 {
 	if (!array)
 		return -1;
@@ -57,7 +57,7 @@ brrheap_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_
 }
 
 int BRRCALL
-brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data)
+brrdata_append(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data)
 {
 	if (!array || !n_elements || !new_data || !data_size)
 		return -1;
@@ -68,7 +68,7 @@ brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size, con
 	return 0;
 }
 int BRRCALL
-brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data)
+brrdata_prepend(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data)
 {
 	if (!array || !n_elements || !new_data || !data_size)
 		return -1;
@@ -81,7 +81,7 @@ brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, co
 }
 
 int BRRCALL
-brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements)
+brrdata_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements)
 {
 	if (!array || !n_elements || (!other && other_elements) || !data_size)
 		return -1;
@@ -94,7 +94,7 @@ brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const
 	return 0;
 }
 int BRRCALL
-brrheap_split(const void *const array, brrsz n_elements, brrsz data_size,
+brrdata_split(const void *const array, brrsz n_elements, brrsz data_size,
     void **const array_1, brrsz *const elements_1,
     void **const array_2, brrsz *const elements_2,
     brrsz split_element)
@@ -124,7 +124,7 @@ brrheap_split(const void *const array, brrsz n_elements, brrsz data_size,
 }
 
 int BRRCALL
-brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element, const void *const new_data)
+brrdata_insert(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element, const void *const new_data)
 {
 	if (!array || !n_elements || !new_data || !data_size || element >= *n_elements)
 		return -1;
@@ -138,7 +138,7 @@ brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size, brr
 	return 0;
 }
 int BRRCALL
-brrheap_remove(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element)
+brrdata_remove(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element)
 {
 	void *copy = NULL;
 	if (!array || !n_elements || !data_size || element >= *n_elements)
@@ -175,7 +175,7 @@ i_swap(void *const array, brrsz data_size, brrsz a, brrsz b)
 	}
 }
 int BRRCALL
-brrheap_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrsz b)
+brrdata_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrsz b)
 {
 	if (!array || !data_size || a >= n_elements || b >= n_elements)
 		return -1;
@@ -184,7 +184,7 @@ brrheap_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrs
 }
 
 int BRRCALL
-brrheap_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz element, void *const destination)
+brrdata_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz element, void *const destination)
 {
 	if (!array || !destination || !data_size || element >= n_elements)
 		return -1;
@@ -192,7 +192,7 @@ brrheap_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz e
 	return 0;
 }
 int BRRCALL
-brrheap_write(void *const array, brrsz n_elements, brrsz data_size, brrsz element, const void *const source)
+brrdata_write(void *const array, brrsz n_elements, brrsz data_size, brrsz element, const void *const source)
 {
 	if (!array || !source || !data_size || element >= n_elements)
 		return -1;
@@ -200,7 +200,7 @@ brrheap_write(void *const array, brrsz n_elements, brrsz data_size, brrsz elemen
 	return 0;
 }
 int BRRCALL
-brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz start_element, brrsz n, void *const destination)
+brrdata_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz start_element, brrsz n, void *const destination)
 {
 	if (!array || !destination || !data_size || start_element + n >= n_elements)
 		return -1;
@@ -208,7 +208,7 @@ brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz s
 	return 0;
 }
 int BRRCALL
-brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz n_remove)
+brrdata_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz n_remove)
 {
 	if (!array || !n_elements || !*array || !data_size)
 		return -1;
@@ -223,7 +223,7 @@ brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz
 	return 0;
 }
 void BRRCALL
-brrheap_clear(void **const array, brrsz *const n_elements, brrsz data_size, void (*clearer)(void *))
+brrdata_clear(void **const array, brrsz *const n_elements, brrsz data_size, void (*clearer)(void *))
 {
 	if (array) {
 		if (*array) {
@@ -240,7 +240,7 @@ brrheap_clear(void **const array, brrsz *const n_elements, brrsz data_size, void
 }
 
 static int BRRCALL
-i_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_comparer_t compare, void *parameter)
+i_sort(void *const array, brrsz n_elements, brrsz data_size, brrdata_comparer_t compare, void *parameter)
 {
 	char *a = (char *)array;
 	for (brrsz i = 0, ofs = 0; i < n_elements; ++i, ofs += data_size) {
@@ -258,7 +258,7 @@ i_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_comparer_t 
 	return 0;
 }
 int BRRCALL
-brrheap_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_comparer_t compare, void *parameter)
+brrdata_sort(void *const array, brrsz n_elements, brrsz data_size, brrdata_comparer_t compare, void *parameter)
 {
 	if (!array || !data_size)
 		return -1;
@@ -268,7 +268,7 @@ brrheap_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_compa
 }
 
 void BRRCALL
-brrheap_reverse(void *const array, brrsz n_elements, brrsz data_size)
+brrdata_reverse(void *const array, brrsz n_elements, brrsz data_size)
 {
 	if (array && data_size) {
 		for (brrsz i = 0; i < n_elements / 2; ++i)
@@ -276,7 +276,7 @@ brrheap_reverse(void *const array, brrsz n_elements, brrsz data_size)
 	}
 }
 void BRRCALL
-brrheap_reverse_bytes(void *const array, brrsz total_bytes)
+brrdata_reverse_bytes(void *const array, brrsz total_bytes)
 {
 	if (array) {
 		char *i = (char *)array;

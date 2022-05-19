@@ -20,6 +20,8 @@ limitations under the License.
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
+_brrcppstart
+
 /* Counts the number of digits of 'number' when written in base 'base'.
  * If 'is_signed' is true, 'number' is cast as a signed integer, then the digits
  * are counted.
@@ -47,5 +49,7 @@ BRRAPI brrs8 BRRCALL brrnum_smin(brrs8 a, brrs8 b);                /* Returns th
 BRRAPI brrs8 BRRCALL brrnum_sclamp(brrs8 x, brrs8 min, brrs8 max); /* Clamps the signed input value 'x' within the range [min, max]. */
 
 BRRAPI brrbl BRRCALL brrnum_bxor(brrbl a, brrbl b); /* Logical XOR of a and b */
+
+_brrcppend
 
 #endif /* BRRNUM_H */

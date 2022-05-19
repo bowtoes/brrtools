@@ -24,7 +24,7 @@ limitations under the License.
 
 #include "brrtools/brrplatform.h"
 #include "brrtools/brrlib.h"
-#include "brrtools/brrheap.h"
+#include "brrtools/brrdata.h"
 #include "brrtools/brrnum.h"
 
 #if defined(BRRPLATFORMTYPE_Windows)
@@ -437,7 +437,7 @@ brrlog_digits(_brrlog_log_params, brru8 number, int base,
 	} while (div.quot);
 	if (isneg)
 		outstr[outlen++] = '-';
-	brrheap_reverse_bytes(outstr, outlen);
+	brrdata_reverse_bytes(outstr, outlen);
 	return brrlog_text(_brrlog_full_args, "%s", outstr);
 }
 

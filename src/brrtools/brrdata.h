@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef BRRHEAP_H
-#define BRRHEAP_H
+#ifndef BRRDATA_H
+#define BRRDATA_H
 
-/* brrheap - Heap-allocated array modification for fixed-sized elements */
+/* brrdata - Heap-allocated array modification for fixed-sized elements */
 
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
+
+_brrcppstart
 
 /* Resizes 'array' of size 'n_elements' to size of 'new_elements', each element
  * of 'data_size' bytes.
@@ -30,7 +32,7 @@ limitations under the License.
  * returned.
  * */
 BRRAPI int BRRCALL
-brrheap_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_elements);
+brrdata_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_elements);
 /* Appends 'new_data' of 'data_size' bytes to the end of 'array' of size
  * 'n_elements', incrementing 'n_elements'.
  * Returns 0 on success.
@@ -38,7 +40,7 @@ brrheap_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_
  * 'data_size' is 0, 'array' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data);
+brrdata_append(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data);
 /* Prepends 'new_data' of 'data_size' bytes to the start of 'array' of size
  * 'n_elements', incrementing 'n_elements'.
  * Returns 0 on success.
@@ -46,7 +48,7 @@ brrheap_append(void **const array, brrsz *const n_elements, brrsz data_size, con
  * 'data_size' is 0, 'array' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data);
+brrdata_prepend(void **const array, brrsz *const n_elements, brrsz data_size, const void *const new_data);
 /* Joins 'other' of size 'other_elements' to the end of 'array' of size
  * n_elements', incrementing 'n_elements' appropriately, each element of
  * 'data_size' bytes.
@@ -56,7 +58,7 @@ brrheap_prepend(void **const array, brrsz *const n_elements, brrsz data_size, co
  * and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements);
+brrdata_join(void **const array, brrsz *const n_elements, brrsz data_size, const void *const other, brrsz other_elements);
 /* Splits 'array' of size 'n_elements' into 'array_1' of size 'split_element'
  * and 'array_2' of size 'n_elements - split_element', each element of
  * 'data_size' bytes, setting 'elements_1' and 'elements_2' appropriately.
@@ -66,7 +68,7 @@ brrheap_join(void **const array, brrsz *const n_elements, brrsz data_size, const
  * range, 'array' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_split(const void *const array, brrsz n_elements, brrsz data_size,
+brrdata_split(const void *const array, brrsz n_elements, brrsz data_size,
     void **const array_1, brrsz *const elements_1,
     void **const array_2, brrsz *const elements_2,
     brrsz split_element);
@@ -79,7 +81,7 @@ brrheap_split(const void *const array, brrsz n_elements, brrsz data_size,
  * is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element, const void *const new_data);
+brrdata_insert(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element, const void *const new_data);
 /* Removes 'element' of 'data_size' bytes from 'array' of size 'n_elements',
  * shifting all elements past it backward and decrementing 'n_elements'.
  * Returns 0 on success.
@@ -87,9 +89,9 @@ brrheap_insert(void **const array, brrsz *const n_elements, brrsz data_size, brr
  * or element is out of range, 'array' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_remove(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element);
+brrdata_remove(void **const array, brrsz *const n_elements, brrsz data_size, brrsz element);
 BRRAPI int BRRCALL
-brrheap_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrsz b);
+brrdata_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrsz b);
 /* Copies 'element' of 'data_size' bytes from 'array' of 'n_elements' into
  * 'destination'.
  * Returns 0 on success.
@@ -97,7 +99,7 @@ brrheap_swap(void *const array, brrsz n_elements, brrsz data_size, brrsz a, brrs
  * of range, 'destination' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz element, void *const destination);
+brrdata_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz element, void *const destination);
 /* Copies 'source' of 'data_size' bytes into 'element' of 'array' of size
  * 'n_elements'.
  * Returns 0 on success.
@@ -105,7 +107,7 @@ brrheap_read(const void *const array, brrsz n_elements, brrsz data_size, brrsz e
  * range, 'array' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_write(void *const array, brrsz n_elements, brrsz data_size, brrsz element, const void *const source);
+brrdata_write(void *const array, brrsz n_elements, brrsz data_size, brrsz element, const void *const source);
 /* Copies 'n' elements of 'data_size' bytes from 'array' of size 'n_elements' at
  * 'start_element' into 'destination'.
  * Returns 0 on success.
@@ -113,7 +115,7 @@ brrheap_write(void *const array, brrsz n_elements, brrsz data_size, brrsz elemen
  * is out of range, 'destination' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz start_element, brrsz n, void *const destination);
+brrdata_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz start_element, brrsz n, void *const destination);
 /* Removes the last 'n_remove' elements of 'data_size' bytes from 'array' of size 'n_elements'
  * and decrements 'n_elements' appropriately.
  * Returns 0 on success.
@@ -121,7 +123,7 @@ brrheap_copy(const void *const array, brrsz n_elements, brrsz data_size, brrsz s
  * 'array' is unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
-brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz n_remove);
+brrdata_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz n_remove);
 
 /* Calls 'clearer' on each element of 'data_size' bytes of 'array' of size 'n_elements'
  * and frees 'array'.
@@ -129,21 +131,23 @@ brrheap_trim(void **const array, brrsz *const n_elements, brrsz data_size, brrsz
  * If 'array' or 'n_elements' are NULL, nothing is done.
  * */
 BRRAPI void BRRCALL
-brrheap_clear(void **const array, brrsz *const n_elements, brrsz data_size, void (*clearer)(void *));
+brrdata_clear(void **const array, brrsz *const n_elements, brrsz data_size, void (*clearer)(void *));
 
-typedef int (*brrheap_comparer_t)(const void *, const void *, void*);
+typedef int (*brrdata_comparer_t)(const void *, const void *, void*);
 BRRAPI int BRRCALL
-brrheap_sort(void *const array, brrsz n_elements, brrsz data_size, brrheap_comparer_t compare, void *parameter);
+brrdata_sort(void *const array, brrsz n_elements, brrsz data_size, brrdata_comparer_t compare, void *parameter);
 
 /* Reverses 'n_elements' elements of 'data_size' bytes in 'array'.
  * If 'array' is NULL or 'data_size' is 0, 'array' is unaffected.
  * */
 BRRAPI void BRRCALL
-brrheap_reverse(void *const array, brrsz n_elements, brrsz data_size);
+brrdata_reverse(void *const array, brrsz n_elements, brrsz data_size);
 /* Reverses 'total_bytes' bytes of array.
  * If 'array' is NULL, 'array' is unaffected.
  * */
 BRRAPI void BRRCALL
-brrheap_reverse_bytes(void *const array, brrsz total_bytes);
+brrdata_reverse_bytes(void *const array, brrsz total_bytes);
 
-#endif /* BRRHEAP_H */
+_brrcppend
+
+#endif /* BRRDATA_H */
