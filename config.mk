@@ -244,10 +244,19 @@ else
 endif
 _cc_performance += -m$(TARGET_BIT)
 
-ifeq ($(TARGET),UNIX)
- ifeq ($(TARGET_MODE),SHARED)
-  $(call _binary_append,_cc_optimize,PIC2,-fPIC,-fpic)
+ifdef PIC
+ ifneq ($(PIC),pic)
+  ifneq ($(PIC),PIC)
+   ifneq ($(PIC),pie)
+    ifneq ($(PIC),PIE)
+     override PIC:=PIC
+    endif
+   endif
+  endif
  endif
+endif
+ifneq ($(PIC),)
+ _cc_performance += -f$(PIC)
 endif
 
 ifeq ($(TARGET_MODE),SHARED)
