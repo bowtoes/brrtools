@@ -33,6 +33,7 @@ SRC :=\
 	brrtools/brrtime.c\
 
 HDR :=\
+	brrtools/_brrlog_macros.h\
 	brrtools/brrapi.h\
 	brrtools/brrcon.h\
 	brrtools/brrdebug.h\
@@ -244,7 +245,11 @@ else
 endif
 _cc_performance += -m$(TARGET_BIT)
 
-ifdef PIC
+ifndef PIC
+ ifeq ($(TARGET_MODE),SHARED)
+  PIC := pic
+ endif
+else PIC
  ifneq ($(PIC),pic)
   ifneq ($(PIC),PIC)
    ifneq ($(PIC),pie)
@@ -255,7 +260,7 @@ ifdef PIC
   endif
  endif
 endif
-ifneq ($(PIC),)
+ifdef PIC
  _cc_performance += -f$(PIC)
 endif
 

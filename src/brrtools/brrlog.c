@@ -27,166 +27,97 @@ limitations under the License.
 #include "brrtools/brrdata.h"
 #include "brrtools/brrnum.h"
 
-#if defined(BRRPLATFORMTYPE_Windows)
-#define CLEAR_STYLE ""
-static char st_fmtstr[] = "";
-#else
+#if !defined(BRRPLATFORMTYPE_Windows)
 #define CLEAR_STYLE "\x1b[000;039;049;010m"
-static char st_fmtstr[] = "\x1b[000;039;049;010m";
+static char s_format_string[] = "\x1b[000;039;049;010m";
 #endif
 
-static FILE *st_lastlocation = NULL;
-static brrlog_priority_t st_minpri = brrlog_priority_none  + 1;
-static brrlog_priority_t st_maxpri = brrlog_priority_count - 1;
-static brru8 st_logcount = 0;
-static brrsz st_logmax = 2048;
-static char *st_buffer = NULL;
+static FILE *s_last_loc = NULL;
+static brrlog_priority_t s_min_prt = brrlog_priority_none  + 1;
+static brrlog_priority_t s_max_prt = brrlog_priority_count - 1;
+static brru8 s_log_count = 0;
+static brrsz s_max_log = 2048;
+static char *s_log_buffer = NULL;
 
 #if !defined(BRRPLATFORMTYPE_Windows)
 static int BRRCALL
-fgid(brrlog_color_t fg)
+i_fgid(brrlog_color_t fg)
 {
 	switch (fg) {
-		case brrlog_color_black     : return 30; case brrlog_color_red         : return 31;
-		case brrlog_color_green     : return 32; case brrlog_color_yellow      : return 33;
-		case brrlog_color_blue      : return 34; case brrlog_color_magenta     : return 35;
-		case brrlog_color_cyan      : return 36; case brrlog_color_white       : return 37;
-		case brrlog_color_darkgrey  : return 90; case brrlog_color_lightred    : return 91;
-		case brrlog_color_lightgreen: return 92; case brrlog_color_lightyellow : return 93;
-		case brrlog_color_lightblue : return 94; case brrlog_color_lightmagenta: return 95;
-		case brrlog_color_lightcyan : return 96; case brrlog_color_lightwhite  : return 97;
+		case brrlog_color_black:        return 30;
+		case brrlog_color_red:          return 31;
+		case brrlog_color_green:        return 32;
+		case brrlog_color_yellow:       return 33;
+		case brrlog_color_blue:         return 34;
+		case brrlog_color_magenta:      return 35;
+		case brrlog_color_cyan:         return 36;
+		case brrlog_color_white:        return 37;
+		case brrlog_color_darkgrey:     return 90;
+		case brrlog_color_lightred:     return 91;
+		case brrlog_color_lightgreen:   return 92;
+		case brrlog_color_lightyellow:  return 93;
+		case brrlog_color_lightblue:    return 94;
+		case brrlog_color_lightmagenta: return 95;
+		case brrlog_color_lightcyan:    return 96;
+		case brrlog_color_lightwhite:   return 97;
 		default: return 39;
 	}
 }
 static int BRRCALL
-bgid(brrlog_color_t bg)
+i_bgid(brrlog_color_t bg)
 {
-	return 10 + fgid(bg);
+	return 10 + i_fgid(bg);
 }
 static int BRRCALL
 stid(brrlog_style_t st)
 {
 	switch (st) {
-		case brrlog_style_normal     : return  0; case brrlog_style_bold        : return  1;
-		case brrlog_style_dim        : return  2; case brrlog_style_italics     : return  3;
-		case brrlog_style_under      : return  4; case brrlog_style_blink       : return  5;
-		case brrlog_style_fastblink  : return  6; case brrlog_style_reverse     : return  7;
-		case brrlog_style_conceal    : return  8; case brrlog_style_strikeout   : return  9;
-		case brrlog_style_fraktur    : return 20; case brrlog_style_nobold      : return 21;
-		case brrlog_style_nobright   : return 22; case brrlog_style_noitalics   : return 23;
-		case brrlog_style_nounder    : return 24; case brrlog_style_noblink     : return 25;
-		case brrlog_style_noreverse  : return 27; case brrlog_style_reveal      : return 28;
-		case brrlog_style_nostrikeout: return 29; case brrlog_style_frame       : return 51;
-		case brrlog_style_circle     : return 52; case brrlog_style_over        : return 53;
-		case brrlog_style_noframe    : return 54; case brrlog_style_noover      : return 55;
-		case brrlog_style_iunder     : return 60; case brrlog_style_idoubleunder: return 61;
-		case brrlog_style_iover      : return 62; case brrlog_style_idoubleover : return 63;
-		case brrlog_style_istress    : return 64; case brrlog_style_ioff        : return 65;
+		case brrlog_style_normal:       return  0;
+		case brrlog_style_bold:         return  1;
+		case brrlog_style_dim:          return  2;
+		case brrlog_style_italics:      return  3;
+		case brrlog_style_under:        return  4;
+		case brrlog_style_blink:        return  5;
+		case brrlog_style_fastblink:    return  6;
+		case brrlog_style_reverse:      return  7;
+		case brrlog_style_conceal:      return  8;
+		case brrlog_style_strikeout:    return  9;
+		case brrlog_style_fraktur:      return 20;
+		case brrlog_style_nobold:       return 21;
+		case brrlog_style_nobright:     return 22;
+		case brrlog_style_noitalics:    return 23;
+		case brrlog_style_nounder:      return 24;
+		case brrlog_style_noblink:      return 25;
+		case brrlog_style_noreverse:    return 27;
+		case brrlog_style_reveal:       return 28;
+		case brrlog_style_nostrikeout:  return 29;
+		case brrlog_style_frame:        return 51;
+		case brrlog_style_circle:       return 52;
+		case brrlog_style_over:         return 53;
+		case brrlog_style_noframe:      return 54;
+		case brrlog_style_noover:       return 55;
+		case brrlog_style_iunder:       return 60;
+		case brrlog_style_idoubleunder: return 61;
+		case brrlog_style_iover:        return 62;
+		case brrlog_style_idoubleover:  return 63;
+		case brrlog_style_istress:      return 64;
+		case brrlog_style_ioff:         return 65;
 		default: return 0;
 	}
 }
 static int BRRCALL
-fnid(brrlog_font_t fn)
+i_fnid(brrlog_font_t fn)
 {
 	fn = fn<0?0:fn>=brrlog_font_count?brrlog_font_count-1:fn;
 	return fn + 10;
 }
-#endif
 static char *BRRCALL
-updatefmtstr(brrlog_color_t fg, brrlog_color_t bg, brrlog_style_t st, brrlog_font_t fn)
+i_update_format(brrlog_color_t fg, brrlog_color_t bg, brrlog_style_t st, brrlog_font_t fn)
 {
-#if !defined(BRRPLATFORMTYPE_Windows)
-	snprintf(st_fmtstr, 19, "\x1b[%03i;%03i;%03i;%03im",
-			stid(st),
-			fgid(fg),
-			bgid(bg),
-			fnid(fn));
+	snprintf(s_format_string, 19, "\x1b[%03i;%03i;%03i;%03im", stid(st), i_fgid(fg), i_bgid(bg), i_fnid(fn));
+	return s_format_string;
+}
 #endif
-	return st_fmtstr;
-}
-
-#define _print_prototype brrsz *const wrt, char *const buffer, FILE *const dst, const char *const fmt
-static void BRRCALL
-vbuffprint(_print_prototype, va_list lptr)
-{
-	*wrt += vsprintf(buffer + *wrt, fmt, lptr);
-}
-static void BRRCALL
-buffprint(_print_prototype, ...)
-{
-	va_list lptr;
-	va_start(lptr, fmt);
-	vbuffprint(wrt, buffer, dst, fmt, lptr);
-	va_end(lptr);
-}
-static void BRRCALL
-vnomaxprint(_print_prototype, va_list lptr)
-{
-	*wrt += vfprintf(dst, fmt, lptr);
-}
-static void BRRCALL
-nomaxprint(_print_prototype, ...)
-{ va_list lptr;
-	va_start(lptr, fmt);
-	vnomaxprint(wrt, buffer, dst, fmt, lptr);
-	va_end(lptr);
-}
-static void BRRCALL
-vmaxprint(_print_prototype, va_list lptr)
-{
-	brrof tmp;
-	if (st_logmax < *wrt)
-		*wrt = st_logmax;
-	tmp = vsnprintf(st_buffer + *wrt, st_logmax - *wrt, fmt, lptr);\
-	if (tmp > 0) *wrt += ((brrsz)tmp) < st_logmax ? ((brrsz)tmp) : st_logmax - *wrt - 1;\
-}
-static void BRRCALL
-maxprint(_print_prototype, ...)
-{
-	va_list lptr;
-	va_start(lptr, fmt);
-	vmaxprint(wrt, buffer, dst, fmt, lptr);
-	va_end(lptr);
-}
-
-static void BRRCALL
-uselast(brrlog_priority_t *p, brrlog_destination_t *d,
-    brrlog_color_t *fg, brrlog_color_t *bg, brrlog_style_t *s, brrlog_font_t *fn)
-{
-	if (*p  <= brrlog_priority_last)    *p  = gbrrlog_type_last.level.priority;
-	if (*d  <= brrlog_destination_last) *d  = gbrrlog_type_last.level.destination;
-	if (*fg <= brrlog_color_last)       *fg = gbrrlog_type_last.format.foreground;
-	if (*bg <= brrlog_color_last)       *bg = gbrrlog_type_last.format.background;
-	if (*s  <= brrlog_style_last)       *s  = gbrrlog_type_last.format.style;
-	if (*fn <= brrlog_font_last)        *fn = gbrrlog_type_last.format.font;
-}
-static void BRRCALL
-setlast(brrlog_priority_t p, brrlog_destination_t d,
-    brrlog_color_t fg, brrlog_color_t bg, brrlog_style_t s, brrlog_font_t fn)
-{
-	gbrrlog_type_last.level.priority = p;
-	gbrrlog_type_last.level.destination = d;
-	gbrrlog_type_last.format.foreground = fg;
-	gbrrlog_type_last.format.background = bg;
-	gbrrlog_type_last.format.style = s;
-	gbrrlog_type_last.format.font = fn;
-}
-static brrlog_format_t BRRCALL
-pritofmt(brrlog_priority_t p)
-{
-	if (p == brrlog_priority_critical)
-		return gbrrlog_type_critical.format;
-	else if (p == brrlog_priority_error)
-		return gbrrlog_type_error.format;
-	else if (p == brrlog_priority_normal)
-		return gbrrlog_type_normal.format;
-	else if (p == brrlog_priority_warning)
-		return gbrrlog_type_warning.format;
-	else if (p == brrlog_priority_debug)
-		return gbrrlog_type_debug.format;
-	else
-		return gbrrlog_type_clear.format;
-}
 
 #define _ex(_t,_N,_n,_i,_d) #_n,
 const char *brrlog_color_names[brrlog_color_count + 1]             = { _brrlog_color_gen(_ex) };
@@ -203,36 +134,22 @@ const char *brrlog_priority_debug_names[brrlog_priority_count + 1]       = { _br
 const char *brrlog_destination_debug_names[brrlog_destination_count + 1] = { _brrlog_destination_gen(_ex) };
 #undef _ex
 
-#define CRI_LEVEL {brrlog_priority_critical, brrlog_destination_stderr, "CRITICAL: "}
-#define ERR_LEVEL {brrlog_priority_error,    brrlog_destination_stderr, "Error: "   }
-#define NOR_LEVEL {brrlog_priority_normal,   brrlog_destination_stdout, ""          }
-#define WAR_LEVEL {brrlog_priority_warning,  brrlog_destination_stderr, "Warning: " }
-#define DEB_LEVEL {brrlog_priority_debug,    brrlog_destination_stderr, "DEBUG: "   }
-#define CLR_LEVEL {brrlog_priority_normal,   brrlog_destination_stdout, ""          }
-#define LST_LEVEL {brrlog_priority_normal,   brrlog_destination_stdout, ""          }
-
-#define CRI_FORMAT {brrlog_color_red,    brrlog_color_normal, brrlog_style_reverse, brrlog_font_normal}
-#define ERR_FORMAT {brrlog_color_red,    brrlog_color_normal, brrlog_style_bold,    brrlog_font_normal}
-#define NOR_FORMAT {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}
-#define WAR_FORMAT {brrlog_color_yellow, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}
-#define DEB_FORMAT {brrlog_color_yellow, brrlog_color_normal, brrlog_style_reverse, brrlog_font_normal}
-#define CLR_FORMAT {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}
-#define LST_FORMAT {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}
-
-brrlog_type_t gbrrlog_type_critical = {CRI_LEVEL, CRI_FORMAT};
-brrlog_type_t gbrrlog_type_error    = {ERR_LEVEL, ERR_FORMAT};
-brrlog_type_t gbrrlog_type_normal   = {NOR_LEVEL, NOR_FORMAT};
-brrlog_type_t gbrrlog_type_warning  = {WAR_LEVEL, WAR_FORMAT};
-brrlog_type_t gbrrlog_type_debug    = {DEB_LEVEL, DEB_FORMAT};
-brrlog_type_t gbrrlog_type_clear    = {CLR_LEVEL, CLR_FORMAT};
-brrlog_type_t gbrrlog_type_last     = {LST_LEVEL, LST_FORMAT};
+_gbrrlog_types_t gbrrlog_type = {
+	.last     = {{brrlog_priority_normal,   brrlog_destination_stdout, ""          }, {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}},
+	.clear    = {{brrlog_priority_normal,   brrlog_destination_stdout, ""          }, {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}},
+	.critical = {{brrlog_priority_critical, brrlog_destination_stderr, "CRITICAL: "}, {brrlog_color_red,    brrlog_color_normal, brrlog_style_reverse, brrlog_font_normal}},
+	.error    = {{brrlog_priority_error,    brrlog_destination_stderr, "Error: "   }, {brrlog_color_red,    brrlog_color_normal, brrlog_style_bold,    brrlog_font_normal}},
+	.normal   = {{brrlog_priority_normal,   brrlog_destination_stdout, ""          }, {brrlog_color_normal, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}},
+	.warning  = {{brrlog_priority_warning,  brrlog_destination_stderr, "Warning: " }, {brrlog_color_yellow, brrlog_color_normal, brrlog_style_normal,  brrlog_font_normal}},
+	.debug    = {{brrlog_priority_debug,    brrlog_destination_stderr, "DEBUG: "   }, {brrlog_color_yellow, brrlog_color_normal, brrlog_style_reverse, brrlog_font_normal}},
+};
 
 struct gbrrlogctl gbrrlogctl =
 {
 #if defined(BRRPLATFORMTYPE_Windows)
-	.style_enabled = 0,
+	.style_disabled = 1,
 #else
-	.style_enabled = 1,
+	.style_disabled = 0,
 #endif
 	.debug_enabled = 0,
 	.flush_enabled = 1,
@@ -243,18 +160,18 @@ struct gbrrlogctl gbrrlogctl =
 };
 
 brrsz BRRCALL
-brrlog_logmax(void)
+brrlog_max_log(void)
 {
-	return st_logmax;
+	return s_max_log;
 }
 int BRRCALL
-brrlog_setlogmax(brrsz newmax)
+brrlog_set_max_log(brrsz newmax)
 {
-	if (newmax != st_logmax) {
-		if (brrlib_alloc((void **)&st_buffer, newmax, 1))
+	if (newmax != s_max_log) {
+		if (brrlib_alloc((void **)&s_log_buffer, newmax, 1))
 			return -1;
 		else
-			st_logmax = newmax;
+			s_max_log = newmax;
 	}
 	return 0;
 }
@@ -262,73 +179,135 @@ brrlog_setlogmax(brrsz newmax)
 brru8 BRRCALL
 brrlog_count(void)
 {
-	return st_logcount;
+	return s_log_count;
 }
 void BRRCALL
-brrlog_resetcount(void)
+brrlog_reset_count(void)
 {
-	st_logcount = 0;
+	s_log_count = 0;
 }
 
 brrlog_priority_t BRRCALL
-brrlog_minpriority(void)
+brrlog_min_priority(void)
 {
-	return st_minpri;
+	return s_min_prt;
 }
 void BRRCALL
-brrlog_setminpriority(brrlog_priority_t newmin)
+brrlog_set_min_priority(brrlog_priority_t new_min)
 {
-	st_minpri = newmin > brrlog_priority_none ?
-		newmin < brrlog_priority_count ?
-			newmin > st_maxpri?st_maxpri:newmin :
-		brrlog_priority_count-1 :
-	brrlog_priority_none+1;
+#define _min_set(_nm_) s_min_prt = (_nm_) < s_max_prt?(_nm_):s_max_prt
+	if (new_min < brrlog_priority_none + 1)
+		_min_set(brrlog_priority_none + 1);
+	else if (new_min > brrlog_priority_count - 1)
+		_min_set(brrlog_priority_count - 1);
+	else
+		_min_set(new_min);
+#undef _min_set
 }
 
 brrlog_priority_t BRRCALL
-brrlog_maxpriority(void)
+brrlog_max_priority(void)
 {
-	return st_maxpri;
+	return s_max_prt;
 }
 void BRRCALL
-brrlog_setmaxpriority(brrlog_priority_t newmax)
+brrlog_set_max_priority(brrlog_priority_t new_max)
 {
-	st_maxpri = newmax > brrlog_priority_none ?
-		newmax < brrlog_priority_count ?
-			newmax < st_minpri?st_minpri:newmax :
-		brrlog_priority_count-1 :
-	brrlog_priority_none+1;
+#define _max_set(_nm_) s_max_prt = (_nm_) > s_min_prt?(_nm_):s_min_prt
+	if (new_max < brrlog_priority_none + 1)
+		_max_set(brrlog_priority_none + 1);
+	else if (new_max > brrlog_priority_count - 1)
+		_max_set(brrlog_priority_count - 1);
+	else
+		_max_set(new_max);
+#undef _max_set
 }
 
 int BRRCALL
 brrlog_init(void)
 {
-	if (!st_buffer && st_logmax)
-		return brrlib_alloc((void **)&st_buffer, st_logmax, 1);
+	if (!s_log_buffer && s_max_log)
+		return brrlib_alloc((void **)&s_log_buffer, s_max_log, 1);
 	return 0;
 }
 void BRRCALL
 brrlog_deinit(void)
 {
-	if (st_buffer) {
-		free(st_buffer);
-		st_buffer = NULL;
+	if (s_log_buffer) {
+		free(s_log_buffer);
+		s_log_buffer = NULL;
 	}
 }
 
+#define _print_prototype brrsz *const wrt, char *const buffer, FILE *const dst, const char *const fmt
+static void BRRCALL
+i_vbuff_print(_print_prototype, va_list lptr) { *wrt += vsprintf(buffer + *wrt, fmt, lptr); }
+static void BRRCALL
+i_buff_print(_print_prototype, ...)
+{
+	va_list lptr;
+	va_start(lptr, fmt);
+	i_vbuff_print(wrt, buffer, dst, fmt, lptr);
+	va_end(lptr);
+}
+
+static void BRRCALL
+i_vno_max_print(_print_prototype, va_list lptr) { *wrt += vfprintf(dst, fmt, lptr); }
+static void BRRCALL
+i_no_max_print(_print_prototype, ...)
+{ va_list lptr;
+	va_start(lptr, fmt);
+	i_vno_max_print(wrt, buffer, dst, fmt, lptr);
+	va_end(lptr);
+}
+
+static void BRRCALL
+i_vmax_print(_print_prototype, va_list lptr)
+{
+	brrof tmp;
+	if (s_max_log < *wrt)
+		*wrt = s_max_log;
+	tmp = vsnprintf(s_log_buffer + *wrt, s_max_log - *wrt, fmt, lptr);\
+	if (tmp > 0) *wrt += ((brrsz)tmp) < s_max_log ? ((brrsz)tmp) : s_max_log - *wrt - 1;\
+}
+static void BRRCALL
+i_max_print(_print_prototype, ...)
+{
+	va_list lptr;
+	va_start(lptr, fmt);
+	i_vmax_print(wrt, buffer, dst, fmt, lptr);
+	va_end(lptr);
+}
+
+
+static inline void BRRCALL
+setlast(brrlog_priority_t priority, brrlog_destination_t destination, brrlog_color_t foreground, brrlog_color_t background, brrlog_style_t style, brrlog_font_t font)
+{
+	gbrrlog_type.last = (brrlog_type_t){
+		.level={.priority=priority, .destination=destination},
+		.format={.foreground=foreground, .background=background, .style=style, .font=font}
+	};
+}
 #define _brrlog_full_args priority, destination, prefix, \
     foreground, background, style, font, buffer, print_prefix, print_newline, \
 	file, function, line
 brrsz BRRCALL
 brrlog_text(_brrlog_log_params, const char *const format, ...)
 {
-	uselast(&priority, &destination, &foreground, &background, &style, &font);
-	if (!format || priority < st_minpri || priority > st_maxpri) {
+	#define _use_last_(_from_, _var_, _src_) if (_var_ <= brrlog_##_src_##_last) _var_ = gbrrlog_type.last._from_._var_
+	_use_last_(level,  priority, priority);
+	_use_last_(level,  destination, destination);
+	_use_last_(format, foreground, color);
+	_use_last_(format, background, color);
+	_use_last_(format, style, style);
+	_use_last_(format, font, font);
+	#undef _use_last_
+	if (!format || priority < s_min_prt || priority > s_max_prt) {
 		setlast(priority, destination, foreground, background, style, font);
 		return 0;
 	}
 /* If BRRTOOLS_DEBUG was defined, always print debug priority logs */
-#if !BRRTOOLS_DEBUG
+#if defined(BRRTOOLS_DEBUG)
 	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug) {
 		setlast(priority, destination, foreground, background, style, font);
 		return 0;
@@ -338,14 +317,14 @@ brrlog_text(_brrlog_log_params, const char *const format, ...)
 	void (*vprint)(_print_prototype, va_list) = NULL;
 	void (*print)(_print_prototype, ...) = NULL;
 	if (buffer) {
-		vprint = vbuffprint;
-		print = buffprint;
-	} else if (st_logmax) {
-		vprint = vmaxprint;
-		print = maxprint;
+		vprint = i_vbuff_print;
+		print = i_buff_print;
+	} else if (s_max_log) {
+		vprint = i_vmax_print;
+		print = i_max_print;
 	} else {
-		vprint = vnomaxprint;
-		print = nomaxprint;
+		vprint = i_vno_max_print;
+		print = i_no_max_print;
 	}
 
 	FILE *dst = NULL;
@@ -353,49 +332,59 @@ brrlog_text(_brrlog_log_params, const char *const format, ...)
 	if (destination != brrlog_destination_null)
 		dst = destination == brrlog_destination_stdout?stdout:stderr;
 
-	brrlog_format_t prifmt = pritofmt(priority);
 	if (gbrrlogctl.flush_enabled) {
-		if (dst && st_lastlocation != dst) {
-			fflush(st_lastlocation);
-			st_lastlocation = dst;
+		if (dst && s_last_loc != dst) {
+			fflush(s_last_loc);
+			s_last_loc = dst;
 		}
 	}
 
 	brrsz write = 0;
 	if (gbrrlogctl.prefixes_enabled && print_prefix) {
 		if (!prefix)
-			prefix = gbrrlog_type_last.level.prefix;
+			prefix = gbrrlog_type.last.level.prefix;
+
 #if !defined(BRRPLATFORMTYPE_Windows)
-		if (gbrrlogctl.style_enabled)
-			print(&write, buffer, dst, "%s", updatefmtstr(prifmt.foreground, prifmt.background, prifmt.style, prifmt.font));
+		brrlog_format_t prifmt = gbrrlog_type.clear.format;
+		if (priority >= brrlog_priority_last && priority <= brrlog_priority_debug)
+			prifmt = gbrrlog_type.types[priority + 1].format;
+		if (!gbrrlogctl.style_disabled)
+			print(&write, buffer, dst, "%s", i_update_format(prifmt.foreground, prifmt.background, prifmt.style, prifmt.font));
 #endif
+
 		print(&write, buffer, dst, "%s", prefix);
+
 #if !defined(BRRPLATFORMTYPE_Windows)
-		if (gbrrlogctl.style_enabled)
+		if (!gbrrlogctl.style_disabled)
 			print(&write, buffer, dst, "%s", CLEAR_STYLE);
 #endif
+
 	}
+
 #if !defined(BRRPLATFORMTYPE_Windows)
-	if (gbrrlogctl.style_enabled)
-		print(&write, buffer, dst, "%s", updatefmtstr(foreground, background, style, font));
+	if (!gbrrlogctl.style_disabled)
+		print(&write, buffer, dst, "%s", i_update_format(foreground, background, style, font));
 #endif
+
 	va_list lptr;
 	va_start(lptr, format);
 	vprint(&write, buffer, dst, format, lptr);
 	va_end(lptr);
+
 #if !defined(BRRPLATFORMTYPE_Windows)
-	if (gbrrlogctl.style_enabled)
+	if (!gbrrlogctl.style_disabled)
 		print(&write, buffer, dst, "%s", CLEAR_STYLE);
 #endif
+
 	if (gbrrlogctl.verbose_enabled)
 		print(&write, buffer, dst, " : '%s' @ %s:%llu", file, function, line);
 	if (gbrrlogctl.newline_enabled && print_newline)
 		print(&write, buffer, dst, "\n");
 
-	if (st_logmax && dst && !buffer)
-		fprintf(dst, "%s", st_buffer);
+	if (s_max_log && dst && !buffer)
+		fprintf(dst, "%s", s_log_buffer);
 	setlast(priority, destination, foreground, background, style, font);
-	st_logcount++;
+	s_log_count++;
 	if (gbrrlogctl.flush_always && dst)
 		fflush(dst);
 	return write;
@@ -405,8 +394,7 @@ brrlog_text(_brrlog_log_params, const char *const format, ...)
  * validation and actual logging were split into separate static functions.
  * */
 brrsz BRRCALL
-brrlog_digits(_brrlog_log_params, brru8 number, int base,
-    brrbl is_signed, char digit_separator, brrsz separator_spacing)
+brrlog_digits(_brrlog_log_params, brru8 number, int base, brrbl is_signed, char digit_separator, brrsz separator_spacing)
 {
 	static const char bases[] =
 		"0123456789"
@@ -442,9 +430,7 @@ brrlog_digits(_brrlog_log_params, brru8 number, int base,
 }
 
 brrsz BRRCALL
-brrlog_bits(_brrlog_log_params, const void *const data,
-    brrsz bits_to_print, brrbl reverse_bytes, brrbl reverse_bits, char bit_separator,
-    brrsz separator_spacing)
+brrlog_bits(_brrlog_log_params, const void *const data, brrsz bits_to_print, brrbl reverse_bytes, brrbl reverse_bits, char bit_separator, brrsz separator_spacing)
 {
 	static const brrsz byte_width = 8;
 	char *outstr = NULL;

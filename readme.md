@@ -3,6 +3,8 @@ A personal ~C99~ C11 library with the goal to have a single place for multiple
 cross-platform, miscellaneous utilities that are generally useful (to me
 anyways).
 
+**TODO**: this readme needs an update.
+
 Has absolutely no relation to [BRRtools][otherbrr]
 ## Contents
 [Contents](#contents)
