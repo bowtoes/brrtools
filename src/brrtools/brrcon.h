@@ -22,11 +22,11 @@ limitations under the License.
 _brrcppstart
 
 /* Pauses console until a character is pushed to stdin.
- * Returns 1.
+ * Returns 1 if implemented on the host system, 0 otherwise.
  * */
 BRRAPI int BRRCALL brrcon_pause(void);
 /* Clears console and puts cursor at start position.
- * Returns 1.
+ * Returns 1 if implemented on the host system, 0 otherwise.
  * */
 BRRAPI int BRRCALL brrcon_clear(void);
 

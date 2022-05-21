@@ -22,8 +22,7 @@ limitations under the License.
 
 _brrcppstart
 
-/* Returns the current time in microseconds, useful for timing things.
- * Should not be used as an accurate indication of real-world time.
+/* Returns the current time-of-day in microseconds.
  * */
 BRRAPI brru8 BRRCALL brrtime_utime(void);
 /* Pauses program execution for 'usec' microseconds. */

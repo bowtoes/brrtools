@@ -16,19 +16,22 @@ limitations under the License.
 
 #include "brrtools/brrhash.h"
 
+_brrcppstart
+
 brru8 BRRCALL
 brrhash_fnv1a(const void *const data, brrsz data_size)
 {
 	/* These values taken from the wikipedia page on FNV hash */
-	static const brru8 offset = 0xcbf29ce484222325;
-	static const brru8 prime = 0x100000001b3;
-	const char *const max = (char *)data + data_size;
+	#define offset 0xcbf29ce484222325ULL
+	#define prime 0x100000001b3ULL
 	union { brru8 v; brru1 a[8]; } hash = {.v = offset};
-	if (data && data_size) {
-		for (char *i = (char *)data; i < max; ++i) {
+	if (data) {
+		for (char *i = (char *)data; i < (char*)data+data_size; ++i) {
 			hash.a[4] ^= *i;
 			hash.v *= prime;
 		}
 	}
 	return hash.v;
 }
+
+_brrcppend

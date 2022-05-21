@@ -45,35 +45,31 @@ do {\
 	(_rnd)[2]^=_t;\
 	(_rnd)[3]=ROTL((_rnd)[3],45);\
 } while (0)
+
 #define GETRESULT(_rnd) ((_rnd)[0] + (_rnd)[3])
 
-/* Starting value determined from executing splitmix64 on '0' */
-static brru8 rnd[4] = {0x0, 0xe220a8397b1dcdaf, 0xa706dd2f4d197e6f, 0x238275bc38fcbe91};
 brru8 BRRCALL
 brrrand_rand(void)
 {
+	/* Starting value determined from executing splitmix64 on 0 */
+	static brru8 rnd[4] = {0x0, 0xe220a8397b1dcdaf, 0xa706dd2f4d197e6f, 0x238275bc38fcbe91};
 	brru8 res = GETRESULT(rnd);
 	XOSHIRO256(rnd);
 	return res;
 }
 
-static brru8 srnd[4] = {0};
 brru8 BRRCALL
 brrrand_srand(brru8 seed, brru8 iter)
 {
-	SPLITMIX64(seed,srnd);
+	static brru8 srnd[4] = {0};
+	SPLITMIX64(seed, srnd);
 	for (brru8 i = 0; i < iter; ++i)
 		XOSHIRO256(srnd);
 	return GETRESULT(srnd);
 }
 
-#define CPYSEED(_from, _to) (_to[0]=_from[0],_to[1]=_from[1],_to[2]=_from[2],_to[3]=_from[3])
-static brru8 trnd[4] = {0};
 brru8 BRRCALL
 brrrand_trand(brru8 iter)
 {
-	SPLITMIX64(brrtime_utime(), trnd);
-	for (brru8 i = 0; i < iter; ++i)
-		XOSHIRO256(srnd);
-	return GETRESULT(trnd);
+	return brrrand_srand(brrtime_utime(), iter);
 }

@@ -22,12 +22,12 @@ limitations under the License.
 
 _brrcppstart
 
-/* Appropriately allocates memory to the pointer pointed to by 'current', depending
- * on 'size' and 'zero'.
+/* (Re)Allocates memory to the pointer pointed to by 'current'.
  * Returns 0 on success.
- * If allocation fails, 'current' is left unaffected and -1 is returned.
- * If 'size' is 0, the data pointed to by 'current' is freed if it is not NULL.
- * If 'zero' is true, the allocated memory will be initialized to 0.
+ * If an error occurs, '*current' is left unaffected and -1 returned.
+ * If 'current' is NULL, nothing is done and 0 is returned.
+ * If 'size' is 0, '*current' is freed and set to NULL.
+ * If 'blank != 0' and 'size > 0', the memory (re)allocated is set to 0.
  * */
 BRRAPI int BRRCALL brrlib_alloc(void **current, brrsz size, brrbl zero);
 

@@ -21,21 +21,22 @@ limitations under the License.
 #include "brrtools/brrlib.h"
 
 int BRRCALL
-brrlib_alloc(void **current, brrsz size, brrbl zero)
+brrlib_alloc(void **current, brrsz size, brrbl blank)
 {
 	if (!current)
 		return 0;
+
+	void *p = *current;
 	if (size) {
-		void *t;
-		t = *current?realloc(*current, size):malloc(size);
+		void *t = p ? realloc(p, size) : blank ? calloc(1,size) : malloc(size);
 		if (!t)
 			return -1;
-		if (zero)
-			memset(t, 0, size);
-		*current = t;
-	} else if (*current) {
-		free(*current);
-		*current = NULL;
+		p = t;
+		*current = p;
+	} else if (p) {
+		free(p);
+		p = NULL;
+		*current = p;
 	}
 	return 0;
 }
