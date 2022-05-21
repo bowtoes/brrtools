@@ -175,7 +175,7 @@ brrpath_clean(brrstringr_t *const out, const brrstringr_t *const path)
 	if ((e = brrstringr_copy(&c, path))) {
 		return -1;
 	}
-	if (brrstringr_filter_chars(&c, i_pathsep_filter)) {
+	if (brrstringr_filter_chars(&c, i_pathsep_filter, 0)) {
 		brrstringr_free(&c);
 		return -1;
 	}
@@ -286,8 +286,6 @@ brrpath_join(brrstringr_t *const out, const brrpath_components_t *const componen
 	if (!out || !components)
 		return -1;
 
-	brrstringr_t s = {0};
-	int err = 0;
 	return brrpath_join_parts(out,
 		components->directory.cstr?&components->directory:NULL,
 		components->base_name.cstr?&components->base_name:NULL,
