@@ -12,6 +12,7 @@ tags
 *.cache/
 *.old/
 *.stor/
+test/
 build/
 *.sh
 *.tmp

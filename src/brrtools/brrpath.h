@@ -46,6 +46,18 @@ _brrcppstart
 # define BRRPATH_CASE_SENSITIVE 1
 #endif
 
+#include <string.h>
+#if BRRPATH_CASE_SENSITIVE
+# define brrpathcmp strcmp
+#else
+# include <strings.h>
+# if defined(BRRPLATFORMTYPE_Windows)
+#  define brrpathcmp _stricmp
+# else
+#  define brrpathcmp strcasecmp
+# endif
+#endif
+
 /* Type of path.
  * Values:
  * - brrpath_type_none,      : Invalid/unset path type
@@ -105,8 +117,12 @@ BRRAPI void BRRCALL brrpath_components_free(brrpath_components_t *const componen
  * Returns 0 on success.
  * If an error occurs or 'path' is NULL, 'directory', 'base_name', and 'extension' are left unaffected and -1 is returned.
  * */
-BRRAPI int BRRCALL brrpath_split_parts(brrstringr_t *const directory, brrstringr_t *const base_name, brrstringr_t *const extension,
-	const brrstringr_t *const path);
+BRRAPI int BRRCALL brrpath_split_parts(
+    brrstringr_t *const directory,
+    brrstringr_t *const base_name,
+    brrstringr_t *const extension,
+    const brrstringr_t *const path
+);
 /* Splits 'path' into its directory, base name, and extension components, storing the splits in 'components'.
  * Returns 0 on success.
  * If an error occurs or 'path' or 'out' is NULL, 'components' is left unaffected and -1 is returned.
@@ -118,10 +134,12 @@ BRRAPI int BRRCALL brrpath_split(brrpath_components_t *const out, const brrstrin
  * Returns 0 on success.
  * If an error occurs or 'out' is NULL, 'path' is unaffected and -1 is returned.
  * */
-BRRAPI int BRRCALL brrpath_join_parts(brrstringr_t *const out,
-	const brrstringr_t *const directory,
-	const brrstringr_t *const base_name,
-	const brrstringr_t *const extension);
+BRRAPI int BRRCALL brrpath_join_parts(
+    brrstringr_t *const out,
+    const brrstringr_t *const directory,
+    const brrstringr_t *const base_name,
+    const brrstringr_t *const extension
+);
 /* Combines pathname components in 'components' into 'path' formatted as:
  *     directory + '/' + base_name + '.' + extension
  * Returns 0 on success.
@@ -187,6 +205,7 @@ typedef struct brrpath_walk_options {
 	brrsz min_depth;              // Minimum depth to include in result
 	brrsz max_depth;              // Minimum depth to stop walking
 	brrpath_walk_filter_t filter; // Filter function that returns zero for paths that are to be included in the output
+	brrbl invert;                 // Invert filter matching; include paths for which 'filter' returns non-zero instead.
 } brrpath_walk_options_t;
 /* The results from 'brrpath_walk', stored in an array.
  * Fields:
@@ -198,17 +217,19 @@ typedef struct brrpath_walk_result {
 	brrsz n_results;         // Number of results in result array
 } brrpath_walk_result_t;
 
-/* Walks all directories and subdirectories of 'path' according to 'options',
- * adding all files and directories to 'result' for which 'filter' returns
- * zero.
+/* Walks all directories and subdirectories of 'path' according to 'options', adding all files and
+ *   directories to 'result' for which 'filter' returns zero.
  * Returns 0 on success.
- * If an error occurs or 'result' or 'path' are NULL, 'result' is left
- * unaffected and -1 is returned.
- * A NULL filter can be used, in which case every encountered directory entry
- * is included in 'result'.
+ * If an error occurs or 'path' is NULL, 'result' is left unaffected and -1 is returned.
+ * A NULL filter can be used, in which case every encountered dirent is included in 'result'.
+ * 'result' can be NULL, in which case it is up to the given filter to free the path informations that are
+ *   passed to it that pass the filter; for this reason, 'options->invert' does nothing in this case.
  * */
-BRRAPI int BRRCALL brrpath_walk(brrpath_walk_result_t *const result,
-    const brrstringr_t *const path, brrpath_walk_options_t options);
+BRRAPI int BRRCALL brrpath_walk(
+    brrpath_walk_result_t *const result,
+    const brrstringr_t *const path,
+    brrpath_walk_options_t options
+);
 /* Deletes all infos in 'result' and deletes the array.
  * Sets 'n_results' to 0.
  * */

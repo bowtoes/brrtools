@@ -239,83 +239,98 @@ brrlog_deinit(void)
 	}
 }
 
-#define _print_prototype brrsz *const wrt, char *const buffer, FILE *const dst, const char *const fmt
-static void BRRCALL
-i_vbuff_print(_print_prototype, va_list lptr) { *wrt += vsprintf(buffer + *wrt, fmt, lptr); }
-static void BRRCALL
-i_buff_print(_print_prototype, ...)
+#define s_print_prototype brrsz *const written, char *const buffer, FILE *const destination, const char *const format
+typedef void (*s_vprint_t)(s_print_prototype, va_list);
+typedef void (*s_print_t)(s_print_prototype, ...);
+static inline void BRRCALL
+i_vbuff_print(s_print_prototype, va_list lptr)
+{
+	*written += vsprintf(buffer + *written, format, lptr);
+}
+static inline void BRRCALL
+i_buff_print(s_print_prototype, ...)
 {
 	va_list lptr;
-	va_start(lptr, fmt);
-	i_vbuff_print(wrt, buffer, dst, fmt, lptr);
+	va_start(lptr, format);
+	i_vbuff_print(written, buffer, destination, format, lptr);
 	va_end(lptr);
 }
-
-static void BRRCALL
-i_vno_max_print(_print_prototype, va_list lptr) { *wrt += vfprintf(dst, fmt, lptr); }
-static void BRRCALL
-i_no_max_print(_print_prototype, ...)
-{ va_list lptr;
-	va_start(lptr, fmt);
-	i_vno_max_print(wrt, buffer, dst, fmt, lptr);
-	va_end(lptr);
-}
-
-static void BRRCALL
-i_vmax_print(_print_prototype, va_list lptr)
-{
-	brrof tmp;
-	if (s_max_log < *wrt)
-		*wrt = s_max_log;
-	tmp = vsnprintf(s_log_buffer + *wrt, s_max_log - *wrt, fmt, lptr);\
-	if (tmp > 0) *wrt += ((brrsz)tmp) < s_max_log ? ((brrsz)tmp) : s_max_log - *wrt - 1;\
-}
-static void BRRCALL
-i_max_print(_print_prototype, ...)
-{
-	va_list lptr;
-	va_start(lptr, fmt);
-	i_vmax_print(wrt, buffer, dst, fmt, lptr);
-	va_end(lptr);
-}
-
 
 static inline void BRRCALL
-setlast(brrlog_priority_t priority, brrlog_destination_t destination, brrlog_color_t foreground, brrlog_color_t background, brrlog_style_t style, brrlog_font_t font)
+i_vno_max_print(s_print_prototype, va_list lptr)
 {
-	gbrrlog_type.last = (brrlog_type_t){
-		.level={.priority=priority, .destination=destination},
-		.format={.foreground=foreground, .background=background, .style=style, .font=font}
-	};
+	*written += vfprintf(destination, format, lptr);
 }
+static inline void BRRCALL
+i_no_max_print(s_print_prototype, ...)
+{
+	va_list lptr;
+	va_start(lptr, format);
+	i_vno_max_print(written, buffer, destination, format, lptr);
+	va_end(lptr);
+}
+
+static inline void BRRCALL
+i_vmax_print(s_print_prototype, va_list lptr)
+{
+	if (*written > s_max_log)
+		*written = s_max_log;
+	brrof tmp = vsnprintf(s_log_buffer + *written, s_max_log - *written, format, lptr);
+	if (tmp > 0) {
+		*written += ((brrsz)tmp) < s_max_log ? ((brrsz)tmp) : s_max_log - *written - 1;
+	}
+}
+static inline void BRRCALL
+i_max_print(s_print_prototype, ...)
+{
+	va_list lptr;
+	va_start(lptr, format);
+	i_vmax_print(written, buffer, destination, format, lptr);
+	va_end(lptr);
+}
+
+
+#define _use_last(_from_, _var_, _src_)\
+do {\
+	if (_var_ <= brrlog_##_src_##_last) {\
+		_var_ = gbrrlog_type.last._from_._var_;\
+	}\
+} while (0)
+#define _set_last(_priority_, _destination_, _foreground_, _background_, _style_, _font_)\
+do {\
+	gbrrlog_type.last = (brrlog_type_t){\
+		.level={.priority=(_priority_), .destination=(_destination_)},\
+		.format={.foreground=(_foreground_), .background=(_background_), .style=(_style_), .font=(_font_)}\
+	};\
+} while (0)
+
 #define _brrlog_full_args priority, destination, prefix, \
     foreground, background, style, font, buffer, print_prefix, print_newline, \
 	file, function, line
 brrsz BRRCALL
 brrlog_text(_brrlog_log_params, const char *const format, ...)
 {
-	#define _use_last_(_from_, _var_, _src_) if (_var_ <= brrlog_##_src_##_last) _var_ = gbrrlog_type.last._from_._var_
-	_use_last_(level,  priority, priority);
-	_use_last_(level,  destination, destination);
-	_use_last_(format, foreground, color);
-	_use_last_(format, background, color);
-	_use_last_(format, style, style);
-	_use_last_(format, font, font);
-	#undef _use_last_
+	_use_last(level,  priority, priority);
+	_use_last(level,  destination, destination);
+	_use_last(format, foreground, color);
+	_use_last(format, background, color);
+	_use_last(format, style, style);
+	_use_last(format, font, font);
 	if (!format || priority < s_min_prt || priority > s_max_prt) {
-		setlast(priority, destination, foreground, background, style, font);
+		_set_last(priority, destination, foreground, background, style, font);
 		return 0;
 	}
-/* If BRRTOOLS_DEBUG was defined, always print debug priority logs */
+
 #if defined(BRRTOOLS_DEBUG)
+	/* Always print DEBUG priority logs when compiled in debug mode */
 	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug) {
-		setlast(priority, destination, foreground, background, style, font);
+		_set_last(priority, destination, foreground, background, style, font);
 		return 0;
 	}
 #endif
 
-	void (*vprint)(_print_prototype, va_list) = NULL;
-	void (*print)(_print_prototype, ...) = NULL;
+	s_vprint_t vprint = NULL;
+	s_print_t print = NULL;
 	if (buffer) {
 		vprint = i_vbuff_print;
 		print = i_buff_print;
@@ -383,7 +398,7 @@ brrlog_text(_brrlog_log_params, const char *const format, ...)
 
 	if (s_max_log && dst && !buffer)
 		fprintf(dst, "%s", s_log_buffer);
-	setlast(priority, destination, foreground, background, style, font);
+	_set_last(priority, destination, foreground, background, style, font);
 	s_log_count++;
 	if (gbrrlogctl.flush_always && dst)
 		fflush(dst);
