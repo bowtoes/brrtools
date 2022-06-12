@@ -17,15 +17,18 @@ limitations under the License.
 #ifndef BRRMACRO_H
 #define BRRMACRO_H
 
-#define _brrmacro_eval0(...) __VA_ARGS__
-#define _brrmacro_eval1(...) _brrmacro_eval0(_brrmacro_eval0(_brrmacro_eval0(_brrmacro_eval0(__VA_ARGS__))))
-#define _brrmacro_eval2(...) _brrmacro_eval1(_brrmacro_eval1(_brrmacro_eval1(_brrmacro_eval1(__VA_ARGS__))))
-#define _brrmacro_eval3(...) _brrmacro_eval2(_brrmacro_eval2(_brrmacro_eval2(_brrmacro_eval2(__VA_ARGS__))))
-#define _brrmacro_eval4(...) _brrmacro_eval3(_brrmacro_eval3(_brrmacro_eval3(_brrmacro_eval3(__VA_ARGS__))))
-#define _brrmacro_eval5(...) _brrmacro_eval4(_brrmacro_eval4(_brrmacro_eval4(_brrmacro_eval4(__VA_ARGS__))))
-#define BRRMACRO_EVAL(...) _brrmacro_eval5(__VA_ARGS__)
+#define _brr_eval0(...) __VA_ARGS__
+#define _brr_eval1(...) _brr_eval0(_brr_eval0(_brr_eval0(_brr_eval0(__VA_ARGS__))))
+#define _brr_eval2(...) _brr_eval1(_brr_eval1(_brr_eval1(_brr_eval1(__VA_ARGS__))))
+#define _brr_eval3(...) _brr_eval2(_brr_eval2(_brr_eval2(_brr_eval2(__VA_ARGS__))))
+#define _brr_eval4(...) _brr_eval3(_brr_eval3(_brr_eval3(_brr_eval3(__VA_ARGS__))))
+#define _brr_eval5(...) _brr_eval4(_brr_eval4(_brr_eval4(_brr_eval4(__VA_ARGS__))))
+#define brr_expand(...) _brr_eval5(__VA_ARGS__)
 
-#define _brrmacro_narg1( \
+#define brr_stringify(_x_) #_x_
+#define brr_estringify(_x_) brr_stringify(brr_expand(_x_))
+
+#define _brr_narg1( \
 	      _01_, _02_, _03_, _04_, _05_, _06_, _07_, _08_, _09_, _0A_, _0B_, _0C_, _0D_, _0E_, _0F_, \
 	_10_, _11_, _12_, _13_, _14_, _15_, _16_, _17_, _18_, _19_, _1A_, _1B_, _1C_, _1D_, _1E_, _1F_, \
 	_20_, _21_, _22_, _23_, _24_, _25_, _26_, _27_, _28_, _29_, _2A_, _2B_, _2C_, _2D_, _2E_, _2F_, \
@@ -43,25 +46,25 @@ limitations under the License.
 	_E0_, _E1_, _E2_, _E3_, _E4_, _E5_, _E6_, _E7_, _E8_, _E9_, _EA_, _EB_, _EC_, _ED_, _EE_, _EF_, \
 	_F0_, _F1_, _F2_, _F3_, _F4_, _F5_, _F6_, _F7_, _F8_, _F9_, _FA_, _FB_, _FC_, _FD_, _FE_, _FF_, \
 	_NN_, ...) _NN_
-#define _brrmacro_narg0(...) _brrmacro_narg1(__VA_ARGS__)
-#define _brrmacro_sequence() \
-	0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8, 0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0, \
-	0xEF, 0xEE, 0xED, 0xEC, 0xEB, 0xEA, 0xE9, 0xE8, 0xE7, 0xE6, 0xE5, 0xE4, 0xE3, 0xE2, 0xE1, 0xE0, \
-	0xDF, 0xDE, 0xDD, 0xDC, 0xDB, 0xDA, 0xD9, 0xD8, 0xD7, 0xD6, 0xD5, 0xD4, 0xD3, 0xD2, 0xD1, 0xD0, \
-	0xCF, 0xCE, 0xCD, 0xCC, 0xCB, 0xCA, 0xC9, 0xC8, 0xC7, 0xC6, 0xC5, 0xC4, 0xC3, 0xC2, 0xC1, 0xC0, \
-	0xBF, 0xBE, 0xBD, 0xBC, 0xBB, 0xBA, 0xB9, 0xB8, 0xB7, 0xB6, 0xB5, 0xB4, 0xB3, 0xB2, 0xB1, 0xB0, \
-	0xAF, 0xAE, 0xAD, 0xAC, 0xAB, 0xAA, 0xA9, 0xA8, 0xA7, 0xA6, 0xA5, 0xA4, 0xA3, 0xA2, 0xA1, 0xA0, \
-	0x9F, 0x9E, 0x9D, 0x9C, 0x9B, 0x9A, 0x99, 0x98, 0x97, 0x96, 0x95, 0x94, 0x93, 0x92, 0x91, 0x90, \
-	0x8F, 0x8E, 0x8D, 0x8C, 0x8B, 0x8A, 0x89, 0x88, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0x81, 0x80, \
-	0x7F, 0x7E, 0x7D, 0x7C, 0x7B, 0x7A, 0x79, 0x78, 0x77, 0x76, 0x75, 0x74, 0x73, 0x72, 0x71, 0x70, \
-	0x6F, 0x6E, 0x6D, 0x6C, 0x6B, 0x6A, 0x69, 0x68, 0x67, 0x66, 0x65, 0x64, 0x63, 0x62, 0x61, 0x60, \
-	0x5F, 0x5E, 0x5D, 0x5C, 0x5B, 0x5A, 0x59, 0x58, 0x57, 0x56, 0x55, 0x54, 0x53, 0x52, 0x51, 0x50, \
-	0x4F, 0x4E, 0x4D, 0x4C, 0x4B, 0x4A, 0x49, 0x48, 0x47, 0x46, 0x45, 0x44, 0x43, 0x42, 0x41, 0x40, \
-	0x3F, 0x3E, 0x3D, 0x3C, 0x3B, 0x3A, 0x39, 0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, 0x30, \
-	0x2F, 0x2E, 0x2D, 0x2C, 0x2B, 0x2A, 0x29, 0x28, 0x27, 0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x20, \
-	0x1F, 0x1E, 0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10, \
-	0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
-#define _brrmacro_commas() \
+#define _brr_narg0(...) _brr_narg1(__VA_ARGS__)
+#define _brr_sequence() \
+	255, 254, 253, 252, 251, 250, 249, 248, 247, 246, 245, 244, 243, 242, 241, 240, \
+	239, 238, 237, 236, 235, 234, 233, 232, 231, 230, 229, 228, 227, 226, 225, 224, \
+	223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208, \
+	207, 206, 205, 204, 203, 202, 201, 200, 199, 198, 197, 196, 195, 194, 193, 192, \
+	191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, \
+	175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162, 161, 160, \
+	159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148, 147, 146, 145, 144, \
+	143, 142, 141, 140, 139, 138, 137, 136, 135, 134, 133, 132, 131, 130, 129, 128, \
+	127, 126, 125, 124, 123, 122, 121, 120, 119, 118, 117, 116, 115, 114, 113, 112, \
+	111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100,  99,  98,  97,  96, \
+	 95,  94,  93,  92,  91,  90,  89,  88,  87,  86,  85,  84,  83,  82,  81,  80, \
+	 79,  78,  77,  76,  75,  74,  73,  72,  71,  70,  69,  68,  67,  66,  65,  64, \
+	 63,  62,  61,  60,  59,  58,  57,  56,  55,  54,  53,  52,  51,  50,  49,  48, \
+	 47,  46,  45,  44,  43,  42,  41,  40,  39,  38,  37,  36,  35,  34,  33,  32, \
+	 31,  30,  29,  28,  27,  26,  25,  24,  23,  22,  21,  20,  19,  18,  17,  16, \
+	 15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0
+#define _brr_commas() \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
@@ -78,42 +81,36 @@ limitations under the License.
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0
-#define _brrmacro_comma(...) ,
-#define _brrmacro_has_comma(...) _brrmacro_narg0(__VA_ARGS__, _brrmacro_commas())
+#define _brr_comma(...) ,
+#define _brr_has_comma(...) _brr_narg0(__VA_ARGS__, _brr_commas())
 
-#define _brrmacro_narg_help00(_n_) 1
-#define _brrmacro_narg_help01(_n_) 0
-#define _brrmacro_narg_help11(_n_) _n_
-#define _brrmacro_narg_help1(_a_, _b_, _n_) _brrmacro_narg_help##_a_##_b_(_n_)
-#define _brrmacro_narg_help0(_a_, _b_, _n_) _brrmacro_narg_help1(_a_, _b_, _n_)
+#define _brr_narg_help00(_n_) 1
+#define _brr_narg_help01(_n_) 0
+#define _brr_narg_help11(_n_) _n_
+#define _brr_narg_help1(_a_, _b_, _n_) _brr_narg_help##_a_##_b_(_n_)
+#define _brr_narg_help0(_a_, _b_, _n_) _brr_narg_help1(_a_, _b_, _n_)
 
-#define BRRMACRO_NARG(...) \
-	_brrmacro_narg_help0( \
-		_brrmacro_has_comma(__VA_ARGS__), \
-		_brrmacro_has_comma(_brrmacro_comma __VA_ARGS__ ()), \
-		_brrmacro_narg0(__VA_ARGS__, _brrmacro_sequence()))
+#define brr_narg(...) \
+	_brr_narg_help0( \
+		_brr_has_comma(__VA_ARGS__), \
+		_brr_has_comma(_brr_comma __VA_ARGS__ ()), \
+		_brr_narg0(__VA_ARGS__, _brr_sequence()))
 
-#define _brrmacro_paste2(_1_, _2_) _1_ ## _2_
-#define BRRMACRO_PASTE(_1_,_2_) _brrmacro_paste2(_1_, _2_)
+#define _brrjoin2(_1_, _2_) _1_ ## _2_
+#define brr_join(_1_,_2_) _brrjoin2(_1_, _2_)
 
-//#define _brrmacro_index_get0(_0_, ...) (_0_)
-//#define _brrmacro_index_after0(_0_, ...) __VA_ARGS__
-//#define BRRMACRO_INDEX(_n_, ...) _brrmacro_eval(BRRMACRO_PASTE(_brrmacro_index_get0, _n_ (__VA_ARGS__)))
-//#define BRRMACRO_AFTER(_n_, ...) _brrmacro_eval(BRRMACRO_PASTE(_brrmacro_index_after0, _n_ (__VA_ARGS__)))
+//#define _brr_index_get0(_0_, ...) (_0_)
+//#define _brr_index_after0(_0_, ...) __VA_ARGS__
+//#define BRRMACRO_INDEX(_n_, ...) _brr_eval(BRRMACRO_PASTE(_brr_index_get0, _n_ (__VA_ARGS__)))
+//#define BRRMACRO_AFTER(_n_, ...) _brr_eval(BRRMACRO_PASTE(_brr_index_after0, _n_ (__VA_ARGS__)))
 
-#define BRRMACRO_STRINGIFY(_x_) #_x_
+#define brr_array_length(_a_) (sizeof(_a_)/sizeof(*(_a_)))
+#define brr_array_iter(_t_, _i_, _a_) for (_t_ _i_ = 0; _i_ < brrarray_length(_a_); ++_i_)
+#define brr_array(_t_, ...) ((_t_ []){__VA_ARGS__})
 
-#define BRR_ARRAY_LENGTH(_a_) (sizeof(_a_)/sizeof((_a_)[0]))
-#define BRR_SAFESTR(_s_,_r_) ((_s_)?(_s_):(_r_))
-#define BRR_NULL_STR(_s_)   BRR_SAFESTR(_s_, "(nul)")
-#define BRR_EMPTY_STR(_s_) BRR_SAFESTR(_s_, "")
-#define BRR_ITER_ARRAY(_t_, _i_, _a_) for (_t_ _i_ = 0; _i_ < BRR_ARRAY_LENGTH(_a_); ++_i_)
-#define BRR_AS_ARRAY(_t_, ...) ((_t_ []){__VA_ARGS__})
+#define brr_any(_x_, _f_) (((_x_)&(_f_))!=0)
+#define brr_all(_x_, _f_) (((_x_)&(_f_))==(_f_))
 
-#define BRR_MATCH_ANY(_x_, _f_) (((_x_)&(_f_))!=0)
-#define BRR_MATCH_ALL(_x_, _f_) (((_x_)&(_f_))==(_f_))
-#define BRR_TOGGLE(_a_) ((_a_)=!(_a_))
-
-#define BRR_AS_CSTR(_x_) ((const char *)#_x_)
+#include <brrtools/brrmacro_map.h>
 
 #endif /* BRRMACRO_H */

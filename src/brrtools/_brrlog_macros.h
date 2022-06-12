@@ -1,49 +1,60 @@
 #ifndef _brrlog_macros_h
 #define _brrlog_macros_h
 
-#define _brrlog_cat0(cat, \
-    priority, destination, prefix, foreground, background, style, font, \
-    buffer, print_prefix, print_newline, ...) \
-    brrlog_##cat(priority, destination, prefix, foreground, background, style, font, \
-        buffer, print_prefix, print_newline, __FILE__, __func__, __LINE__, __VA_ARGS__)
+/* Category choice */
 
-#define _brrlog_cat1(cat, \
-    priority, destination, prefix, foreground, background, style, font, ...) \
+/* All explicit arguments */
+#define _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, print_prefix, print_newline, ...) \
+    brrlog_##cat(priority, destination, prefix, foreground, background, style, font, buffer, print_prefix, print_newline, __FILE__, __func__, __LINE__, __VA_ARGS__)
+
+/* No buffer, prefix, newline */
+#define _brrlog_cat1(cat, priority, destination, prefix, foreground, background, style, font, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 1, 1, __VA_ARGS__)
-#define _brrlog_cat2(cat, \
-    priority, destination, prefix, foreground, background, style, font, ...) \
+
+/* No buffer, prefix, no newline */
+#define _brrlog_cat2(cat, priority, destination, prefix, foreground, background, style, font, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 1, 0, __VA_ARGS__)
-#define _brrlog_cat3(cat, \
-    priority, destination, prefix, foreground, background, style, font, ...) \
+
+/* No buffer, no prefix, newline */
+#define _brrlog_cat3(cat, priority, destination, prefix, foreground, background, style, font, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 0, 1, __VA_ARGS__)
-#define _brrlog_cat4(cat, \
-    priority, destination, prefix, foreground, background, style, font, ...) \
+
+/* No buffer, no prefix, no newline */
+#define _brrlog_cat4(cat, priority, destination, prefix, foreground, background, style, font, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, NULL, 0, 0, __VA_ARGS__)
-#define _brrlog_cat5(cat, \
-    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+
+/* Buffer, prefix, newline */
+#define _brrlog_cat5(cat, priority, destination, prefix, foreground, background, style, font, buffer, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 1, 1, __VA_ARGS__)
-#define _brrlog_cat6(cat, \
-    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+
+/* Buffer, prefix, no newline */
+#define _brrlog_cat6(cat, priority, destination, prefix, foreground, background, style, font, buffer, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 1, 0, __VA_ARGS__)
-#define _brrlog_cat7(cat, \
-    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+
+/* Buffer, no prefix, newline */
+#define _brrlog_cat7(cat, priority, destination, prefix, foreground, background, style, font, buffer, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 0, 1, __VA_ARGS__)
-#define _brrlog_cat8(cat, \
-    priority, destination, prefix, foreground, background, style, font, buffer, ...) \
+
+/* Buffer, no prefix, no newline */
+#define _brrlog_cat8(cat, priority, destination, prefix, foreground, background, style, font, buffer, ...) \
     _brrlog_cat0(cat, priority, destination, prefix, foreground, background, style, font, buffer, 0, 0, __VA_ARGS__)
 
+
+/* Explicit level, explicit format */
 #define _brrlog_docat0(type, cat, priority, destination, prefix, foreground, background, style, font, ...) \
     _brrlog_cat##type(cat, priority, destination, prefix, foreground, background, style, font, __VA_ARGS__)
+
+/* Struct level, explicit format */
 #define _brrlog_docat1(type, cat, level, foreground, background, style, font, ...) \
     _brrlog_cat##type(cat, level.priority, level.destination, level.prefix, foreground, background, style, font, __VA_ARGS__)
+
+/* Explicit level, struct format */
 #define _brrlog_docat2(type, cat, priority, destination, prefix, format, ...) \
-    _brrlog_cat##type(cat, priority, destination, prefix, \
-        format.foreground, format.background, format.style, format.font, \
-        __VA_ARGS__)
+    _brrlog_cat##type(cat, priority, destination, prefix, format.foreground, format.background, format.style, format.font, __VA_ARGS__)
+
+/* Struct level, struct format */
 #define _brrlog_docat3(type, cat, level, format, ...) \
-    _brrlog_cat##type(cat, level.priority, level.destination, level.prefix, \
-        format.foreground, format.background, format.style, format.font, \
-        __VA_ARGS__)
+    _brrlog_cat##type(cat, level.priority, level.destination, level.prefix, format.foreground, format.background, format.style, format.font, __VA_ARGS__)
 
 #define _brrlog_docatn(typeA, typeB, cat, ...) _brrlog_docat##typeA(typeB, cat, __VA_ARGS__)
 
