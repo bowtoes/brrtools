@@ -1,3 +1,7 @@
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
+
 #ifndef BRRTOOLS_PLATFORM_H
 #define BRRTOOLS_PLATFORM_H
 
@@ -41,14 +45,14 @@
 #if defined(_AIX)
 # define BRRPLATFORMNAME BRRPLATFORMNAME_AIX
 # define BRRPLATFORM BRRPLATFORM_AIX
-#elif defined(hpux) || defined(__hpux)
+#elif defined(__hpux) /* || defined(hpux) */
 # define BRRPLATFORMNAME BRRPLATFORMNAME_HPUX
 # define BRRPLATFORM BRRPLATFORM_HPUX
 #elif defined(__sun) && defined(__SVR4) /* does not detect old BSD-based sol */
 # define BRRPLATFORMNAME BRRPLATFORMNAME_Sun
 # define BRRPLATFORM BRRPLATFORM_Sun
-#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
-# if defined(WIN64) || defined(_WIN64) || defined(__WIN64) || defined(__WIN64__)
+#elif defined(_WIN32) /* || defined(WIN32) || defined(__WIN32) || defined(__WIN32__) */
+# if defined(_WIN64) /* || defined(WIN64) || defined(__WIN64) || defined(__WIN64__) */
 #  if defined(__MINGW64__)
 #   define BRRPLATFORMNAME BRRPLATFORMNAME_MinGW64
 #   define BRRPLATFORM BRRPLATFORM_MinGW64
@@ -56,7 +60,7 @@
 #   define BRRPLATFORMNAME BRRPLATFORMNAME_Win64
 #   define BRRPLATFORM BRRPLATFORM_Win64
 #  endif
-# elif defined(__CYGWIN__) || defined(__CYGWIN32__)
+# elif defined(__CYGWIN__) || defined(__CYGWIN32__) /* Non-POSIX Cygwin */
 #  define BRRPLATFORMNAME BRRPLATFORMNAME_Cygwin
 #  define BRRPLATFORM BRRPLATFORM_Cygwin
 # elif defined(__MINGW32__)
@@ -66,8 +70,7 @@
 #  define BRRPLATFORMNAME BRRPLATFORMNAME_Win32
 #  define BRRPLATFORM BRRPLATFORM_Win32
 # endif
-/* posix cygwin */
-#elif defined(__CYGWIN__) || defined(__CYGWIN32__)
+#elif defined(__CYGWIN__) || defined(__CYGWIN32__) /* POSIX Cygwin */
 # define BRRPLATFORMNAME BRRPLATFORMNAME_POSIXCygwin
 # define BRRPLATFORM BRRPLATFORM_POSIXCygwin
 #elif defined(unix) || defined(__unix) || defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))

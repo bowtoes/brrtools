@@ -1,18 +1,6 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #ifndef BRRDATA_H
 #define BRRDATA_H
@@ -22,7 +10,9 @@ limitations under the License.
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
-_brrcppstart
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* Resizes 'array' of size 'n_elements' to size of 'new_elements', each element
  * of 'data_size' bytes.
@@ -148,6 +138,8 @@ brrdata_reverse(void *const array, brrsz n_elements, brrsz data_size);
 BRRAPI void BRRCALL
 brrdata_reverse_bytes(void *const array, brrsz total_bytes);
 
-_brrcppend
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* BRRDATA_H */

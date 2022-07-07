@@ -1,18 +1,6 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #include <ctype.h>
 #include <stdio.h>
@@ -133,21 +121,18 @@ brrstringr_trim_whitespace(brrstringr_t *const string, brrbl leading, brrbl tail
 		for(;s < e && isspace(string->cstr[s]); ++s);
 		if (s != 0) {
 			brrsz nl = e - s;
-			char *t = NULL;
-			/* 'calloc' instead of 'memmove' and 'realloc' to leave 'string'
-			 * unaffected in case of error */
-			if (!(t = calloc(1, nl + 1)))
+			char *new = realloc(string->cstr, nl + 1);
+			if (!new)
 				return -1;
-			memcpy(t, string->cstr + s, nl);
-			free(string->cstr);
-			string->cstr = t;
+			new[nl] = 0;
+			string->cstr = new;
 			string->length = nl;
 		}
 	}
 	return 0;
 }
 
-static brrsz BRRCALL
+static inline brrsz BRRCALL
 i_vprint(
     brrstringr_t *const string,
     brrsz offset,
@@ -226,7 +211,7 @@ brrstringr_vprint(
 	return i_vprint(string, offset, max_length, format, lptr);
 }
 
-static brrsz BRRCALL
+static inline brrsz BRRCALL
 i_find_next_delimni(
     const brrstringr_t *const string,
     const brrstringr_t *const delim,
@@ -240,7 +225,7 @@ i_find_next_delimni(
 	}
 	return current;
 }
-static brrsz BRRCALL
+static inline brrsz BRRCALL
 i_find_next_delimm(
     const brrstringr_t **delim_idx,
     const brrstringr_t *const string,
@@ -266,7 +251,7 @@ i_find_next_delimm(
 	*delim_idx = dlm;
 	return min;
 }
-static int BRRCALL
+static inline int BRRCALL
 i_add_next_split(
     brrstringr_t **splits,
     brrsz *n_splits,
@@ -296,7 +281,7 @@ i_add_next_split(
 	}
 	return 0;
 }
-static int BRRCALL
+static inline int BRRCALL
 i_split_str(
     brrstringr_t **strings,
     brrsz *const n_strings,

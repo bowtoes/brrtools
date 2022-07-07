@@ -1,18 +1,6 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #include "brrtools/brrpath.h"
 #include "brrtools/brrlog.h"
@@ -21,12 +9,6 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* TODO at some point, for all failing argument checks in functions should set
- * errno to EINVAL */
-/* TODO also at some point, there should be such a thing as internal error
- * codes for more precise error reporting, based on the function that produces
- * the error */
 
 #if defined(BRRPLATFORMTYPE_Windows)
 #elif defined(BRRPLATFORMTYPE_unix)
@@ -377,7 +359,7 @@ static const brrpath_walk_options_t *s_walk_options;
 #if defined(BRRPLATFORMTYPE_Windows)
 /* TODO minimize 'i_walk' and 'i_walk_filt' to be a single function? */
 /* TODO WINDOWS IS UNTESTED DEAR GOD */
-static int BRRCALL
+static inline int BRRCALL
 i_walk_filt(const char *const fpath, brrsz current_depth)
 {
 	HANDLE start;
@@ -436,7 +418,7 @@ i_walk_filt(const char *const fpath, brrsz current_depth)
 	return err;
 }
 /* Entrance of the walk */
-static int BRRCALL
+static inline int BRRCALL
 i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 {
 	brrpath_info_t res = {
@@ -469,7 +451,7 @@ i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 
 }
 #elif defined(BRRPLATFORMTYPE_unix)
-static int BRRCALL
+static inline int BRRCALL
 i_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
 {
 	if ((unsigned)ftw->level < s_walk_options->min_depth) {

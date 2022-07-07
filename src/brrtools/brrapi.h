@@ -3,26 +3,16 @@
 
 #if defined(_WIN32)
 # define BRRCALL __cdecl
-# if defined(BRRTOOLS_EXPORTS) || defined(BRRTOOLS_IMPORTS)
-#  if defined(BRRTOOLS_EXPORTS) && !defined(BRRTOOLS_IMPORTS)
-#   define BRRAPI __declspec(dllexport)
-#  else
-#   define BRRAPI __declspec(dllimport)
-#  endif // BRRTOOLS_EXPORTS && !BRRTOOLS_IMPORTS
-# else // Static library
+# if !(defined(BRRTOOLS_EXPORTS) || defined(BRRTOOLS_IMPORTS)) // Static linkage
 #  define BRRAPI
-# endif // BRRTOOLS_EXPORTS || BRRTOOLS_IMPORTS
-#else // UNIX target
-# define BRRAPI
+# elif defined(BRRTOOLS_EXPORTS) && !defined(BRRTOOLS_IMPORTS) // Compiling as dll
+#  define BRRAPI __declspec(dllexport)
+# else // Linking to dll
+#  define BRRAPI __declspec(dllimport)
+# endif
+#else // Unix target
+# define BRRAPI __attribute__((visibility("default")))
 # define BRRCALL
 #endif // BRRPLATFORMTYPE_WINDOWS
-
-#if defined(__cplusplus)
-# define _brrcppstart extern "C" {
-# define _brrcppend }
-#else
-# define _brrcppstart
-# define _brrcppend
-#endif // __cplusplus
 
 #endif /* BRRTOOLS_BRRAPI_H */

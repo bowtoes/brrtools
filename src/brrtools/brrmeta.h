@@ -6,7 +6,9 @@
 
 #include <stddef.h>
 
-_brrcppstart
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* TODO this definitely needs some work, please don't use. */
 
@@ -99,6 +101,8 @@ BRRAPI brrmeta_struct_info_t *BRRCALL _brrmeta_reg_get_info_impl(const brrmeta_r
     ((_t_ *)((brru1 *)(_s_) + (_p_)->offset))
 
 
-_brrcppend
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* BRRMETA_H */

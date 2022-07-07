@@ -5,9 +5,10 @@
 extern "C" {
 #endif
 
+/* https://github.com/nemequ/portable-snippets debug-trap.h */
+
 /* Debugging defines */
 #if BRRTOOLS_DEBUG
-/* https://github.com/nemequ/portable-snippets debug-trap.h */
 # if defined(__has_builtin) && !defined(__ibmxl__)
 #  if __has_builtin(__builtin_debugtrap)
 #   define BRRDEBUG_BREAK() __builtin_debugtrap()
@@ -56,7 +57,7 @@ extern "C" {
 # if defined(BRRDEBUG_ASSERTS) && !defined(BRRDEBUG_NOASSERTS)
 #  if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 //  C11 has static asserts, though windows calls them differently.
-#   if defined(__WIN32) || defined(__WIN32__)
+#   if defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
 #    define BRRDEBUG_STATIC_ASSERT(n) static_assert(n, "")
 #    define BRRDEBUG_STATIC_ASSERTM(n, m) static_assert(n, m)
 #   else

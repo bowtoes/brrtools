@@ -1,18 +1,6 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #define _brrlog_keep_generators
 #include "brrtools/brrlog.h"
@@ -40,7 +28,7 @@ static brrsz s_max_log = 2048;
 static char *s_log_buffer = NULL;
 
 #if !defined(BRRPLATFORMTYPE_Windows)
-static int BRRCALL
+static inline int BRRCALL
 i_fgid(brrlog_color_t fg)
 {
 	switch (fg) {
@@ -63,12 +51,12 @@ i_fgid(brrlog_color_t fg)
 		default: return 39;
 	}
 }
-static int BRRCALL
+static inline int BRRCALL
 i_bgid(brrlog_color_t bg)
 {
 	return 10 + i_fgid(bg);
 }
-static int BRRCALL
+static inline int BRRCALL
 stid(brrlog_style_t st)
 {
 	switch (st) {
@@ -105,13 +93,13 @@ stid(brrlog_style_t st)
 		default: return 0;
 	}
 }
-static int BRRCALL
+static inline int BRRCALL
 i_fnid(brrlog_font_t fn)
 {
 	fn = fn<0?0:fn>=brrlog_font_count?brrlog_font_count-1:fn;
 	return fn + 10;
 }
-static char *BRRCALL
+static inline char *BRRCALL
 i_update_format(brrlog_color_t fg, brrlog_color_t bg, brrlog_style_t st, brrlog_font_t fn)
 {
 	snprintf(s_format_string, 19, "\x1b[%03i;%03i;%03i;%03im", stid(st), i_fgid(fg), i_bgid(bg), i_fnid(fn));

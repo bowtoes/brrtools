@@ -1,25 +1,12 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #ifndef BRRSTRINGR_H
 #define BRRSTRINGR_H
 
 /*
-    TODO Microsoft 'wchar_t' on Windows, for proper unicode support there.
-	Why Microsoft you make things difficult.
+TODO Microsoft 'wchar_t' on Windows, for proper unicode support there.
 */
 
 #include <stdarg.h>
@@ -27,7 +14,9 @@ limitations under the License.
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
-_brrcppstart
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* String representation that stores length of string.
  * Fields:
@@ -201,6 +190,8 @@ brrstringr_ncompare(const brrstringr_t *const string, const brrstringr_t *const 
 BRRAPI char *BRRCALL
 brrstringr_cstr_compare(const char *const chars, int case_sensitive, ...);
 
-_brrcppend
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* BRRSTRINGR_H */

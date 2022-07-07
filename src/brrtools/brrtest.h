@@ -1,18 +1,6 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #ifndef BRRTEST_H
 #define BRRTEST_H
@@ -24,7 +12,9 @@ limitations under the License.
 #include <brrtools/brrmacro.h>
 #include <brrtools/brrmacro_map.h>
 
-_brrcppstart
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define BRRTOOLS_TEST_MESSAGE_LENGTH 2048
 extern char brrtools_test_message_string[BRRTOOLS_TEST_MESSAGE_LENGTH];
@@ -92,6 +82,8 @@ BRRAPI void BRRCALL brrtest_run_suite(brrtest_suite_t *const suite);
 
 #define BRRTEST_ASSERT(_cond_, _msg_) do { if (!(_cond_)) return (_msg_); } while (0)
 
-_brrcppend
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* BRRTEST_H */

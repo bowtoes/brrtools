@@ -1,25 +1,13 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #include "brrtools/brrdata.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-static int BRRCALL
+static inline int BRRCALL
 i_resize_array(void **const array, brrsz new_size, brrsz old_size)
 {
 	void *a = NULL;
@@ -44,6 +32,7 @@ i_resize_array(void **const array, brrsz new_size, brrsz old_size)
 	}
 	return 0;
 }
+
 int BRRCALL
 brrdata_resize(void **const array, brrsz n_elements, brrsz data_size, brrsz new_elements)
 {
@@ -163,7 +152,7 @@ brrdata_remove(void **const array, brrsz *const n_elements, brrsz data_size, brr
 	return 0;
 }
 
-static void BRRCALL
+static inline void BRRCALL
 i_swap(void *const array, brrsz data_size, brrsz a, brrsz b)
 {
 	char *const A = (char*)array + a * data_size;
@@ -239,7 +228,7 @@ brrdata_clear(void **const array, brrsz *const n_elements, brrsz data_size, void
 		*n_elements = 0;
 }
 
-static int BRRCALL
+static inline int BRRCALL
 i_sort(void *const array, brrsz n_elements, brrsz data_size, brrdata_comparer_t compare, void *parameter)
 {
 	char *a = (char *)array;

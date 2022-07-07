@@ -1,18 +1,6 @@
-/*
-Copyright 2021-2022 BowToes (bow.toes@mailfence.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
 
 #include "brrtools/brrcon.h"
 
@@ -42,9 +30,9 @@ brrcon_pause(void)
 	getc(stdin);
 	tcsetattr(0, TCSANOW, &before);
 #else
-	return 0;
-#endif
 	return 1;
+#endif
+	return 0;
 }
 
 int BRRCALL
@@ -58,8 +46,7 @@ brrcon_clear(void)
 #elif defined(unix) || defined(__unix) || defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 	printf("\x1b[1;1H\x1b[2J");
 #else
-	return 0;
-#endif
 	return 1;
+#endif
+	return 0;
 }
-
