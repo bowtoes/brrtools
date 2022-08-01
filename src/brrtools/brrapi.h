@@ -3,9 +3,9 @@
 
 #if defined(_WIN32)
 # define BRRCALL __cdecl
-# if !(defined(BRRTOOLS_EXPORTS) || defined(BRRTOOLS_IMPORTS)) // Static linkage
+# if !(defined(BRR_exports) || defined(BRR_imports)) // Static linkage
 #  define BRRAPI
-# elif defined(BRRTOOLS_EXPORTS) && !defined(BRRTOOLS_IMPORTS) // Compiling as dll
+# elif defined(BRR_exports) && !defined(BRR_imports) // Compiling as dll
 #  define BRRAPI __declspec(dllexport)
 # else // Linking to dll
 #  define BRRAPI __declspec(dllimport)

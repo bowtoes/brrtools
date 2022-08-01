@@ -1,115 +1,94 @@
 .POSIX:
 .SUFFIXES:
-
 all:
+
 include config.mk
-include aio_gen.mk
+include help.mk
 
-all: options $(OUTPUT_FILE)
-options:
-	@echo "<------------------------>"
-	@echo "$(PROJECT) v$(PROJECT_VERSION) - commit date $(PROJECT_DATE)"
-	@echo "Build Settings:"
-	@echo "Project name    : $(PROJECT)"
-	@echo "Project binary  : $(TARGET_NAME)"
-	@echo "Ultimate output : $(OUTPUT_FILE)"
-	@echo ""
-	@echo "Build Host      : $(HOST), $(HOST_BIT)-bit"
-	@echo "Build Target    : $(TARGET), $(TARGET_BIT)-bit"
-	@echo "Build Mode      : $(TARGET_MODE)"
-	@echo "Build Tree      : $(BUILD_TREE)"
-	@echo "Debug Build     : $(if $(DEBUG),On,Off)"
-	@echo "Memcheck Build  : $(if $(MEMCHECK),On,Off)"
-	@echo ""
-	@echo "Includes        : $(_cc_includes)"
-	@echo "Warnings        : $(_cc_warnings)"
-	@echo "Defines         : $(_cc_defines)"
-	@echo "CC              : $(CC)"
-	@echo "AR              : $(AR)"
-	@echo "DllTool         : $(DLLTOOL)"
-	@echo "Compilation Flags   : $(PROJECT_CFLAGS)"
-	@echo "Preprocessing Flags : $(PROJECT_CPPFLAGS)"
-	@echo "Linking Flags       : $(PROJECT_LDFLAGS)"
-	@echo "<========================>"
+info: _delim_1 _info _delim_2
+build-info: _delim_1 _build_info _delim_2
+output-info: _delim_1 _output_info _delim_2
+all-info: _delim_1 _info _build_info _output_info _delim_2
+.PHONY: info build_info output_info all_info
 
-$(call _aio_settings,,$(OUTPUT_DIRECTORY),$(SRC))
-$(call _aio_rules,,$(OUTPUT_DIRECTORY),$(SRC_DIR),$(PROJECT_CPPFLAGS) $(PROJECT_CFLAGS))
-$(call _aio_requirements,,$(addprefix $(SRC_DIR)/,$(HDR) $(HDR_NOINSTALL)) $(MAKE_DEPS))
-$(call _aio_directory_rules,)
-$(call _aio_phony_rules,)
-$(call _aio_clean_rules,)
+all: info $(project)
+setup:
+	@$(mk_dir_tree) $(build_directories) 2>$(null) ||:
+.PHONY: all setup
 
-$(OUTPUT_FILE): options | obj
-ifeq ($(TARGET_MODE),SHARED)
- ifeq ($(TARGET),UNIX)
-	$(CC) $(OBJ) -o '$@' $(PROJECT_LDFLAGS)
- else
-	$(CC) $(OBJ) -o '$@' $(PROJECT_LDFLAGS) -Wl,--output-def,$(OUTPUT_DEF)
-	$(CC) $(OBJ) -o '$@' $(PROJECT_LDFLAGS) -Wl,--kill-at
-	$(DLLTOOL) --kill-at -d $(OUTPUT_DEF) -D $(OUTPUT_FILE) -l $(OUTPUT_IMPORT)
- endif
+$(ass_out_dir)/%.s: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -S $< -o $@
+$(int_out_dir)/%.e: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -E $< -o $@
+$(obj_out_dir)/%.o: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -c $< -o $@
+$(ass_out) $(int_out) $(obj_out): $(vnd_bins) $(addprefix $(src_dir)/,$(hdrs)) $(makefiles)
+
+ass: info setup $(ass_out)
+int: info setup $(int_out)
+obj: info setup $(obj_out)
+aio: ass int obj
+.PHONY: ass int obj aio
+
+$(output_file): vnd $(obj_out) $(makefiles) $(addprefix $(src_dir)/,$(hdrs))
+ifeq ($(target_mode),static)
+	$(ar_custom) -crs '$@' $(obj_out) $(vnd_bins)
 else
-	$(AR) -crs $(OUTPUT_FILE) $(OBJ)
-endif
-
-clean: clean-aio
-	@$(RM_FILE) $(OUTPUT_FILE) 2>$(NULL) || :
-ifeq ($(TARGET),WINDOWS)
-	@$(RM_FILE) $(OUTPUT_DEF) 2>$(NULL) || :
-	@$(RM_FILE) $(OUTPUT_IMPORT) 2>$(NULL) || :
-endif
-	@$(RM_EMPTY_DIR) $(OUTPUT_DIRECTORY) 2>$(NULL) || :
-again: clean all
-
-.PHONY: all clean again options
-
-install-libs:
-	@$(MK_DIR) $(prefix)/lib
-	@$(COPY_FILE) $(OUTPUT_FILE) $(prefix)/lib/
-ifeq ($(TARGET),WINDOWS)
- ifeq ($(TARGET_MODE),SHARED)
-	@$(COPY_FILE) $(OUTPUT_DEF) $(prefix)/lib/
-	@$(COPY_FILE) $(OUTPUT_IMPORT) $(prefix)/lib/
+ ifeq ($(target),unix)
+	$(cc_custom) -o '$@' $(obj_out) $(vnd_bins) $(project_ldflags)
+ else
+	$(cc_custom) -o '$@' $(obj_out) $(vnd_bins) $(project_ldflags) -Wl,--output-def,'$(output_defines)'
+	$(cc_custom) -o '$@' $(obj_out) $(vnd_bins) $(project_ldflags) -Wl,--kill-at
+	$(dlltool_custom) --kill-at -d '$(output_defines)' -D '$@' -l '$(output_imports)'
  endif
 endif
+$(project): setup $(output_file)
+.PHONY: $(project)
 
-_source_headers := $(addprefix $(SRC_DIR)/,$(HDR))
-_target_headers := $(addprefix $(prefix)/include/,$(HDR))
-_target_headers_directories := $(call _get_directories,$(_target_headers))
-_make_rule = $(eval $1: $2)
-$(call _map_two,_make_rule,$(_target_headers),$(_source_headers))
-$(_target_headers_directories): ; @$(MK_DIR) '$@'
-$(_target_headers): | $(_target_headers_directories)
-	@$(COPY_FILE) $^ $@
-install-headers: $(_target_headers)
-install: all install-libs install-headers
-ifeq ($(HOST),UNIX)
- ifeq ($(TARGET),UNIX)
-  ifneq ($(DO_LDCONFIG),0)
-	$(LDCONFIG) $(realpath $(prefix)) || :
-  endif
- endif
+clean:
+	@$(rm_file) '$(output_file)' $(ass_out) $(int_out) $(obj_out) 2>$(null) ||:
+	@$(rm_recurse) $(build_directories) 2>$(null) ||:
+
+again: clean vnd-clean-light $(project)
+
+CLEAN: vnd-clean clean
+AGAIN: CLEAN all
+.PHONY: clean again CLEAN AGAIN
+
+install-lib: all
+	@$(mk_dir_tree) '$(prefix)/lib'
+	@$(copy_file) '$(output_file)' '$(prefix)/lib'
+ifeq ($(target)-$(target_mode),windows-shared)
+	$(copy_file) '$(output_defines)' '$(output_imports)' '$(prefix)/lib'
 endif
-.PHONY: install install-libs install-headers
-
+	@$(strip_exe) '$(prefix)/lib/$(output_name)'
 uninstall-lib:
-	@$(RM_FILE) $(prefix)/lib/$(TARGET_NAME) 2>$(NULL) || :
-ifeq ($(TARGET),WINDOWS)
- ifeq ($(TARGET_MODE),SHARED)
-	@$(RM_FILE) $(prefix)/lib/$(TARGET_DEF) 2>$(NULL) || :
-	@$(RM_FILE) $(prefix)/lib/$(TARGET_IMPORT) 2>$(NULL) || :
+	@$(rm_file) '$(prefix)/lib/$(output_name)'
+ifeq ($(target)-$(target_mode),windows-shared)
+	@$(rm_file) '$(prefix)/lib/$(build_defines)' '$(prefix)/lib/$(build_imports)'
+endif
+
+install-hdr:
+	@$(mk_dir_tree) $(hdrs_inst_directories)
+	@$(foreach hdr,$(hdrs),$(copy_file) '$(src_dir)/$(hdr)' '$(prefix)/include/$(dir $(hdr))';)
+uninstall-hdr:
+	@$(rm_file) $(hdrs_inst) 2>$(null) ||:
+	@$(rm_dir) $(hdrs_inst_directories) 2>$(null) ||:
+
+install: all install-lib install-hdr
+ifeq ($(host)-$(target),unix-unix)
+ ifneq ($(do_ldconfig),0)
+	$(ldconfig) '$(realpath $(prefix))/lib' ||:
  endif
 endif
-uninstall-headers:
-	@$(RM_FILE) $(_target_headers) 2>$(NULL) || :
-	@$(RM_EMPTY_DIR) $(call _get_directories,$(_target_headers)) 2>$(NULL) || :
-uninstall: uninstall-lib uninstall-headers
-ifeq ($(HOST),UNIX)
- ifeq ($(TARGET),UNIX)
-  ifneq ($(DO_LDCONFIG),0)
-	$(LDCONFIG) $(realpath $(prefix)) || :
-  endif
+uninstall: uninstall-lib uninstall-hdr
+ifeq ($(host)-$(target),unix-unix)
+ ifneq ($(do_ldconfig),0)
+	$(ldconfig) '$(realpath $(prefix))/lib' ||:
  endif
 endif
-.PHONY: uninstall uninstall-lib uninstall-headers
-nop: ; @echo Nop!
+.PHONY: install-lib uninstall-lib install-hdr uninstall-hdr install uninstall
+
+### Vendor shit
+vnd:
+vnd-clean:
+vnd-again: vnd-clean vnd
+vnd-clean-light:
+.PHONY: vnd vnd-clean vnd-clean-light vnd-again

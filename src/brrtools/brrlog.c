@@ -309,7 +309,7 @@ brrlog_text(_brrlog_log_params, const char *const format, ...)
 		return 0;
 	}
 
-#if defined(BRRTOOLS_DEBUG)
+#if defined(BRR_debug)
 	/* Always print DEBUG priority logs when compiled in debug mode */
 	if (!gbrrlogctl.debug_enabled && priority == brrlog_priority_debug) {
 		_set_last(priority, destination, foreground, background, style, font);
