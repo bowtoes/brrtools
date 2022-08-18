@@ -1,268 +1,291 @@
-/* Copyright (c), BowToes (bow.toes@mailfence.com)
-Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
-Full license can be found in 'license' file */
+#ifndef brrtools_brrlog_h
+#define brrtools_brrlog_h
 
-#ifndef BRRTOOLS_BRRLOG_H
-#define BRRTOOLS_BRRLOG_H
+#include <stdarg.h>
 
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
+#include <brrtools/brrstringr.h>
 
-#if defined(__cplusplus)
-extern "C" {
+BRR_cppstart
+
+#if !defined(_WIN32)
+#define _brrlog_can_style 1
+#else
+#define _brrlog_can_style 0
 #endif
 
-// _t = name prefix (or enum type)
-// _N = capital name
-// _n = lowercase name
-// _i = value
-// _d = string description
+#define BRRLOG_MAX_STYLE_TOKEN 4
 
-#define _enum_def(_t,_N,_n,_i,_d) brrlog_##_t##_##_n = _i,
-#define _enum_gen(_int_type_, _name_) \
-	typedef enum brrlog_##_name_ {\
-		_brrlog_##_name_##_gen(_enum_def)\
-		brrlog_##_name_##_count,\
-	} brrlog_##_name_##_t;\
-	typedef _int_type_ brrlog_##_name_##_int;\
-	extern const char *brrlog_##_name_##_names[brrlog_##_name_##_count+1];\
-	extern const char *brrlog_##_name_##_debug_names[brrlog_##_name_##_count+1];\
-	BRRAPI const char *BRRCALL brrlog_##_name_##_str(brrlog_##_name_##_t _name_)
+/*
+typedef struct priority_prefix {
+	const char *const prefix_str;
+	brrstyle_t style;
+} priority_prefix_t;
+typedef struct priority_configuration {
+	priority_prefix_t prefix; // (!24:!)
+	int style_disabled;
+	brrstyle_t default_style;
+} priority_configuration_t;
+brrlog_style_cfg(44, style_configuration_t):
+brrlog_pri_cfg(9, prioriy_configuration_t);
+brrlog(9, ...);
 
-/* ANSI colors used for logging */
-#define _brrlog_color_gen(_ex_)\
-    _ex_(color, LAST,         last,         -1, "Last used color")\
-    _ex_(color, NORM,         normal,        0, "Normal/default color")\
-    _ex_(color, BLACK,        black,         1, "Black")\
-    _ex_(color, RED,          red,           2, "Red")\
-    _ex_(color, GREEN,        green,         3, "Green")\
-    _ex_(color, YELLOW,       yellow,        4, "Yellow")\
-    _ex_(color, BLUE,         blue,          5, "Blue")\
-    _ex_(color, MAGENTA,      magenta,       6, "Magenta")\
-    _ex_(color, CYAN,         cyan,          7, "Cyan")\
-    _ex_(color, WHITE,        white,         8, "White")\
-    _ex_(color, DARKGREY,     darkgrey,      9, "Dark grey/light black")\
-    _ex_(color, LIGHTRED,     lightred,     10, "Light red")\
-    _ex_(color, LIGHTGREEN,   lightgreen,   11, "Light green")\
-    _ex_(color, LIGHTYELLOW,  lightyellow,  12, "Light yellow")\
-    _ex_(color, LIGHTBLUE,    lightblue,    13, "Light blue")\
-    _ex_(color, LIGHTMAGENTA, lightmagenta, 14, "Light magenta")\
-    _ex_(color, LIGHTCYAN,    lightcyan,    15, "Light cyan")\
-    _ex_(color, LIGHTWHITE,   lightwhite,   16, "Light white")
-_enum_gen(brrs1, color);
+brrlog(9, "This is some unstyled, (!i:styled, and (!u:nested styled %s!)!)", "text");
+This:
+ brrlog(0, "Some (!s:styled!) text", ...);
+would be valid and get styled, however this:
+ brrlog(0, "Some ( !s:unstyled!) text", ...);
+or
+ brrlog(0, "Some (!s:unstyled! ) text", ...);
+would be invalid, and be printed verbatim.
 
-/* Font types to used for logging */
-#define _brrlog_font_gen(_ex_)\
-    _ex_(font, LAST,   last,   -1, "Last used font")\
-    _ex_(font, NORMAL, normal,  0, "Use the normal font")\
-    _ex_(font, ONE,    1,       1, "Use alternate font 1")\
-    _ex_(font, TWO,    2,       2, "Use alternate font 2")\
-    _ex_(font, THREE,  3,       3, "Use alternate font 3")\
-    _ex_(font, FOUR,   4,       4, "Use alternate font 4")\
-    _ex_(font, FIVE,   5,       5, "Use alternate font 5")\
-    _ex_(font, SIX,    6,       6, "Use alternate font 6")\
-    _ex_(font, SEVEN,  7,       7, "Use alternate font 7")\
-    _ex_(font, EIGHT,  8,       8, "Use alternate font 8")\
-    _ex_(font, NINE,   9,       9, "Use alternate font 9")
-_enum_gen(brrs1, font);
+#define NOR 0 // Priority preset, defined through a function call
+#define EXTRA_INFO "4" // Style preset, defined through a function call
+brrlog(NOR, "Processing input (!"EXTRA_INFO":%*zu / %zu!) ", state->stats.n_input_digits, i+1, state->n_inputs);
+// Maybe add a 'preproc_styles'; pass '$i' in place of style token, and the first arg is an array of the ones
+// used? maybe?
+brrlog(NOR, "Processing input (!$i:%*zu / %zu!) ", {EXTRA_INFO}, state->stats.n_input_digits, i+1, state->n_inputs);
 
-/* Text styles used for logging */
-#define _brrlog_style_gen(_ex_)\
-    _ex_(style, LAST,         last,         -1, "Last used style")\
-    _ex_(style, NORMAL,       normal,        0, "Normal style, text is plain")\
-    _ex_(style, BOLD,         bold,          1, "Bold/bright text")\
-    _ex_(style, DIM,          dim,           2, "Dim/darker text")\
-    _ex_(style, ITALICS,      italics,       3, "Text is italics")\
-    _ex_(style, UNDER,        under,         4, "Underlined text")\
-    _ex_(style, BLINK,        blink,         5, "Blinking text")\
-    _ex_(style, FASTBLINK,    fastblink,     6, "Blinking text, but faster")\
-    _ex_(style, REVERSE,      reverse,       7, "Text foreground and background colors are swapped")\
-    _ex_(style, CONCEAL,      conceal,       8, "Text isn't drawn")\
-    _ex_(style, STRIKEOUT,    strikeout,     9, "Text is striked out")\
-    _ex_(style, FRAKTUR,      fraktur,      10, "Medieval text")\
-    _ex_(style, NOBOLD,       nobold,       11, "Disable bold text/double underlined text")\
-    _ex_(style, NOBRIGHT,     nobright,     12, "Disable text brightening/dimming")\
-    _ex_(style, NOITALICS,    noitalics,    13, "Disable italics/fraktur text style")\
-    _ex_(style, NOUNDER,      nounder,      14, "Disable text underline")\
-    _ex_(style, NOBLINK,      noblink,      15, "Disable text blinking")\
-    _ex_(style, NOREVERSE,    noreverse,    16, "Disable text reversal")\
-    _ex_(style, REVEAL,       reveal,       17, "Disable text conceal")\
-    _ex_(style, NOSTRIKEOUT,  nostrikeout,  18, "Disable text strikeout")\
-    _ex_(style, FRAME,        frame,        19, "Text is framed")\
-    _ex_(style, CIRCLE,       circle,       20, "Text is encircled")\
-    _ex_(style, OVER,         over,         21, "Overlined text")\
-    _ex_(style, NOFRAME,      noframe,      22, "Disable text framing/encircling")\
-    _ex_(style, NOOVER,       noover,       23, "Disable text overline")\
-    _ex_(style, IUNDER,       iunder,       24, "Ideogram underline")\
-    _ex_(style, IDOUBLEUNDER, idoubleunder, 25, "Ideogram double-underline")\
-    _ex_(style, IOVER,        iover,        26, "Ideogram overline")\
-    _ex_(style, IDOUBLEOVER,  idoubleover,  27, "Ideogram double-overline")\
-    _ex_(style, ISTRESS,      istress,      28, "Ideogram stressing")\
-    _ex_(style, IOFF,         ioff,         29, "Disable ideograms")
-_enum_gen(brrs1, style);
+Or maybe something like:
 
-/* Log levels used for logging.
- * These control when a message is logged, based on the currenlty set minimum and maximum log levels.
+#define brrlog_color_black        30
+#define brrlog_color_red          31
+#define brrlog_color_green        32
+#define brrlog_color_yellow       33
+#define brrlog_color_blue         34
+#define brrlog_color_magenta      35
+#define brrlog_color_cyan         36
+#define brrlog_color_white        37
+#define brrlog_color_darkgrey     90
+#define brrlog_color_lightred     91
+#define brrlog_color_lightgreen   92
+#define brrlog_color_lightyellow  93
+#define brrlog_color_lightblue    94
+#define brrlog_color_lightmagenta 95
+#define brrlog_color_lightcyan    96
+#define brrlog_color_lightwhite   97
+
+#define _brrlog_code(_fg_, _bg_, _st_, _fn_) "\x1b["#_st_";"#_fg_";"#_bg_";"#_fn_"m"
+#define brrlog_style_clear _brrlog_code(0, 39, 49, 10)
+#define brrlog_lstyle(_s_, _fg_, _bg_, _st_, _fn_) _brrlog_code(_fg_, _bg_, _st_, _fn_) _s_ brrlog_style_clear
+
+I still plan to have the normal 'brrlog[np]' macros, but they should be much fewer in number now.
  * */
-#define _brrlog_priority_gen(_ex_)\
-    _ex_(priority, LST, last,     -1, "Last used log priority")\
-    _ex_(priority, NON, none,      0, "No priority; nothing is logged")\
-    _ex_(priority, CRI, critical,  1, "Critical error")\
-    _ex_(priority, ERR, error,     2, "Non-fatal error")\
-    _ex_(priority, NOR, normal,    3, "Normal log message")\
-    _ex_(priority, WAR, warning,   4, "Warning")\
-    _ex_(priority, DBG, debug,     5, "Debug message, only logged when debug is enabled")
-_enum_gen(brrs1, priority);
 
-/* Destinations for log messages to go.
- * Only 'stdout' and 'stderr' loggable, for now.
+typedef enum brrlog_col
+{
+	brrlog_col_last         = -2,
+	brrlog_col_unset        = -1,
+	brrlog_col_normal       =  0,
+	brrlog_col_black        =  1,
+	brrlog_col_red          =  2,
+	brrlog_col_green        =  3,
+	brrlog_col_yellow       =  4,
+	brrlog_col_blue         =  5,
+	brrlog_col_magenta      =  6,
+	brrlog_col_cyan         =  7,
+	brrlog_col_white        =  8,
+	brrlog_col_darkgrey     =  9,
+	brrlog_col_lightred     = 10,
+	brrlog_col_lightgreen   = 11,
+	brrlog_col_lightyellow  = 12,
+	brrlog_col_lightblue    = 13,
+	brrlog_col_lightmagenta = 14,
+	brrlog_col_lightcyan    = 15,
+	brrlog_col_lightwhite   = 16,
+	brrlog_col_count,
+} brrlog_col_t;
+typedef enum brrlog_fn
+{
+	brrlog_fn_last   = -2,
+	brrlog_fn_unset  = -1,
+	brrlog_fn_normal =  0,
+	brrlog_fn_1      =  1,
+	brrlog_fn_2      =  2,
+	brrlog_fn_3      =  3,
+	brrlog_fn_4      =  4,
+	brrlog_fn_5      =  5,
+	brrlog_fn_6      =  6,
+	brrlog_fn_7      =  7,
+	brrlog_fn_8      =  8,
+	brrlog_fn_9      =  9,
+	brrlog_fn_count,
+} brrlog_fn_t;
+typedef enum brrlog_st
+{
+	brrlog_st_last         = -2,
+	brrlog_st_unset        = -1,
+	brrlog_st_normal       =  0,
+	brrlog_st_bold         =  1,
+	brrlog_st_dim          =  2,
+	brrlog_st_italics      =  3,
+	brrlog_st_under        =  4,
+	brrlog_st_blink        =  5,
+	brrlog_st_fastblink    =  6,
+	brrlog_st_reverse      =  7,
+	brrlog_st_conceal      =  8,
+	brrlog_st_strikeout    =  9,
+	brrlog_st_fraktur      = 10,
+	brrlog_st_nobold       = 11,
+	brrlog_st_nobright     = 12,
+	brrlog_st_noitalics    = 13,
+	brrlog_st_nounder      = 14,
+	brrlog_st_noblink      = 15,
+	brrlog_st_noreverse    = 16,
+	brrlog_st_reveal       = 17,
+	brrlog_st_nostrikeout  = 18,
+	brrlog_st_frame        = 19,
+	brrlog_st_circle       = 20,
+	brrlog_st_over         = 21,
+	brrlog_st_noframe      = 22,
+	brrlog_st_noover       = 23,
+	brrlog_st_iunder       = 24,
+	brrlog_st_idoubleunder = 25,
+	brrlog_st_iover        = 26,
+	brrlog_st_idoubleover  = 27,
+	brrlog_st_istress      = 28,
+	brrlog_st_ioff         = 29,
+	brrlog_st_count,
+} brrlog_st_t;
+
+typedef struct brrlog_style
+{
+	brrlog_st_t st;
+	brrlog_col_t fg;
+	brrlog_col_t bg;
+	brrlog_fn_t fn;
+#if _brrlog_can_style
+	brrsz _len;
+#endif
+} brrlog_style_t;
+
+/* Copies values from 'b' that are unset in 'a' */
+BRRAPI brrlog_style_t BRRCALL
+brrlog_style_or(brrlog_style_t a, brrlog_style_t b);
+
+typedef struct brrlog_priority
+{
+	const char *pfx;
+	brrlog_style_t style;
+	brrsz _pfxl;
+} brrlog_priority_t;
+
+typedef brrlog_col_t brrlog_fg_t;
+typedef brrlog_col_t brrlog_bg_t;
+
+BRRAPI int BRRCALL
+brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog_style_t style, brrsz max_prefix);
+BRRAPI void BRRCALL
+brrlog_priority_free(brrlog_priority_t *const pri);
+
+/*
+ *  brru4 : max_nest;
+ *  int : min_label;
+ *  int : max_label;
+ *  brru2 : max_priorities;
+ *
+ *  brru2 : style_enabled;
+ *  brru2 : prefixes_enabled;
+ *  brru2 : newlines_enabled;
+ *  brru2 : verbose;
+ *  brru2 : debug;
+ *  brru2 : flush_enabled;
+ *  brru2 : flush_always;
+ *
+ *  brrsz : max_log;
+ *  brru2 : max_prefix;
+ *  brrlog_priority_t : default_priority;
  * */
-#define _brrlog_destination_gen(_ex_)\
-	_ex_(destination, LAST, last,   -1, "Last used output destination")\
-	_ex_(destination, NULL, null,    0, "No output destination, i.e. nothing is logged")\
-	_ex_(destination, STDO, stdout,  1, "Output to standard-out")\
-	_ex_(destination, STDE, stderr,  2, "Output to standard-error")
-_enum_gen(brrs1, destination);
-#undef _enum_def
+typedef struct brrlog_cfg
+{
+	brru4 max_nest; /* Maximal style nest */
+	int min_label; /* Minimum label that will log. */
+	int max_label; /* Maximum label that will log. */
+	brru2 max_priorities;
+	brru2 _npri;
 
-// Basic log-level structure, storing a log message's priortiy, destination, and prefix.
-typedef struct brrlog_level {
-	brrlog_priority_t priority;
-	brrlog_destination_t destination;
-	const char *prefix;
-} brrlog_level_t;
-
-/* Settings used for stylizing log output */
-typedef struct brrlog_format {
-	brrlog_color_t foreground; /* Format foreground color */
-	brrlog_color_t background; /* Format background color */
-	brrlog_style_t style;      /* Format text style */
-	brrlog_font_t  font;       /* Format format font */
-} brrlog_format_t;
-
-/* There is almost certainly a very tricky way to pack these four macros into one */
-#define BRRLOG_FORMAT_FONT(_f_, _b_, _s_, _F_) ((brrlog_format_t){_f_, _b_, _s_, _F_})
-#define BRRLOG_FORMAT_STYLE(_f_, _b_, _s_)     BRRLOG_FORMAT_FONT(_f_, _b_, _s_, brrlog_font_normal)
-#define BRRLOG_FORMAT_BACK(_f_, _b_)           BRRLOG_FORMAT_STYLE(_f_, _b_, brrlog_style_normal)
-#define BRRLOG_FORMAT_FORE(_f_)                BRRLOG_FORMAT_BACK(_f_, brrlog_color_normal)
-
-typedef struct brrlog_type {
-	brrlog_level_t level;
-	brrlog_format_t format;
-} brrlog_type_t;
-
-typedef union _gbrrlog_types {
-	struct {
-		brrlog_type_t last;     // Last-used log stylings
-		brrlog_type_t clear;    // Format used to clear log styles once log output has finished
-		brrlog_type_t critical; // Default styling for 'critical' priority logs.
-		brrlog_type_t error;    // Default styling for 'error' priority logs.
-		brrlog_type_t normal;   // Default styling for 'normal' priority logs.
-		brrlog_type_t warning;  // Default styling for 'warning' priority logs.
-		brrlog_type_t debug;    // Default styling for 'debug' priority logs.
+	union {
+		brru2 settings;
+		struct {
+			brru2 style_enabled:1;    /* Whether output log styling is enabled at all; if not, then any
+										 styled strings are simply removed from the output (Windows never
+										 styles regardless of this).
+										 Default 1. */
+			brru2 prefixes_enabled:1; /* Disables label prefixes from ever printing when set to 0.
+										 Default 1. */
+			brru2 newlines_enabled:1; /* Disables automatic newlines from ever printing when set to 0.
+										 Default 1. */
+			brru2 verbose:1;          /* Log FILE, FUNC (if supported), and LINE information with each log.
+										 Default 0. */
+			brru2 debug:1;            /* Log every label, every time, regardless of any other determining factors.
+										 Invalid labels get logged with a default priority.
+										 Default 0. */
+			brru2 flush_enabled:1;    /* Flush automatically when logging destination changes.
+										 Default 1. */
+			brru2 flush_always:1;     /* Flush output streams after every log (slow); useful for debugging
+										 when the OS's default flushing is too infrequent; will flush
+										 regardless of 'flush_enabled' setting.
+										 Default 0. */
+		};
 	};
-	brrlog_type_t types[brrlog_priority_count + 1];
-} _gbrrlog_types_t;
-extern BRRAPI _gbrrlog_types_t gbrrlog_type;
-#define gbrrlog_level(_priority_) (gbrrlog_type._priority_.level)
-#define gbrrlog_format(_priority_) (gbrrlog_type._priority_.format)
 
-/* Various control settings for the log system */
-extern BRRAPI struct gbrrlogctl {
-	// Disables log styling all-together; always disabled on Windows.
-	// Default: 0
-	brru1 style_disabled:1;
-	// Enable 'debug' priority logs.
-	// Default: 0
-	brru1 debug_enabled:1;
-	// Automatically flush current stream when destination changes.
-	// Default: 1
-	brru1 flush_enabled:1;
-	// Flush after every log; useful for debugging sometimes.
-	// Default: 0
-	brru1 flush_always:1;
-	// Log file, function, and line information.
-	// Default: 0
-	brru1 verbose_enabled:1;
-	// Log priority prefixes are printed by default.
-	// Default: 1
-	brru1 prefixes_enabled:1;
-	// Logs print a newline by default.
-	// Default: 1
-	brru1 newline_enabled:1;
-} gbrrlogctl;
+	brrsz max_log; /* Maximum output log length, including styling characters; may be 0 to indicating no maximum. */
+	brru2 max_prefix; /* Maximum length to allocate for a prefix, without styling characters; no special behavior when 0. */
+	brrlog_priority_t default_priority; /* Priority to log in the case of trying to log a label that doesn't exist. */
 
-/* Set maximum number of bytes that can be logged at once.
- * Set to 0 to disable maximum.
- * Returns 0 on success, otherwise -1 is returned and log is unaffected; check errno to see the specific error.
- * MUST be called before using any log functions, acts as an initialization.
- * Default is 2048.
- * */
-BRRAPI int BRRCALL brrlog_set_max_log(brrsz new_max);
-/* Get maximum number of bytes that can be logged at once.
- * Default is 2048.
- * */
-BRRAPI brrsz BRRCALL brrlog_max_log(void);
+	const char *_sty_open;
+	const char *_sty_close;
+	int *_lbl;
+	brrlog_priority_t *_pri;
+	char *_log_buf;
+	brrsz _buf_alloc;
+	brru4 _sty_len;
+	int _init;
+} brrlog_cfg_t;
 
-/* Resets log count to 0 */
-BRRAPI void BRRCALL brrlog_reset_count(void);
-/* Returns number of times logged */
-BRRAPI brru8 BRRCALL brrlog_count(void);
+extern const brrlog_cfg_t brrlog_default_cfg;
+extern brrlog_cfg_t brrlog_global_cfg;
 
-/* Returns the current minimum loggable priority */
-BRRAPI brrlog_priority_t BRRCALL brrlog_min_priority(void);
-/* Sets the minimum priority that will be logged.
- * Any priority less than the given will not be logged.
- * */
-BRRAPI void BRRCALL brrlog_set_min_priority(brrlog_priority_t new_min);
+BRRAPI int BRRCALL
+brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const style_close);
 
-/* Returns the current maximum loggable priority */
-BRRAPI brrlog_priority_t BRRCALL brrlog_max_priority(void);
-/* Sets the maximum priority that will be logged.
- * Any priority greater than the given will not be logged.
- * */
-BRRAPI void BRRCALL brrlog_set_max_priority(brrlog_priority_t new_max);
+BRRAPI void BRRCALL
+brrlog_deinit(void);
 
-/* Initialize the log buffer.
- * The buffer is only used if 'max_log' isn't 0.
- * Run either this or 'brrlog_set_max_log' before trying to log anything.
- * Returns 0 on success, otherwise returns -1; see errno for the specific error.
- * */
-BRRAPI int BRRCALL brrlog_init(void);
-/* Frees the log buffer used by brrlog */
-BRRAPI void BRRCALL brrlog_deinit(void);
+/* Updates and confirms current brrlog configuration */
+BRRAPI int BRRCALL
+brrlog_validate(void);
 
-#define _brrlog_log_params \
-    brrlog_priority_t priority, brrlog_destination_t destination, const char *prefix, \
-    brrlog_color_t foreground, brrlog_color_t background, brrlog_style_t style, brrlog_font_t font, \
-    char *const buffer, brrbl print_prefix, brrbl print_newline, \
-    const char *const file, const char *const function, brru8 line
+BRRAPI brrsz BRRCALL
+brrlog_priority_index(int label);
 
-/* TODO doc comment
- * */
-BRRAPI brrsz BRRCALL brrlog_text(_brrlog_log_params, const char *const format, ...);
-/* TODO doc comment
- * */
-BRRAPI brrsz BRRCALL brrlog_digits(_brrlog_log_params, brru8 number, int base,
-    brrbl is_signed, char digit_separator, brrsz separator_spacing);
-/* TODO doc comment
- * */
-BRRAPI brrsz BRRCALL brrlog_bits(_brrlog_log_params, const void *const data,
-    brrsz bits_to_print, brrbl reverse_bytes, brrbl reverse_bits, char bit_separator,
-    brrsz separator_spacing);
+BRRAPI int BRRCALL
+brrlog_priority_mod(int label, brrlog_priority_t cfg);
 
-#ifndef _brrlog_keep_generators
-# undef _brrlog_color_gen
-# undef _brrlog_font_gen
-# undef _brrlog_style_gen
-# undef _brrlog_priority_gen
-# undef _brrlog_destination_gen
-#endif
+BRRAPI int BRRCALL
+brrlog_priority_delete(int label);
 
-#include <brrtools/_brrlog_macros.h>
+typedef struct brrlog_parms
+{
+	int label;
+	int print_newline;
+	int print_prefix;
+	const char *const file;
+	const char *const function;
+	brrsz line;
+} brrlog_parms_t;
 
-#if defined(__cplusplus)
-}
-#endif
+/* Consumes 'lptr' */
+BRRAPI brrsz BRRCALL
+brrlogv(brrlog_parms_t parms, const char *const message, va_list lptr);
 
-#endif /* BRRTOOLS_BRRLOG_H */
+/* Logs a message according to printf-fmt 'message' and any printf-vargs passed, with additional
+ * functionality & settings, returning the number of characters actually logged, or BRRSZ_MAX on error.
+ */
+BRRAPI brrsz BRRCALL
+brrlog(brrlog_parms_t parms, const char *const message, ...);
+
+BRR_cppend
+
+#endif /* brrtools_brrlog_h */

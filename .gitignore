@@ -17,3 +17,6 @@ build/
 *.sh
 *.tmp
 compile_commands*
+do_tests
+*.ign
+*_old.*

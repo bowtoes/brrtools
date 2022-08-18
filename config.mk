@@ -14,7 +14,7 @@ override makefiles := platform.mk config.mk Makefile
 override project_major := 0
 override project_minor := 0
 override project_revis := 2
-override project_letter := a
+override project_letter := b
 override project_version := $(project_major).$(project_minor).$(project_revis)$(project_letter)
 override project_date := $(shell git show -s --date=format:'%Y/%m/%d %l:%M%p' --format=%ad || echo "")
 
@@ -22,6 +22,7 @@ src_dir := src
 #vnd_dir := vnd
 
 srcs :=\
+	brrtools/brrapi.c\
 	brrtools/brrcon.c\
 	brrtools/brrhash.c\
 	brrtools/brrdata.c\
@@ -66,6 +67,7 @@ debug ?= 0
 extra_debug ?= 0
 # Enable valgrind memcheck-compitable debug flags (only takes effect when debug != 0)
 memcheck ?= 0
+tcmalloc ?= 0
 
 ## Toolchain flags
 # c standard to use
@@ -144,8 +146,8 @@ ifeq ($(target_mode),shared)
   c_links += -Wl,--subsystem,windows
   c_defines += -D$(uproject)_exports
  endif
-else
- c_links += -static-pie
+#else
+# c_links += -static-pie
 endif
 
 # TODO I desperately need to find out this stuff, because it can cause many issues that I don't understand
@@ -178,6 +180,12 @@ ifeq ($(target),windows)
  endif
 endif
 
+extra_links :=
+ifneq ($(tcmalloc),0)
+ extra_links += -ltcmalloc
+ c_defines += -D$(uproject)_tcmalloc
+endif
+
 project_cflags = \
 	-std=$(std)\
 	$(c_warnings)\
@@ -195,6 +203,7 @@ project_ldflags = \
 	$(c_performance)\
 	$(c_links)\
 	$(vnd_links)\
+	$(extra_links)\
 	$(LDFLAGS)
 
 ### Build-output variables

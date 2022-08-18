@@ -71,6 +71,9 @@ brrstringr_free(brrstringr_t *const string);
 BRRAPI int BRRCALL
 brrstringr_clear(brrstringr_t *const string);
 
+BRRAPI int BRRCALL
+brrstringr_shrink_right(brrstringr_t *const string, brrsz new_len);
+
 /* Copies 'source' into 'string', reallocating as necessary, or creates a new string in 'string' if 'string' is shallow.
  * Returns 0 on success.
  * If allocation fails or 'string' or 'source' are NULL, 'string' is left unaffected and -1 is returned.

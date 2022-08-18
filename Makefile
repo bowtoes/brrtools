@@ -86,9 +86,4 @@ ifeq ($(host)-$(target),unix-unix)
 endif
 .PHONY: install-lib uninstall-lib install-hdr uninstall-hdr install uninstall
 
-### Vendor shit
-vnd:
-vnd-clean:
-vnd-again: vnd-clean vnd
-vnd-clean-light:
-.PHONY: vnd vnd-clean vnd-clean-light vnd-again
+include tests.mk

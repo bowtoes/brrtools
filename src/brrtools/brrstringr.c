@@ -78,6 +78,22 @@ brrstringr_clear(brrstringr_t *const string)
 }
 
 int BRRCALL
+brrstringr_shrink_right(brrstringr_t *const string, brrsz new_len)
+{
+	if (!string)
+		return -1;
+	if (string->length <= new_len)
+		return 0;
+	char *t = realloc(string->cstr, new_len + 1);
+	if (!t)
+		return -1;
+	string->cstr = t;
+	string->cstr[new_len] = 0;
+	string->length = new_len;
+	return 0;
+}
+
+int BRRCALL
 brrstringr_copy(brrstringr_t *const string, const brrstringr_t *const source)
 {
 	if (!string || !source)
