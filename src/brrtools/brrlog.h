@@ -17,62 +17,6 @@ BRR_cppstart
 
 #define BRRLOG_MAX_STYLE_TOKEN 4
 
-/*
-typedef struct priority_prefix {
-	const char *const prefix_str;
-	brrstyle_t style;
-} priority_prefix_t;
-typedef struct priority_configuration {
-	priority_prefix_t prefix; // (!24:!)
-	int style_disabled;
-	brrstyle_t default_style;
-} priority_configuration_t;
-brrlog_style_cfg(44, style_configuration_t):
-brrlog_pri_cfg(9, prioriy_configuration_t);
-brrlog(9, ...);
-
-brrlog(9, "This is some unstyled, (!i:styled, and (!u:nested styled %s!)!)", "text");
-This:
- brrlog(0, "Some (!s:styled!) text", ...);
-would be valid and get styled, however this:
- brrlog(0, "Some ( !s:unstyled!) text", ...);
-or
- brrlog(0, "Some (!s:unstyled! ) text", ...);
-would be invalid, and be printed verbatim.
-
-#define NOR 0 // Priority preset, defined through a function call
-#define EXTRA_INFO "4" // Style preset, defined through a function call
-brrlog(NOR, "Processing input (!"EXTRA_INFO":%*zu / %zu!) ", state->stats.n_input_digits, i+1, state->n_inputs);
-// Maybe add a 'preproc_styles'; pass '$i' in place of style token, and the first arg is an array of the ones
-// used? maybe?
-brrlog(NOR, "Processing input (!$i:%*zu / %zu!) ", {EXTRA_INFO}, state->stats.n_input_digits, i+1, state->n_inputs);
-
-Or maybe something like:
-
-#define brrlog_color_black        30
-#define brrlog_color_red          31
-#define brrlog_color_green        32
-#define brrlog_color_yellow       33
-#define brrlog_color_blue         34
-#define brrlog_color_magenta      35
-#define brrlog_color_cyan         36
-#define brrlog_color_white        37
-#define brrlog_color_darkgrey     90
-#define brrlog_color_lightred     91
-#define brrlog_color_lightgreen   92
-#define brrlog_color_lightyellow  93
-#define brrlog_color_lightblue    94
-#define brrlog_color_lightmagenta 95
-#define brrlog_color_lightcyan    96
-#define brrlog_color_lightwhite   97
-
-#define _brrlog_code(_fg_, _bg_, _st_, _fn_) "\x1b["#_st_";"#_fg_";"#_bg_";"#_fn_"m"
-#define brrlog_style_clear _brrlog_code(0, 39, 49, 10)
-#define brrlog_lstyle(_s_, _fg_, _bg_, _st_, _fn_) _brrlog_code(_fg_, _bg_, _st_, _fn_) _s_ brrlog_style_clear
-
-I still plan to have the normal 'brrlog[np]' macros, but they should be much fewer in number now.
- * */
-
 typedef enum brrlog_col
 {
 	brrlog_col_last         = -2,
@@ -86,7 +30,7 @@ typedef enum brrlog_col
 	brrlog_col_magenta      =  6,
 	brrlog_col_cyan         =  7,
 	brrlog_col_white        =  8,
-	brrlog_col_darkgrey     =  9,
+	brrlog_col_grey         =  9,
 	brrlog_col_lightred     = 10,
 	brrlog_col_lightgreen   = 11,
 	brrlog_col_lightyellow  = 12,
@@ -164,10 +108,35 @@ typedef struct brrlog_style
 BRRAPI brrlog_style_t BRRCALL
 brrlog_style_or(brrlog_style_t a, brrlog_style_t b);
 
+typedef enum brrlog_dst_type
+{
+	_brrlog_dst_min    =  0,
+
+	brrlog_dst_invalid = -1,
+	brrlog_dst_stream,
+	brrlog_dst_buffer,
+	brrlog_dst_count,
+
+	_brrlog_dst_max = brrlog_dst_count - 1,
+} brrlog_dst_type_t;
+
+typedef struct brrlog_dst
+{
+	brrlog_dst_type_t type;
+	union {
+		void *stream;
+		char *buffer;
+		void *_loc;
+	};
+} brrlog_dst_t;
+
 typedef struct brrlog_priority
 {
 	const char *pfx;
+	brrlog_dst_t dst;
+#if _brrlog_can_style
 	brrlog_style_t style;
+#endif
 	brrsz _pfxl;
 } brrlog_priority_t;
 
@@ -175,7 +144,7 @@ typedef brrlog_col_t brrlog_fg_t;
 typedef brrlog_col_t brrlog_bg_t;
 
 BRRAPI int BRRCALL
-brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog_style_t style, brrsz max_prefix);
+brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog_dst_t dst, brrlog_style_t style);
 BRRAPI void BRRCALL
 brrlog_priority_free(brrlog_priority_t *const pri);
 
@@ -232,7 +201,7 @@ typedef struct brrlog_cfg
 
 	brrsz max_log; /* Maximum output log length, including styling characters; may be 0 to indicating no maximum. */
 	brru2 max_prefix; /* Maximum length to allocate for a prefix, without styling characters; no special behavior when 0. */
-	brrlog_priority_t default_priority; /* Priority to log in the case of trying to log a label that doesn't exist. */
+	brrlog_priority_t def_pri; /* Priority to log in the case of trying to log a label that doesn't exist. */
 
 	const char *_sty_open;
 	const char *_sty_close;
@@ -271,9 +240,7 @@ typedef struct brrlog_parms
 	int label;
 	int print_newline;
 	int print_prefix;
-	const char *const file;
-	const char *const function;
-	brrsz line;
+	int verbose;
 } brrlog_parms_t;
 
 /* Consumes 'lptr' */

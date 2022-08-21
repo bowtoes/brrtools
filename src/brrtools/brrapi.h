@@ -33,10 +33,11 @@
 
 BRR_cppstart
 
-#define BRRAPI_E_SUCCESS (0x00)
-#define BRRAPI_E_MEMERR  (0x10)
-#define BRRAPI_E_ARGERR  (0x20)
-#define BRRAPI_E_ARRFULL (0x21)
+#define BRRAPI_E_SUCCESS  (0x00)
+#define BRRAPI_E_MEMERR   (0x10)
+#define BRRAPI_E_ARGERR   (0x20)
+#define BRRAPI_E_ARRFULL  (0x21)
+#define BRRAPI_E_PRINTERR (0x30)
 
 BRRAPI void BRRCALL
 brrapi_sete(int e);

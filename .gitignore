@@ -1,22 +1,17 @@
-## Ctags/vimtags/othertags files
-tags
-*.types
+*
 
-## Build files
-*.o
-*.e
-*.s
-*.out
+# whitelist
+!.gitignore
+!/src
+!/src/**
+!/helpers
+!/helpers/**
+!*.mk
+!Makefile
+!license
+!*.md
 
-## Local things
-*.cache/
-*.old/
-*.stor/
-test/
-build/
-*.sh
-*.tmp
-compile_commands*
-do_tests
-*.ign
-*_old.*
+# blacklist
+*.old*
+*.ign*
+*.hold*
