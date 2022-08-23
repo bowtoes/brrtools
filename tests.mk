@@ -8,7 +8,6 @@ test_obj_out := $(addprefix $(obj_out_dir)/,$(test_srcs:.c=.o))
 build_directories := $(sort $(build_directories) $(test_obj_dir))
 
 $(test_output): all $(test_obj_out)
-	echo '$(project_ldflags)'
 	$(cc_custom) -o '$@' $(test_obj_out) $(output_file) $(project_ldflags)
 
 test: $(test_output)

@@ -11,7 +11,7 @@ static inline void a(const char *const msg, ...)
 	brrsz i = strlen(msg);
 	va_list lptr;
 	va_start(lptr, msg);
-	brrsz mlen = brrlogv((brrlog_parms_t){.print_newline=1}, msg, lptr);
+	brrsz mlen = brrlogv((brrlog_out_t){.dst=stdout,.type=brrlog_out_stream}, (brrlog_parms_t){.print_newline=1}, msg, lptr);
 	va_end(lptr);
 }
 
@@ -23,10 +23,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-#if 1
+#if 0
 	a("Nice");
 	a("(!f=r:Nice!)");
-	a("I AM NOT RED BUT (!f=rs=b:%s!) MOST (!s=if=g:DEFINITELY!) IS", "SOME STRING CUBED");
+	a("I AM NOT RED BUT '(!f=rs=b:%s!)' MOST (!s=if=g:%s!) IS!", "SOME STRING CUBED", "CERTAINLY");
 #else
 	a("(!f=0:fg=normal!)       (!b=0:bg=normal!)       (!s=0:st=normal!)       (normal)       (!_=0:fn=0!)");
 	a("(!f=k:fg=black!)        (!b=k:bg=black!)        (!s=b:st=bold!)         (bold)         (!_=1:fn=1!)");
@@ -44,8 +44,8 @@ int main(int argc, char **argv)
 	a("(!f=B:fg=lightblue!)    (!b=B:bg=lightblue!)    (!s=I:st=noitalics!)    (noitalics)    (!_=2:fn=2!)");
 	a("(!f=M:fg=lightmagenta!) (!b=M:bg=lightmagenta!) (!s=U:st=nounder!)      (nounder)      (!_=3:fn=3!)");
 	a("(!f=C:fg=lightcyan!)    (!b=C:bg=lightcyan!)    (!s=K:st=noblink!)      (noblink)      (!_=4:fn=4!)");
-	a("(!f=W:fg=lightwhite!)   (!b=W:bg=lightwhite!)   (!s=R:st=noreverse!)    (noreverse)    (!_=5:fn=5!)");
 	a("(!f=-:fg=last!)         (!b=-:bg=last!)         (!s=v:st=reveal!)       (reveal)       (!_=6:fn=6!)");
+	a("(!f=W:fg=lightwhite!)   (!b=W:bg=lightwhite!)   (!s=R:st=noreverse!)    (noreverse)    (!_=5:fn=5!)");
 	a("(!f=0:fg=normal!)       (!b=0:bg=normal!)       (!s=S:st=nostrikeout!)  (nostrikeout)  (!_=7:fn=7!)");
 	a("(!f=k:fg=black!)        (!b=k:bg=black!)        (!s=m:st=frame!)        (frame)        (!_=8:fn=8!)");
 	a("(!f=r:fg=red!)          (!b=r:bg=red!)          (!s=l:st=circle!)       (circle)       (!_=9:fn=9!)");

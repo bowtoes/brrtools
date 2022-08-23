@@ -1,4 +1,6 @@
+#define _brrlog_keep_gens
 #include "brrtools/brrlog.h"
+#undef _brrlog_keep_gens
 
 #include <ctype.h>
 #include <stdio.h>
@@ -7,87 +9,99 @@
 
 #define CNF brrlog_global_cfg
 
-#if _brrlog_can_style
-static const brrlog_style_t i_clear = {0, ._len=sizeof("\x1b[0;39;49;10m")-1};
-static brrlog_style_t i_last_st = {0, ._len=sizeof("\x1b[0;39;49;10m")-1};
-static brrlog_dst_t i_last_dst = {.type = -1};
-static const brrlog_style_t i_unset = {.st=-1,.fg=-1,.bg=-1,.fn=-1};
-
-static BRR_inline int BRRCALL i_st(brrlog_st_t st)
+/* I dislike having to alloc at all, but this is the cleanest solution I've come up with so far */
+typedef struct i_buf
 {
-	switch (st) {
-		case brrlog_st_normal:       return  0;
-		case brrlog_st_bold:         return  1;
-		case brrlog_st_dim:          return  2;
-		case brrlog_st_italics:      return  3;
-		case brrlog_st_under:        return  4;
-		case brrlog_st_blink:        return  5;
-		case brrlog_st_fastblink:    return  6;
-		case brrlog_st_reverse:      return  7;
-		case brrlog_st_conceal:      return  8;
-		case brrlog_st_strikeout:    return  9;
-		case brrlog_st_fraktur:      return 20;
-		case brrlog_st_nobold:       return 21;
-		case brrlog_st_nobright:     return 22;
-		case brrlog_st_noitalics:    return 23;
-		case brrlog_st_nounder:      return 24;
-		case brrlog_st_noblink:      return 25;
-		case brrlog_st_noreverse:    return 27;
-		case brrlog_st_reveal:       return 28;
-		case brrlog_st_nostrikeout:  return 29;
-		case brrlog_st_frame:        return 51;
-		case brrlog_st_circle:       return 52;
-		case brrlog_st_over:         return 53;
-		case brrlog_st_noframe:      return 54;
-		case brrlog_st_noover:       return 55;
-		case brrlog_st_iunder:       return 60;
-		case brrlog_st_idoubleunder: return 61;
-		case brrlog_st_iover:        return 62;
-		case brrlog_st_idoubleover:  return 63;
-		case brrlog_st_istress:      return 64;
-		case brrlog_st_ioff:         return 65;
-		default: return 0;
-	}
+	brrsz alloc;
+	char *d;
+	float factor;
+	int heur, h;
+} i_buf_t;
+static BRR_inline void BRRCALL i_buf_init(i_buf_t *const B, float factor, int heuristic)
+{
+	*B = (i_buf_t){
+		.factor = factor,
+		.heur = heuristic,
+	};
 }
-static BRR_inline int BRRCALL i_fg(brrlog_col_t fg)
+static BRR_inline int BRRCALL i_buf_resize(i_buf_t *const B, brrsz sl)
 {
-	switch (fg) {
-		case brrlog_col_black:        return 30;
-		case brrlog_col_red:          return 31;
-		case brrlog_col_green:        return 32;
-		case brrlog_col_yellow:       return 33;
-		case brrlog_col_blue:         return 34;
-		case brrlog_col_magenta:      return 35;
-		case brrlog_col_cyan:         return 36;
-		case brrlog_col_white:        return 37;
-		case brrlog_col_grey:         return 90;
-		case brrlog_col_lightred:     return 91;
-		case brrlog_col_lightgreen:   return 92;
-		case brrlog_col_lightyellow:  return 93;
-		case brrlog_col_lightblue:    return 94;
-		case brrlog_col_lightmagenta: return 95;
-		case brrlog_col_lightcyan:    return 96;
-		case brrlog_col_lightwhite:   return 97;
-		default: return 39;
+	i_buf_t b = *B;
+	brrsz ns = b.alloc;
+	if (sl > b.alloc) {
+		ns = sl * b.factor;
+		b.h = b.heur;
+	} else if (sl * b.factor < b.alloc) {
+		if (b.h) {
+			b.h--;
+		} else {
+			ns = b.alloc / b.factor;
+			b.h = b.heur;
+		}
 	}
+	if (ns != b.alloc) {
+		if (!(b.d = realloc(b.d, ns + 1)))
+			return 1;
+		b.d[ns] = 0;
+		b.alloc = ns;
+	}
+	*B = b;
+	return 0;
 }
-#define i_bg(_bg_) (10 + i_fg(_bg_))
-static BRR_inline int BRRCALL i_fn(brrlog_fn_t fn)
+static BRR_inline void BRRCALL i_buf_free(i_buf_t *const B)
 {
-	switch (fn) {
-		case 1: return 11;
-		case 2: return 12;
-		case 3: return 13;
-		case 4: return 14;
-		case 5: return 15;
-		case 6: return 16;
-		case 7: return 17;
-		case 8: return 18;
-		case 9: return 19;
-		default: return 10;
-	}
+	if (B->d)
+		free(B->d);
+	memset(B, 0, sizeof(*B));
 }
 
+static i_buf_t _F = {
+	.factor = 1.5,
+	.heur = 10,
+};
+
+typedef int (*i_print_t)(void *, const char *, ...);
+typedef int (*i_vprint_t)(void *, const char *, va_list);
+
+#if !_brrlog_can_style
+#define I_CLEAR {0}
+#define I_UNSET {0}
+#else
+#define I_CLEAR {._s="\x1b[0m", ._l=sizeof("\x1b[0m")-1}
+#define _brrlog_max_sts_op(_i_) -1,
+#define I_UNSET {.st={_brrlog_max_sts(_brrlog_max_sts_op)}, -1, -1, -1}
+
+static brrlog_style_t i_last_st = I_CLEAR;
+static FILE *i_last_stream = NULL;
+
+typedef struct i_sf
+{
+	const char *s;
+	brrsz l;
+} i_sf_t;
+#define _sf_op(_t_, _n_, _i_, _c_) {.s=_c_";",.l=sizeof(_c_)},
+#define _fg_op(_t_, _n_, _i_, _c_, _c2_) _sf_op(_t_, _n_, _i_, _c_)
+#define _bg_op(_t_, _n_, _i_, _c_, _c2_) _sf_op(_t_, _n_, _i_, _c2_)
+static const i_sf_t i_sts[brrlog_st_count]  = {_brrlog_sts(_sf_op)};
+static const i_sf_t i_fgs[brrlog_col_count] = {_brrlog_cols(_fg_op)};
+static const i_sf_t i_bgs[brrlog_col_count] = {_brrlog_cols(_bg_op)};
+static const i_sf_t i_fns[brrlog_fn_count] = {_brrlog_fns(_sf_op)};
+#undef _bg_op
+#undef _fg_op
+#undef _sf_op
+
+#define i_st(_st_) ((_st_) > 0 && (_st_) < brrlog_st_count ? i_sts[_st_] : i_sts[0])
+#define i_fg(_fg_) ((_fg_) > 0 && (_fg_) < brrlog_col_count ? i_fgs[_fg_] : i_fgs[0])
+#define i_bg(_bg_) ((_bg_) > 0 && (_bg_) < brrlog_col_count ? i_bgs[_bg_] : i_bgs[0])
+#define i_fn(_fn_) ((_fn_) > 0 && (_fn_) < brrlog_fn_count ? i_fns[_fn_] : i_fns[0])
+#endif
+
+#if !_brrlog_can_style
+#define i_stchr(...) 0
+#define i_colchr(...) 0
+#define i_fnchr(...) 0
+#define i_style_print(...) 0
+#else
 static BRR_inline brrlog_st_t BRRCALL i_stchr(char st)
 {
 	switch (st) {
@@ -166,119 +180,35 @@ static BRR_inline brrlog_fn_t BRRCALL i_fnchr(char fn)
 		default: return -1;
 	}
 }
-static BRR_inline brrlog_style_t BRRCALL i_style_flat(brrlog_style_t st)
+#define i_pr_style(_w_, _dst_, _st_, _type_, _field_) do {\
+	if ((_st_)._field_ > -1) {\
+		i_sf_t sf = i_##_type_((_st_)._field_);\
+		memcpy((_dst_) + (_w_), sf.s, sf.l);\
+		(_w_) += sf.l;\
+	}\
+} while (0)
+static BRR_inline brrsz BRRCALL i_style_print(char *const dst, brrlog_style_t st)
 {
-	return (brrlog_style_t){
-		.st = i_st(st.st),
-		.fg = i_fg(st.fg),
-		.bg = i_bg(st.bg),
-		.fn = i_fn(st.fn),
-	};
-}
-
-#define STY_CODE_FMT "\x1b[%u;%u;%u;%um"
-#define STY_CODE_LEN (sizeof("\x1b[000;039;049;010m")-1)
-#define sty_args(_S_) i_st((_S_).st), i_fg((_S_).fg), i_bg((_S_).bg), i_fn((_S_).fn)
-#define sty_exp(_S_) (_S_).st, (_S_).fg, (_S_).bg, (_S_).fn
-#endif
-#define pfx_args(_p_) "%.*s", (int)(_p_)._pfxl, (_p_).pfx
-
-static BRR_inline int i_dst_vld(brrlog_dst_t d)
-{
-	return d.type >= _brrlog_dst_min && d.type <= _brrlog_dst_max && d._loc;
-}
-
-brrlog_style_t BRRCALL
-brrlog_style_or(brrlog_style_t a, brrlog_style_t b)
-{
-	return (brrlog_style_t){
-#if _brrlog_can_style
-		.st = a.st < 0 ? b.st : a.st,
-		.fg = a.fg < 0 ? b.fg : a.fg,
-		.bg = a.bg < 0 ? b.bg : a.bg,
-		.fn = a.fn < 0 ? b.fn : a.fn,
-#else
-		0
-#endif
-	};
-}
-
-typedef struct i_stylable
-{
-	const char *pfx;
-	brrsz pfxl;
-	const char *cnt;
-	brrsz cntl;
-} i_stylable_t;
-
-/* Returns 0 when there are no stylables */
-static inline int BRRCALL i_next_stylable(const char *message, brrsz msg_len, brrsz *ofs, i_stylable_t *sty)
-{
-	msg_len -= *ofs;
-	if (!CNF._sty_open || !CNF._sty_len) {
-		return 0;
-	} else if (msg_len <= 2 * CNF._sty_len + 1 /* +1 for prefix sep, always ':' */) {
-		*sty = (i_stylable_t){0};
-		*ofs += msg_len;
-		return 0;
-	}
-	const char *const start = message + *ofs;
-	const brrsz str_max = msg_len + 1 - CNF._sty_len;
-
-	/* (! prefix : content !) */
-	for (brrsz i = 0, escaped = 0; i < str_max; ++i) {
-		if (escaped) {
-			escaped = 0;
-		} else if (start[i] == '\\') {
-			escaped = 1;
-		} else if (!memcmp(start + i, CNF._sty_open, CNF._sty_len)) {
-			brrsz cnt = i + CNF._sty_len;
-			brrsz pfx = BRRSZ_MAX;
-			for (;cnt < str_max && memcmp(start + cnt, CNF._sty_close, CNF._sty_len); ++cnt) {
-				if (start[cnt] == ':' && pfx == BRRSZ_MAX)
-					pfx = cnt;
-			}
-			if (cnt == str_max      /* No closing token, false alarm */
-				|| pfx == BRRSZ_MAX /* No pfx separator, false alarm */
-			) {
-				continue;
-			}
-
-			/* Found a complete stylable section, with no guarantee that the prefix has any length */
-			*sty = (i_stylable_t){
-				.pfx = start + i + CNF._sty_len,
-				.pfxl = pfx - i - CNF._sty_len,
-				.cnt = start + pfx + 1,
-				.cntl = cnt - pfx - 1,
-			};
-			/* Sets the current offset after the closing token */
-			*ofs += cnt + CNF._sty_len;
-			return 1;
-		}
-	}
-	*ofs += str_max + 1;
-	return 0;
-}
-
-#if _brrlog_can_style
-#define PFXMODE_ST 1
-#define PFXMODE_FG 2
-#define PFXMODE_BG 3
-#define PFXMODE_FN 4
-static BRR_inline int BRRCALL i_pfxmode(char pfxchar)
-{
-	switch (pfxchar) {
-		case 's': return PFXMODE_ST;
-		case 'f': return PFXMODE_FG;
-		case 'b': return PFXMODE_BG;
-		case '_': return PFXMODE_FN;
-		default: return 0;
-	}
+	brrsz w = 0;
+	memcpy(dst + w, ST_PFX, sizeof(ST_PFX) - 1);
+	w += sizeof(ST_PFX) - 1;
+	for (int i = 0; i < _brrlog_max_st; ++i)
+		i_pr_style(w, dst, st, st, st[i]);
+	i_pr_style(w, dst, st, fg, fg);
+	i_pr_style(w, dst, st, bg, bg);
+	i_pr_style(w, dst, st, fn, fn);
+	if (w > sizeof(ST_PFX) - 1) /* If actually printed anything, remove the last semicolo */
+		w -= 1;
+	memcpy(dst + w, ST_SFX, sizeof(ST_SFX) - 1);
+	w += sizeof(ST_SFX) - 1;
+	dst[w] = 0;
+	return w;
 }
 #endif
-static inline brrsz BRRCALL i_parse_style_prefix(brrlog_style_t *const st, const i_stylable_t *const sty)
+
+static inline brrsz BRRCALL i_parse_style_prefix(brrlog_style_t *const st, const char *const pfx, brrsz pfxl)
 {
-	if (!sty->pfxl)
+	if (!pfxl)
 		return 0;
 
 	/* A prefix looks like this:
@@ -346,15 +276,17 @@ static inline brrsz BRRCALL i_parse_style_prefix(brrlog_style_t *const st, const
 	 *   * '_' may be one of [0-9] for alternate font 0-9, respectively.
 	 * */
 
-	const char *S = sty->pfx;
-	const char *E = sty->pfx + sty->pfxl;
+	const char *S = pfx;
+	const char *E = pfx + pfxl;
 	while(isspace(*S))S++;if(S==E)return 0;
 	while(isspace(*(E-1)))E--;if(E==S)return 0;
 
 	/* woo! */
 	#if _brrlog_can_style
 	if (st) {
-		brrlog_style_t s = i_unset;
+		brrlog_style_t s = I_UNSET;
+		int st_idx = 0;
+
 		for (int assigning = 0, mode = 0; S!=E; ++S) {
 			char c = *S;
 			if (isspace(c)) {
@@ -363,118 +295,216 @@ static inline brrsz BRRCALL i_parse_style_prefix(brrlog_style_t *const st, const
 				if (c == '=' || isspace(c))
 					continue;
 				switch (mode) {
-					case PFXMODE_ST: if (s.st == -1) s.st = i_stchr(c); break;
-					case PFXMODE_FG: if (s.fg == -1) s.fg = i_colchr(c); break;
-					case PFXMODE_BG: if (s.bg == -1) s.bg = i_colchr(c); break;
-					case PFXMODE_FN: if (s.fn == -1) s.fn = i_fnchr(c); break;
+					case 1:
+						if (s.st[st_idx] == -1)
+							s.st[st_idx] = i_stchr(c);
+						st_idx = (st_idx + 1) & (_brrlog_max_st - 1);
+						break;
+					case 2: if (s.fg == -1) s.fg = i_colchr(c); break;
+					case 3: if (s.bg == -1) s.bg = i_colchr(c); break;
+					case 4: if (s.fn == -1) s.fn = i_fnchr(c); break;
 				}
 				mode = 0;
 			} else {
-				mode = i_pfxmode(c);
+				switch (c) {
+					case 's':
+					case 'S': mode = 1; break;
+					case 'f':
+					case 'F': mode = 2; break;
+					case 'b':
+					case 'B': mode = 3; break;
+					case '_': mode = 4; break;
+					default:  mode = 0; break;
+				}
 			}
 		}
 
-		if (s.st == -2) s.st = i_last_st.st;
+		for (int i = 0; i < _brrlog_max_st; ++i) {
+			if (s.st[i] == -2)
+				s.st[i] = i_last_st.st[i];
+		}
 		if (s.fg == -2) s.fg = i_last_st.fg;
 		if (s.bg == -2) s.bg = i_last_st.bg;
 		if (s.fn == -2) s.fn = i_last_st.fn;
-		s = brrlog_style_or(s, i_clear);
-		s._len = snprintf(NULL, 0, STY_CODE_FMT, sty_args(s));
+		s._l = i_style_print(s._s, s);
 		*st = s;
 	}
 	#endif
 	return 1;
 }
 
-static BRR_inline brrsz BRRCALL i_pri_index(int label)
+brrlog_style_t BRRCALL
+brrlog_style_init(brrlog_style_t source)
 {
-	for (brrsz i = 0; i < CNF._npri; ++i) if (CNF._lbl[i]==label) return i;
-	return CNF._npri;
+	brrlog_style_t p = I_UNSET;
+	for (int i = 0; i < _brrlog_max_st; ++i) {
+		int s = 0;
+		for (int j = 0; j < i; ++j) {
+			if (p.st[j] == source.st[i] || source.st[i] == -1) {
+				s = 1;
+				break;
+			}
+		}
+		if (!s)
+			p.st[i] = source.st[i];
+	}
+	p._l = i_style_print(p._s, p);
+	return p;
 }
-static BRR_inline brrlog_priority_t *BRRCALL i_pri(int label)
+brrlog_style_t BRRCALL
+brrlog_style_or(brrlog_style_t a, brrlog_style_t b)
 {
-	brrsz i = i_pri_index(label);
-	if (i != CNF._npri)
-		return &CNF._pri[i];
-	return NULL;
+#if !_brrlog_can_style
+	return (brrlog_style_t){0};
+#else
+	brrlog_style_t s = {
+		.fg = b.fg == -1 ? a.fg : b.fg,
+		.bg = b.bg == -1 ? a.bg : b.bg,
+		.fn = b.fn == -1 ? a.fn : b.fn,
+	};
+	for (int i = 0; i < _brrlog_max_st; ++i)
+		s.st[i] = b.st[i] == -1 ? a.st[i] : b.st[i];
+	return s;
+#endif
 }
 
-static brrsz BRRCALL i_styled_len(const char *const msg, brrsz msgl, brrlog_style_t surround)
+
+typedef struct i_stylable
+{
+	const char *pfx;
+	brrsz pfxl;
+	const char *cnt;
+	brrsz cntl;
+} i_stylable_t;
+/* Returns 0 when there are no stylables */
+static inline int BRRCALL i_next_stylable(const char *const fmt, brrsz fmtl, brrsz *ofs, i_stylable_t *sty)
+{
+	fmtl -= *ofs;
+	if (!CNF._sty_open || !CNF._sty_len) {
+		return 0;
+	} else if (fmtl <= 2 * CNF._sty_len + 1 /* +1 for prefix sep, always ':' */) {
+		*sty = (i_stylable_t){0};
+		*ofs += fmtl;
+		return 0;
+	}
+	const char *const start = fmt + *ofs;
+	const brrsz str_max = fmtl + 1 - CNF._sty_len;
+
+	/* (! prefix : content !) */
+	for (brrsz i = 0, escaped = 0; i < str_max; ++i) {
+		if (escaped) {
+			escaped = 0;
+		} else if (start[i] == '\\') {
+			escaped = 1;
+		} else if (!memcmp(start + i, CNF._sty_open, CNF._sty_len)) {
+			brrsz cnt = i + CNF._sty_len;
+			brrsz pfx = BRRSZ_MAX;
+			for (;cnt < str_max && memcmp(start + cnt, CNF._sty_close, CNF._sty_len); ++cnt) {
+				if (start[cnt] == ':' && pfx == BRRSZ_MAX)
+					pfx = cnt;
+			}
+			if (cnt == str_max      /* No closing token, false alarm */
+				|| pfx == BRRSZ_MAX /* No pfx separator, false alarm */
+			) {
+				continue;
+			}
+
+			/* Found a complete stylable section, with no guarantee that the prefix has any length */
+			*sty = (i_stylable_t){
+				.pfx = start + i + CNF._sty_len,
+				.pfxl = pfx - i - CNF._sty_len,
+				.cnt = start + pfx + 1,
+				.cntl = cnt - pfx - 1,
+			};
+			/* Sets the current offset after the closing token */
+			*ofs += cnt + CNF._sty_len;
+			return 1;
+		}
+	}
+	*ofs += str_max + 1;
+	return 0;
+}
+static inline brrsz BRRCALL i_styled_len(const char *const fmt, brrsz fmtl, brrlog_style_t surround)
 {
 	i_stylable_t sty = {0};
 	brrsz ofs = 0, sty_tkns = 0, sty_bytes = 0;
-	while (i_next_stylable(msg, msgl, &ofs, &sty)) {
+	while (i_next_stylable(fmt, fmtl, &ofs, &sty)) {
 		brrlog_style_t st;
-		if (i_parse_style_prefix(&st, &sty)) {
+		if (i_parse_style_prefix(&st, sty.pfx, sty.pfxl)) {
 			// Valid prefix
 			sty_tkns += sty.pfxl + 1 + 2 * CNF._sty_len;
 #if _brrlog_can_style
 			if (sty.cntl)
-				sty_bytes += st._len + surround._len;
+				sty_bytes += st._l + surround._l;
 			i_last_st = st;
 #endif
 		} // else invalid prefix, won't be styled
 	}
 #if _brrlog_can_style
-	i_last_st = i_clear;
+	i_last_st = (brrlog_style_t)I_CLEAR;
 #endif
 	return ofs - sty_tkns + sty_bytes;
 }
-static brrsz BRRCALL i_styled(const char *const msg, brrsz msgl, char *const dst, brrlog_style_t surround)
-{
-	i_stylable_t sty = {0};
-	brrsz iofs = 0;
 
-	if (!i_next_stylable(msg, msgl, &iofs, &sty)) {
-		/* No styles */
-		memcpy(dst, msg, msgl);
-		return msgl;
+static BRR_inline brrsz BRRCALL i_print(brrsz w, char *restrict const d, const char *restrict const s, brrsz sl)
+{
+	/*
+	if (maxdst) {
+		if (*w >= maxdst)
+			return 1;
+		if (*w + fmtl > maxdst)
+			fmtl = maxdst - *w;
 	}
-	brrsz oofs = 0, oldofs = 0;
-#if _brrlog_can_style
-	brrlog_style_t surround_flat = i_style_flat(surround);
-#endif
+	*/
+	if (sl)
+		memcpy(d + w, s, sl);
+	return sl;
+}
+static inline brrsz BRRCALL i_styled(char *const d, const char *const s, brrsz sl, brrlog_style_t sur)
+{
+	brrsz fofs = 0, fofsold = 0;
+	brrsz w = 0;
+	i_stylable_t sty = {0};
+
+	if (!i_next_stylable(s, sl, &fofs, &sty)) {
+		w += i_print(w, d, s, sl);
+		d[w] = 0;
+		return w;
+	}
 	do {
 		brrlog_style_t st;
-		if (i_parse_style_prefix(&st, &sty)) {
-			brrsz O = iofs - sty.pfxl - sty.cntl - 2 * CNF._sty_len - 1;
-			brrsz L = O - oldofs;
-			memcpy(dst + oofs, msg + oldofs, L);
-			oofs += L;
-#if _brrlog_can_style
-			oofs += snprintf(dst + oofs, st._len, STY_CODE_FMT, sty_args(st));
-#endif
-			memcpy(dst + oofs, sty.cnt, sty.cntl);
-			oofs += sty.cntl;
-#if _brrlog_can_style
-			oofs += snprintf(dst + oofs, surround._len, STY_CODE_FMT, sty_exp(surround_flat));
-			i_last_st = st;
-#endif
+		if (!i_parse_style_prefix(&st, sty.pfx, sty.pfxl)) {
+			w += i_print(w, d, s + fofsold, fofs - fofsold);
 		} else {
-			memcpy(dst + oofs, msg + oldofs, iofs - oldofs);
-			oofs += iofs - oldofs;
+			brrsz bet_len = fofs - fofsold - CNF._sty_len - sty.pfxl - 1 - sty.cntl - CNF._sty_len;
+			w += i_print(w, d, s + fofsold, bet_len);
+			#if _brrlog_can_style
+			w += i_print(w, d, st._s, st._l);
+			#endif
+			w += i_print(w, d, sty.cnt, sty.cntl);
+			#if _brrlog_can_style
+			w += i_print(w, d, sur._s, sur._l);
+			#endif
+			i_last_st = st;
 		}
-		oldofs = iofs;
-	} while (i_next_stylable(msg, msgl, &iofs, &sty));
-
-	memcpy(dst + oofs, msg + oldofs, iofs - oldofs);
-	oofs += iofs - oldofs;
-	return oofs;
+		fofsold = fofs;
+	} while (i_next_stylable(s, sl, &fofs, &sty));
+	w += i_print(w, d, s + fofsold, fofs - fofsold);
+	d[w] = 0;
+	return w;
 }
 
 /* Initialize 'pri' by parsing the style of 'pfx' and "canonicalizing" the string, flattening it to be
  * static so that it doesn't also need to be styled when logging every message */
 int BRRCALL
-brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog_dst_t dst, brrlog_style_t style)
+brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog_style_t style)
 {
 	if (!pri) {
 		brrapi_sete(BRRAPI_E_ARGERR);
 		return 1;
 	}
-	brrlog_priority_t p = {.style = style, .dst = dst};
-	if (!i_dst_vld(p.dst))
-		p.dst = (brrlog_dst_t){._loc = stderr, .type = brrlog_dst_stream};
 
+	brrlog_priority_t p = {.style = brrlog_style_init(style)};
 	if (!pfx) {
 		*pri = p;
 		return 0;
@@ -482,26 +512,21 @@ brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog
 
 	brrsz ml = brrstringr_length(pfx, CNF.max_prefix);
 	if (ml) {
-#if _brrlog_can_style
-		p.style._len = snprintf(NULL, 0, STY_CODE_FMT, sty_args(p.style));
-#endif
 		brrsz sl = i_styled_len(pfx, ml, p.style);
 		if (!(p.pfx = calloc(1 + sl, 1))) {
 			brrapi_sete(BRRAPI_E_ARGERR);
 			return 1;
 		}
 		p._pfxl = sl;
-#if _brrlog_can_style
-		if (sl != ml)
-			i_styled(pfx, sl, (char*)p.pfx, p.style);
-		else
-#endif
+		if (sl != ml) {
+			i_styled((char*)p.pfx, pfx, ml, p.style);
+		} else {
 			memcpy((char*)p.pfx, pfx, ml);
+		}
 	}
 	*pri = p;
 	return 0;
 }
-
 void BRRCALL
 brrlog_priority_free(brrlog_priority_t *const pri)
 {
@@ -525,12 +550,30 @@ const brrlog_cfg_t brrlog_default_cfg =
 	.debug = 0,
 	.flush_enabled = 1,
 	.flush_always = 0,
+	.def_pri = {
+		.pfx = "[INV]",
+		._pfxl = 5,
+		.style = I_CLEAR,
+	},
 
 	.max_log = 2048,
 	.max_prefix = 32,
 };
 
 brrlog_cfg_t brrlog_global_cfg = {0};
+
+static BRR_inline brrsz BRRCALL i_pri_index(int label)
+{
+	for (brrsz i = 0; i < CNF._npri; ++i) if (CNF._lbl[i]==label) return i;
+	return CNF._npri;
+}
+static BRR_inline brrlog_priority_t *BRRCALL i_pri(int label)
+{
+	brrsz i = i_pri_index(label);
+	if (i != CNF._npri)
+		return &CNF._pri[i];
+	return NULL;
+}
 
 int BRRCALL
 brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const style_close)
@@ -566,7 +609,7 @@ brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const st
 	{ brrlog_priority_t p = {0};
 		brrlog_cfg_t t = CNF;
 		CNF = c;
-		if (brrlog_priority_init(&p, cfg.def_pri.pfx, cfg.def_pri.dst, cfg.def_pri.style)) {
+		if (brrlog_priority_init(&p, cfg.def_pri.pfx, cfg.def_pri.style)) {
 			if (c._sty_open)
 				free((char*)c._sty_open);
 			CNF = t;
@@ -584,7 +627,6 @@ brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const st
 			brrapi_sete(BRRAPI_E_MEMERR);
 			return 1;
 		}
-		c._buf_alloc = c.max_log;
 	}
 	c._init = 1;
 	CNF = c;
@@ -602,6 +644,7 @@ brrlog_deinit(void)
 	}
 	if (CNF._log_buf)
 		free(CNF._log_buf);
+	i_buf_free(&_F);
 	memset(&CNF, 0, sizeof(CNF));
 }
 
@@ -620,7 +663,7 @@ brrlog_priority_mod(int label, brrlog_priority_t new)
 	}
 
 	brrlog_priority_t p = {0};
-	if (brrlog_priority_init(&p, new.pfx, new.dst, new.style))
+	if (brrlog_priority_init(&p, new.pfx, new.style))
 		return 1;
 
 	if (i == CNF._npri) {
@@ -710,264 +753,140 @@ brrlog_priority_delete(int label)
 	return 0;
 }
 
-/* I'm ugly and I'm mostly proud */
-
-#define pri_unbounded(_pr_, _w_, _d_, ...) do {\
-	int i = _pr_((_d_) + (_w_), __VA_ARGS__);\
-	if (i < 0) return BRRSZ_MAX;\
-	_w_ += i;\
-} while (0)
-#define xpri_nocheck(_pr_, _w_, _d_, _fmt_, _fmto_, _fmtl_, _args_) do {\
-	char *_f = (char*)(_fmt_) + (_fmto_);\
-	brrsz _l = (_fmtl_);\
-	char c = _f[_l];\
-	_f[_l] = 0;\
-	int i = v##_pr_((_d_) + (_w_), _f, _args_);\
-	_f[_l] = c;\
-	if (i < 0) return BRRSZ_MAX;\
-	_w_ += i;\
-} while (0)
-#define pri_bounded(_pr_, _w_, _d_, _M_, ...) do {\
-	int i = _pr_((_d_) + (_w_), (_M_) - (_w_) + 1, __VA_ARGS__);\
-	if (i < 0) return BRRSZ_MAX;\
-	_w_ += i;\
-	if (_w_ >= _M_) return _w_;\
-} while (0)
-#define xpri_check(_pr_, _w_, _d_, _M_, _fmt_, _fmto_, _fmtl_, _args_) do {\
-	/* printf's only a section of the 'fmt' by setting the last byte to 0 before printf, then resetting it after */\
-	brrsz _l = (_fmtl_);\
-	char *_f = (char*)(_fmt_) + (_fmto_);\
-	char c = _f[_l];\
-	_f[_l] = 0;\
-	int i = v##_pr_((_d_) + (_w_), (_M_) - (_w_) + 1, _f, _args_);\
-	_f[_l] = c;\
-	if (i < 0) return BRRSZ_MAX;\
-	_w_ += i;\
-	if (_w_ >= _M_) return _w_;\
-} while(0)
-static BRR_inline brrsz i_log_no_max_stream(brrlog_parms_t P, brrlog_priority_t p, const char *const fmt, brrsz fmtl, FILE *f, va_list args)
-{
-	brrsz w = 0;
-
-	if (CNF.prefixes_enabled && P.print_prefix)
-		pri_unbounded(fprintf, w, f, pfx_args(p));
-	if (CNF.verbose && P.verbose) {
-		/* TODO print line, func, file in some way */
-	}
-
-	brrsz ofs = 0, oldofs = 0;
-	i_stylable_t sty;
-	brrlog_style_t st;
-	if (!i_next_stylable(fmt, fmtl, &ofs, &sty)) {
-		/* Nothing to style, just do a normal printf */
-		xpri_nocheck(fprintf, w, f, fmt, 0, fmtl, args);
-		return w;
-	} else {
-		do {
-			if (!i_parse_style_prefix(&st, &sty)) {
-				xpri_nocheck(fprintf, w, f, fmt, oldofs, ofs - oldofs, args);
-			} else {
-				xpri_nocheck(fprintf, w, f, fmt, oldofs, ofs - 2 * CNF._sty_len - sty.pfxl - 1 - sty.cntl - oldofs, args);
-				#if _brrlog_can_style
-				if (CNF.style_enabled)
-					pri_unbounded(fprintf, w, f, STY_CODE_FMT, sty_args(st));
-				#endif
-				xpri_nocheck(fprintf, w, f, sty.cnt, 0, sty.cntl, args);
-				#if _brrlog_can_style
-				if (CNF.style_enabled)
-					pri_unbounded(fprintf, w, f, STY_CODE_FMT, sty_args(p.style));
-				#endif
-				i_last_st = st;
-			}
-			oldofs = ofs;
-		} while (i_next_stylable(fmt, fmtl, &ofs, &sty));
-		xpri_nocheck(fprintf, w, f, fmt, oldofs, ofs - oldofs, args);
-	}
-
-	if (CNF.newlines_enabled && P.print_newline) {
-		int i = fprintf(f, "\n");
-		if (i < 0)
-			return BRRSZ_MAX;
-		w++;
-	}
-	return w;
-}
-static BRR_inline brrsz i_log_no_max_buffer(brrlog_parms_t P, brrlog_priority_t p, const char *const fmt, brrsz fmtl, char *b, va_list args)
-{
-	brrsz w = 0;
-
-	if (CNF.prefixes_enabled && P.print_prefix)
-		pri_unbounded(sprintf, w, b, pfx_args(p));
-	if (CNF.verbose && P.verbose) {
-		/* TODO print line, func, file in some way */
-	}
-
-	brrsz ofs = 0, oldofs = 0;
-	i_stylable_t sty;
-	brrlog_style_t st;
-	if (!i_next_stylable(fmt, fmtl, &ofs, &sty)) {
-		/* Nothing to style, just do a normal printf */
-		xpri_nocheck(sprintf, w, b, fmt, 0, fmtl, args);
-		return w;
-	} else {
-		do {
-			if (!i_parse_style_prefix(&st, &sty)) {
-				xpri_nocheck(sprintf, w, b, fmt, oldofs, ofs - oldofs, args);
-			} else {
-				xpri_nocheck(sprintf, w, b, fmt, oldofs, ofs - 2 * CNF._sty_len - sty.pfxl - 1 - sty.cntl - oldofs, args);
-				#if _brrlog_can_style
-				if (CNF.style_enabled)
-					pri_unbounded(sprintf, w, b, STY_CODE_FMT, sty_args(st));
-				#endif
-				xpri_nocheck(sprintf, w, b, sty.cnt, 0, sty.cntl, args);
-				#if _brrlog_can_style
-				if (CNF.style_enabled)
-					pri_unbounded(sprintf, w, b, STY_CODE_FMT, sty_args(p.style));
-				#endif
-				i_last_st = st;
-			}
-			oldofs = ofs;
-		} while (i_next_stylable(fmt, fmtl, &ofs, &sty));
-		xpri_nocheck(sprintf, w, b, fmt, oldofs, ofs - oldofs, args);
-	}
-
-	if (CNF.newlines_enabled && P.print_newline) {
-		b[w++] = '\n';
-	}
-	return w;
-}
-static BRR_inline brrsz i_log_max(brrlog_parms_t P, brrlog_priority_t p, const char *const fmt, brrsz fmtl, char *dst, va_list args)
-{
-	brrsz w = 0;
-
-	if (CNF.prefixes_enabled && P.print_prefix)
-		pri_bounded(snprintf, w, dst, CNF.max_log, pfx_args(p));
-	if (CNF.verbose && P.verbose) {
-		/* TODO print line, func, file in some way */
-	}
-
-	brrsz ofs = 0, oldofs = 0;
-	i_stylable_t sty;
-	brrlog_style_t st;
-	if (!i_next_stylable(fmt, fmtl, &ofs, &sty)) {
-		/* Nothing to style, just do a normal printf */
-		xpri_check(snprintf, w, dst, CNF.max_log, fmt, 0, fmtl, args);
-	} else {
-		do {
-			if (!i_parse_style_prefix(&st, &sty)) {
-				xpri_check(snprintf, w, dst, CNF.max_log, fmt, oldofs, ofs - oldofs, args);
-			} else {
-				xpri_check(snprintf, w, dst, CNF.max_log, fmt, oldofs, ofs - 2 * CNF._sty_len - sty.pfxl - 1 - sty.cntl - oldofs, args);
-				#if _brrlog_can_style
-				if (CNF.style_enabled)
-					pri_bounded(snprintf, w, dst, CNF.max_log, STY_CODE_FMT, sty_args(st));
-				#endif
-				xpri_check(snprintf, w, dst, CNF.max_log, sty.cnt, 0, sty.cntl, args);
-				#if _brrlog_can_style
-				if (CNF.style_enabled)
-					pri_bounded(snprintf, w, dst, CNF.max_log, STY_CODE_FMT, sty_args(p.style));
-				#endif
-				i_last_st = st;
-			}
-			oldofs = ofs;
-		} while (i_next_stylable(fmt, fmtl, &ofs, &sty));
-		xpri_check(snprintf, w, dst, CNF.max_log, fmt, oldofs, ofs - oldofs, args);
-	}
-
-	if (CNF.newlines_enabled && P.print_newline) {
-		if (w + 1 <= CNF.max_log)
-			dst[w++] = '\n';
-	}
-	dst[w] = 0;
-	return w;
-}
-
 brrsz BRRCALL
-brrlogv(brrlog_parms_t P, const char *const fmt, va_list args)
+brrlogv(brrlog_out_t dst, brrlog_parms_t parms, const char *const fmt, va_list args)
 {
 	const brrsz fmtl = strlen(fmt);
 	if (!fmt) {
 		brrapi_sete(BRRAPI_E_ARGERR);
 		return BRRSZ_MAX;
-	} else if (!fmtl || ((P.label < CNF.min_label || P.label > CNF.max_label) && !CNF.debug)) {
+	} else if (!fmtl || (!CNF.debug && (parms.label < CNF.min_label || parms.label > CNF.max_label))) {
 		return 0;
 	}
-	/* I hate this I hate this I hate this I hate this it's slow and could be abused
-	 * But I need it if I want to use any kind of compile-time format string that will end up in the ro
-	 * section, because of the way I implemented subsectioning said format string
-	 * The most performant way to fix this that I can think of would require me to do either:
-	 *   A: Implement my own printf (please God no)
-	 *   B: Style the format string before passing it to *printf, which would require me to allocate
-	 *   appropriate space too, for the styled format.
-	 * The benefit of the latter is that it would greatly simplify this entire module, but it still fails to
-	 * avoid malloc, so my problem remains just as unsolved.
-	 * How can I tell *printf to only read n bytes of the format string?
-	 * TODO: help me. HELP. ME.*/
-	char *FMT = calloc(fmtl+1, 1);
-	if (!FMT) {
+
+	brrlog_priority_t pri;
+	{ brrsz i = i_pri_index(parms.label);
+		if (i == CNF._npri)
+			pri = CNF.def_pri;
+		else
+			pri = CNF._pri[i];
+	}
+
+	if (i_buf_resize(&_F, i_styled_len(fmt, fmtl, pri.style))) {
 		brrapi_sete(BRRAPI_E_MEMERR);
 		return BRRSZ_MAX;
 	}
-	memcpy(FMT, fmt, fmtl);
+	i_styled(_F.d, fmt, fmtl, pri.style);
 
-	brrlog_priority_t pri;
-	{ brrsz i = i_pri_index(P.label);
-		if (i == CNF._npri || P.label < CNF.min_label || P.label > CNF.max_label) {
-			pri = CNF.def_pri;
-		} else {
-			pri = CNF._pri[i];
+	if (dst.type < _brrlog_out_min || dst.type > _brrlog_out_max || !dst.dst) {
+		int t = snprintf(NULL, 0, _F.d, args);
+		if (t < 0) {
+			brrapi_sete(BRRAPI_E_LIBC);
+			return BRRSZ_MAX;
 		}
+		return t;
 	}
 
-	brrsz w = 0;
-	brrsz ofs = 0, oldofs = 0;
-	i_stylable_t sty;
-	brrlog_style_t st;
-	if (pri.dst.type == brrlog_dst_stream) {
-		FILE *f = pri.dst._loc;
-
-		/* Flush the toilet please */
-		if (i_last_dst.type == brrlog_dst_stream &&
-		    (CNF.flush_always ||
-		        (CNF.flush_enabled && i_last_dst._loc && i_last_dst._loc != f)))
-			fflush(i_last_dst._loc);
-
-		if (!CNF.max_log) {
-			w = i_log_no_max_stream(P, pri, FMT, fmtl, f, args);
-		} else {
-			w = i_log_max(P, pri, FMT, fmtl, CNF._log_buf, args);
-			if (w != BRRSZ_MAX) {
-				int i = fprintf(f, "%s", CNF._log_buf);
-				if (i < 0)
-					w = BRRSZ_MAX;
-				else
-					w = i;
+	brrsz W = 0;
+	if (CNF.max_log) {
+		char *L = CNF._log_buf;
+		if (CNF.prefixes_enabled && parms.print_prefix) {
+			if (pri._pfxl > CNF.max_log)
+				pri._pfxl = CNF.max_log;
+			memcpy(L + W, pri.pfx, pri._pfxl);
+			W += pri._pfxl;
+		}
+		if (CNF.verbose && parms.verbose) {
+			/* TODO */
+		}
+		{ int w = vsnprintf(L + W, CNF.max_log - W + 1, _F.d, args);
+			if (w < 0) {
+				brrapi_sete(BRRAPI_E_LIBC);
+				return BRRSZ_MAX;
+			}
+			W += w;
+		}
+		if (CNF.newlines_enabled && parms.print_newline) {
+			if (W < CNF.max_log) {
+				L[W++] = '\n';
 			}
 		}
-	} else {
-		char *b = pri.dst._loc;
-		if (!CNF.max_log) {
-			w = i_log_no_max_buffer(P, pri, FMT, fmtl, b, args);
-		} else {
-			w = i_log_max(P, pri, FMT, fmtl, b, args);
-		}
-	}
-	free(FMT);
+		L[W] = 0;
 
-	if (w != BRRSZ_MAX) { /* BRRSZ_MAX to indicate error */
-		i_last_dst = pri.dst;
+		if (dst.type == brrlog_out_stream) {
+			brrsz w = fwrite(L, W, 1, dst.dst);
+			if (w < 1) {
+				brrapi_sete(BRRAPI_E_LIBC);
+				return BRRSZ_MAX;
+			}
+		} else {
+			memcpy(dst.dst, L, W + 1);
+		}
+		return W;
+	} else if (dst.type == brrlog_out_stream) {
+		FILE *F = dst.dst;
+		if (CNF.prefixes_enabled && parms.print_prefix) {
+			brrsz w = fwrite(pri.pfx, pri._pfxl, 1, F);
+			if (w < 1) {
+				brrapi_sete(BRRAPI_E_LIBC);
+				return BRRSZ_MAX;
+			}
+			W += w;
+		}
+
+		if (CNF.verbose && parms.verbose) {
+			/* TODO */
+		}
+
+		{ int w = fprintf(F, _F.d, args);
+			if (w < 0) {
+				brrapi_sete(BRRAPI_E_LIBC);
+				return BRRSZ_MAX;
+			}
+			W += w;
+		}
+		if (CNF.newlines_enabled && parms.print_newline) {
+			int r = fputc('\n', F);
+			if (r == EOF) {
+				brrapi_sete(BRRAPI_E_LIBC);
+				return BRRSZ_MAX;
+			}
+			W += 1;
+		}
+		return W;
 	} else {
-		brrapi_sete(BRRAPI_E_PRINTERR);
-		return BRRSZ_MAX;
+		char *B = dst.dst;
+		if (CNF.prefixes_enabled && parms.print_prefix) {
+			memcpy(B + W, pri.pfx, pri._pfxl);
+			W += pri._pfxl;
+		}
+
+		if (CNF.verbose && parms.verbose) {
+			/* TODO */
+		}
+
+		{ int w = sprintf(B, _F.d, args);
+			if (w < 0) {
+				brrapi_sete(BRRAPI_E_LIBC);
+				return BRRSZ_MAX;
+			}
+			W += w;
+		}
+
+		if (CNF.newlines_enabled && parms.print_newline) {
+			B[W++] = '\n';
+		}
+
+		B[W] = 0;
+		return W;
 	}
-	return w;
 }
 brrsz BRRCALL
-brrlog(brrlog_parms_t parms, const char *const fmt, ...)
+brrlog(brrlog_out_t dst, brrlog_parms_t parms, const char *const fmt, ...)
 {
 	va_list lptr;
 	va_start(lptr, fmt);
-	brrsz mlen = brrlogv(parms, fmt, lptr);
+	brrsz mlen = brrlogv(dst, parms, fmt, lptr);
 	va_end(lptr);
 	return mlen;
 }

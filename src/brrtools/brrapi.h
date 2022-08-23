@@ -33,11 +33,16 @@
 
 BRR_cppstart
 
-#define BRRAPI_E_SUCCESS  (0x00)
-#define BRRAPI_E_MEMERR   (0x10)
-#define BRRAPI_E_ARGERR   (0x20)
-#define BRRAPI_E_ARRFULL  (0x21)
-#define BRRAPI_E_PRINTERR (0x30)
+#define _brrapi_e(_X_)\
+	_X_(SUCCESS, 0x00, "Success")\
+	_X_(MEMERR,  0x10, "Memory Allocation Failure")\
+	_X_(ARGERR,  0x20, "Invalid Argument(s)")\
+	_X_(ARRFULL, 0x21, "Array is Full")\
+	_X_(LIBC,    0x30, "C Library Errored")\
+
+#define _brrapi_e_op(_n_, _i_, _D_) BRRAPI_E_##_n_ = _i_,
+typedef enum brrapi_err { _brrapi_e(_brrapi_e_op) } brrapi_err_t;
+#undef _brrapi_e_op
 
 BRRAPI void BRRCALL
 brrapi_sete(int e);
@@ -49,5 +54,9 @@ BRRAPI const char *BRRCALL
 brrapi_err(void);
 
 BRR_cppend
+
+#ifndef _brrapi_keep_gens
+#undef _brrapi_e
+#endif
 
 #endif /* BRRTOOLS_BRRAPI_H */
