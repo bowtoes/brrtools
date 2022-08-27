@@ -2,8 +2,12 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
-#ifndef BRRMACRO_H
-#define BRRMACRO_H
+#ifndef brrtools_brrmacro_h
+#define brrtools_brrmacro_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define _brr_eval0(...) __VA_ARGS__
 #define _brr_eval1(...) _brr_eval0(_brr_eval0(_brr_eval0(_brr_eval0(__VA_ARGS__))))
@@ -86,11 +90,7 @@ Full license can be found in 'license' file */
 
 #define _brrjoin2(_1_, _2_) _1_ ## _2_
 #define brr_join(_1_,_2_) _brrjoin2(_1_, _2_)
-
-//#define _brr_index_get0(_0_, ...) (_0_)
-//#define _brr_index_after0(_0_, ...) __VA_ARGS__
-//#define BRRMACRO_INDEX(_n_, ...) _brr_eval(BRRMACRO_PASTE(_brr_index_get0, _n_ (__VA_ARGS__)))
-//#define BRRMACRO_AFTER(_n_, ...) _brr_eval(BRRMACRO_PASTE(_brr_index_after0, _n_ (__VA_ARGS__)))
+#define brr_ejoin(_1_,_2_) brr_join(brr_expand(_1_), brr_expand(_2_))
 
 #define brr_array_length(_a_) (sizeof(_a_)/sizeof(*(_a_)))
 #define brr_array_iter(_t_, _i_, _a_) for (_t_ _i_ = 0; _i_ < brrarray_length(_a_); ++_i_)
@@ -98,7 +98,45 @@ Full license can be found in 'license' file */
 
 #define brr_any(_x_, _f_) (((_x_)&(_f_))!=0)
 #define brr_all(_x_, _f_) (((_x_)&(_f_))==(_f_))
+#define brr_none(_x_, _f_) (((_x_)&(_f_))==0)
 
-#include <brrtools/brrmacro_map.h>
+#define _brr_map_eval0(...) __VA_ARGS__
+#define _brr_map_eval1(...) _brr_map_eval0(_brr_map_eval0(_brr_map_eval0(__VA_ARGS__)))
+#define _brr_map_eval2(...) _brr_map_eval1(_brr_map_eval1(_brr_map_eval1(__VA_ARGS__)))
+#define _brr_map_eval3(...) _brr_map_eval2(_brr_map_eval2(_brr_map_eval2(__VA_ARGS__)))
+#define _brr_map_eval4(...) _brr_map_eval3(_brr_map_eval3(_brr_map_eval3(__VA_ARGS__)))
+#define _brr_map_eval(...)  _brr_map_eval4(_brr_map_eval4(_brr_map_eval4(__VA_ARGS__)))
 
-#endif /* BRRMACRO_H */
+/* https://github.com/swansontec/map-macro */
+#define _brr_map_end(...)
+#define _brr_map_out
+#define _brr_map_comma ,
+
+#define _brr_map_get_end2() 0, _brr_map_end
+#define _brr_map_get_end1(...) _brr_map_get_end2
+#define _brr_map_get_end(...) _brr_map_get_end1
+#define _brr_map_next0(test, next, ...) next _brr_map_out
+#define _brr_map_next1(test, next) _brr_map_next0(test, next, 0)
+#define _brr_map_next(test, next)  _brr_map_next1(_brr_map_get_end test, next)
+
+#define _brr_map0(f, x, peek, ...) f(x) _brr_map_next(peek, _brr_map1)(f, peek, __VA_ARGS__)
+#define _brr_map1(f, x, peek, ...) f(x) _brr_map_next(peek, _brr_map0)(f, peek, __VA_ARGS__)
+
+/* Applies the macro 'X' to each of the following arguments. */
+#define brr_map(X, ...) _brr_map_eval(_brr_map1(X, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+
+#define _brr_map_list_next1(test, next) _brr_map_next0(test, _brr_map_comma next, 0)
+#define _brr_map_list_next(test, next)  _brr_map_list_next1(_brr_map_get_end test, next)
+
+#define _brr_map_list0(f, x, peek, ...) f(x) _brr_map_list_next(peek, _brr_map_list1)(f, peek, __VA_ARGS__)
+#define _brr_map_list1(f, x, peek, ...) f(x) _brr_map_list_next(peek, _brr_map_list0)(f, peek, __VA_ARGS__)
+
+/* Applies the macro 'X' to each of the following arguments and inserts commas between the output.
+ * */
+#define brr_map_list(X, ...) _brr_map_eval(_brr_map_list1(X, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* brrtools_brrmacro_h */

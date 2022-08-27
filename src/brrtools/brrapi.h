@@ -1,37 +1,53 @@
-#ifndef BRRTOOLS_BRRAPI_H
-#define BRRTOOLS_BRRAPI_H
-
-#if defined(_WIN32)
-# define BRRCALL __cdecl
-# if !(defined(BRR_exports) || defined(BRR_imports)) // Static linkage
-#  define BRRAPI
-# elif defined(BRR_exports) && !defined(BRR_imports) // Compiling as dll
-#  define BRRAPI __declspec(dllexport)
-# else // Linking to dll
-#  define BRRAPI __declspec(dllimport)
-# endif
-#else // Unix target
-# define BRRAPI __attribute__((visibility("default")))
-# define BRRCALL
-#endif // BRRPLATFORMTYPE_WINDOWS
-
-#if defined(_MSC_VER)
-# define BRR_inline inline __forceinline
-#elif defined(__GNUC__) || (defined(__clang__) && __has_attribute(__always_inline__))
-# define BRR_inline inline __attribute__((__always_inline__))
-#else
-# define BRR_inline inline
-#endif
+#ifndef brrtools_brrapi_h
+#define brrtools_brrapi_h
 
 #ifdef __cplusplus
-# define BRR_cppstart extern "C" {
-# define BRR_cppend }
-#else
-# define BRR_cppstart
-# define BRR_cppend
+extern "C" {
 #endif
 
-BRR_cppstart
+#include <brrtools/brrplat.h>
+/* NOTE calling convention will be different for different architectures, something to consider in future */
+
+#if brrplat_dos || brrplat_msvc
+# define BRRCALL __cdecl
+# if !(defined(BRR_exports) || defined(BRR_imports))
+// Static linkage
+# elif defined(BRR_exports) && !defined(BRR_imports)
+// Compiling as dll
+#  define BRRAPI __declspec(dllexport)
+# else
+// Linking to dll
+#  define BRRAPI __declspec(dllimport)
+# endif
+#elif brrplat_gnuc
+# if defined(__has_attribute)
+#  if __has_attribute(cdecl)
+#   define BRRCALL
+#  endif
+#  if __has_attribute(visibility)
+#   define BRRAPI __attribute__((visibility("default")))
+#  endif
+# endif
+#endif
+#ifndef BRRAPI
+#define BRRAPI extern
+#endif
+#ifndef BRRCALL
+#define BRRCALL
+#endif
+
+#if brrplat_msvc
+# define BRR_inline inline __forceinline
+#elif brrplat_gnuc
+# if defined(__has_attribute)
+#  if __has_attribute(__always_inline__)
+#   define BRR_inline inline __attribute__((__always_inline__))
+#  endif
+# endif
+#endif
+#ifndef BRR_inline
+#define BRR_inline inline
+#endif
 
 #define _brrapi_e(_X_)\
 	_X_(SUCCESS, 0x00, "Success")\
@@ -53,10 +69,12 @@ brrapi_gete(void);
 BRRAPI const char *BRRCALL
 brrapi_err(void);
 
-BRR_cppend
-
 #ifndef _brrapi_keep_gens
 #undef _brrapi_e
 #endif
 
-#endif /* BRRTOOLS_BRRAPI_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* brrtools_brrapi_h */

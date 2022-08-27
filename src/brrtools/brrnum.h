@@ -2,25 +2,24 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
-#ifndef BRRNUM_H
-#define BRRNUM_H
+#ifndef brrtools_brrnum_h
+#define brrtools_brrnum_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-/* Counts the number of digits of 'number' when written in base 'base'.
+/* Counts the number of digits of 'number' when written in base 'base', excluding sign.
  * If 'is_signed' is true, 'number' is cast as a signed integer before the digits are counted.
- * The sign is not counted in resulting digit count.
- * 'base' must be greater than 2, but has no enforced upper bound.
+ * If 'base' is less than 2, 0 is returned.
  * */
-BRRAPI brrsz BRRCALL brrnum_ndigits(brru8 number, brru1 base, brrbl is_signed);
+BRRAPI int BRRCALL brrnum_ndigits(brru8 x, int base);
 /* Performs 'correct' (citation needed) signed % unsigned modulo operation, with an optional 'offset' that does... something.
  * */
-BRRAPI brrs8 BRRCALL brrnum_wrap(brrs8 number, brru8 modulus, brrs8 offset);
+BRRAPI brrs8 BRRCALL brrnum_wrap(brrs8 x, brru8 modulus, brrs8 offset);
 
 /* Returns the unsigned greatest common factor of 'a' and 'b'.
  * If 'a' equals 'b', then 'a' is returned.
@@ -47,10 +46,10 @@ BRRAPI brrs8 BRRCALL brrnum_smin(brrs8 a, brrs8 b);
 BRRAPI brrs8 BRRCALL brrnum_sclamp(brrs8 x, brrs8 min, brrs8 max);
 
 /* Logical XOR of a and b */
-BRRAPI brrbl BRRCALL brrnum_bxor(brrbl a, brrbl b);
+BRRAPI int BRRCALL brrnum_bxor(int a, int b);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* BRRNUM_H */
+#endif /* brrtools_brrnum_h */

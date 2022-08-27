@@ -58,7 +58,9 @@ install-lib: all
 ifeq ($(target)-$(target_mode),windows-shared)
 	$(copy_file) '$(output_defines)' '$(output_imports)' '$(prefix)/lib'
 endif
+ifneq ($(do_strip),0)
 	@$(strip_exe) '$(prefix)/lib/$(output_name)'
+endif
 uninstall-lib:
 	@$(rm_file) '$(prefix)/lib/$(output_name)'
 ifeq ($(target)-$(target_mode),windows-shared)

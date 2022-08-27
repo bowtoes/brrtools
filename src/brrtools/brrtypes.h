@@ -2,19 +2,15 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
-#ifndef BRRTOOLS_TYPES_H
-#define BRRTOOLS_TYPES_H
+#ifndef brrtools_brrtypes_h
+#define brrtools_brrtypes_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 #include <stddef.h>
-
-#ifndef BRRBITDEPTH_SYSTEM
-#include <brrtools/brrendian.h>
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 typedef int8_t      brrs1;
 typedef uint8_t     brru1;
@@ -45,18 +41,13 @@ typedef _Bool       brrbl;
 typedef size_t brrsz; // Byte count or absolute byte offset.
 # define BRRSZ_MAX SIZE_MAX
 
-#if BRRBITDEPTH_SYSTEM == BRRBITDEPTH_64
+/* TODO implement 32-bit version */
 typedef brrs8 brrof; // Relative byte offset.
 # define BRROF_MAX BRRS8_MAX
 # define BRROF_MIN BRRS8_MIN
-#else
-typedef brrs4 brrof; // Relative byte offset.
-# define BRROF_MAX BRRS4_MAX
-# define BRROF_MIN BRRS4_MIN
-#endif
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* BRRTOOLS_TYPES_H */
+#endif /* brrtools_brrtypes_h */

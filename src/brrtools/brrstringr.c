@@ -1,22 +1,19 @@
 /* Copyright (c), BowToes (bow.toes@mailfence.com)
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
+#include "brrtools/brrstringr.h"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(_WIN32)
+#if brrplat_unix
+# include <strings.h>
+#elif brrplat_dos
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
-#else
-# include <strings.h>
 #endif
-
-#include "brrtools/brrlib.h"
-#include "brrtools/brrstringr.h"
-#include "brrtools/brrdata.h"
 
 typedef int (*i_str_ncmp_t)(const char *const, const char *const, brrsz);
 typedef int (*i_str_cmp_t)(const char *const, const char *const);
@@ -227,6 +224,8 @@ brrstringr_vprint(
 	return i_vprint(string, offset, max_length, format, lptr);
 }
 
+/* TODO currently quarantined, will fix soon tm */
+#if 0
 static inline brrsz BRRCALL
 i_find_next_delimni(
     const brrstringr_t *const string,
@@ -291,7 +290,7 @@ i_add_next_split(
 	brrstringr_t str = {0};
 	if (brrstringr_new(&str, string->cstr + start, len))
 		return -1;
-	if (brrdata_append((void **)splits, n_splits, sizeof(str), &str)) {
+	if (brrarray_append((void **)splits, n_splits, sizeof(str), &str)) {
 		brrstringr_free(&str);
 		return -1;
 	}
@@ -421,6 +420,7 @@ brrstringr_join(
 	*string = str;
 	return 0;
 }
+#endif
 
 int BRRCALL
 brrstringr_filter_chars(brrstringr_t *const string, int (*filter)(int, int), brrbl invert)

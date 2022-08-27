@@ -2,14 +2,14 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
-#ifndef BRRCON_H
-#define BRRCON_H
+#ifndef brrtools_brrcon_h
+#define brrtools_brrcon_h
 
-#include <brrtools/brrapi.h>
-
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <brrtools/brrapi.h>
 
 /* Pauses console until a character is pushed to stdin.
  * Returns 0 if implemented on the host system, 1 otherwise.
@@ -20,8 +20,8 @@ BRRAPI int BRRCALL brrcon_pause(void);
  * */
 BRRAPI int BRRCALL brrcon_clear(void);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* BRRCON_H */
+#endif /* brrtools_brrcon_h */

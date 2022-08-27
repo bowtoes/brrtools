@@ -2,23 +2,31 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
-#ifndef BRRPATH_H
-#define BRRPATH_H
+#ifndef brrtools_brrpath_h
+#define brrtools_brrpath_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <brrtools/brrapi.h>
-#include <brrtools/brrplatform.h>
 #include <brrtools/brrtypes.h>
 #include <brrtools/brrstringr.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+/* TODO: This whole thing need redone, much like the treatment with brrlog */
 
 #define BRRPATH_WALK_ERROR_NONE 0
 #define BRRPATH_WALK_ERROR_ARGUMENTS 1
 #define BRRPATH_WALK_ERROR_RUNTIME -1
 
-#if defined(BRRPLATFORMTYPE_Windows)
+#if brrplat_unix
+# define BRRPATH_MAX_NAME 255
+/* FIXME not the same on all *nixes, limit in various headers */
+# define BRRPATH_MAX_PATH 4095
+# define BRRPATH_SEP_CHR '/'
+# define BRRPATH_SEP_STR "/"
+# define BRRPATH_CASE_SENSITIVE 1
+#elif brrplat_dos
 #include <windows.h>
 # define _brrpath_ulrg(_l_, _h_) (((ULARGE_INTEGER){.u={.LowPart=(_l_),.HighPart=(_h_)}}).QuadPart)
 /* TODO where does 256 come from? */
@@ -27,13 +35,6 @@ extern "C" {
 # define BRRPATH_SEP_CHR '\\'
 # define BRRPATH_SEP_STR "\\"
 # define BRRPATH_CASE_SENSITIVE 0
-#elif defined(BRRPLATFORMTYPE_unix)
-# define BRRPATH_MAX_NAME 255
-/* FIXME not the same on all *nixes, limit in various headers */
-# define BRRPATH_MAX_PATH 4095
-# define BRRPATH_SEP_CHR '/'
-# define BRRPATH_SEP_STR "/"
-# define BRRPATH_CASE_SENSITIVE 1
 #endif
 
 #include <string.h>
@@ -41,10 +42,10 @@ extern "C" {
 # define brrpathcmp strcmp
 #else
 # include <strings.h>
-# if defined(BRRPLATFORMTYPE_Windows)
-#  define brrpathcmp _stricmp
-# else
+# if brrplat_dos
 #  define brrpathcmp strcasecmp
+# else
+#  define brrpathcmp _stricmp
 # endif
 #endif
 
@@ -225,8 +226,8 @@ BRRAPI int BRRCALL brrpath_walk(
  * */
 BRRAPI void BRRCALL brrpath_walk_result_free(brrpath_walk_result_t *const result);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* BRRPATH_H */
+#endif /* brrtools_brrpath_h */

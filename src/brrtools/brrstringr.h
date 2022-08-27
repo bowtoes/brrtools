@@ -2,21 +2,19 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
-#ifndef BRRSTRINGR_H
-#define BRRSTRINGR_H
+#ifndef brrtools_brrstringr_h
+#define brrtools_brrstringr_h
 
-/*
-TODO Microsoft 'wchar_t' on Windows, for proper unicode support there.
-*/
+/* Major TODO Microsoft 'wchar_t' on Windows, for proper unicode support there. */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdarg.h>
 
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 /* String representation that stores length of string.
  * Fields:
@@ -103,6 +101,8 @@ brrstringr_print(brrstringr_t *const string, brrsz offset, brrsz max_length, con
 BRRAPI brrsz BRRCALL
 brrstringr_vprint(brrstringr_t *const string, brrsz offset, brrsz max_length, const char *const format, va_list lptr);
 
+/* TODO currently quarantined, will fix soon tm */
+#if 0
 /* Splits the input 'string' on 'delimiter' into the array of 'strings' whose length is returned in 'n_strings',
  *   each split at most 'max_split' characters in length.
  * Returns 0 on success.
@@ -153,6 +153,7 @@ brrstringr_join(
     const brrstringr_t *const strings,
     brrsz n_strings
 );
+#endif
 
 /* Filters out characters from 'string' for which 'filter()', taking the input character and the next, returns non-zero;
  *   or, if 'invert' is true, filters out characters for which 'filter()' DOES return 0.
@@ -193,8 +194,8 @@ brrstringr_ncompare(const brrstringr_t *const string, const brrstringr_t *const 
 BRRAPI char *BRRCALL
 brrstringr_cstr_compare(const char *const chars, int case_sensitive, ...);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* BRRSTRINGR_H */
+#endif /* brrtools_brrstringr_h */

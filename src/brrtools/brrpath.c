@@ -1,43 +1,38 @@
 /* Copyright (c), BowToes (bow.toes@mailfence.com)
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
-
 #include "brrtools/brrpath.h"
-#include "brrtools/brrlog.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(BRRPLATFORMTYPE_Windows)
-#elif defined(BRRPLATFORMTYPE_unix)
+#include "brrtools/brrlog.h"
+
+/* brrpath is a big TODO */
+
+#if brrplat_unix
 /* FIXME need to figure out which nixes do/don't have <ftw.h> */
 # include <ftw.h>
-#else
-# error Unknown system
-#endif
-
-#if defined(BRRPLATFORMTYPE_unix)
 /* FIXME *nix universal? */
 # include <sys/stat.h>
 #endif
 
-#include "brrtools/brrlib.h"
-#include "brrtools/brrdata.h"
+#include "brrtools/brrarray.h"
 
 static brrpath_type_t BRRCALL
 i_determine_type(brru8 attr)
 {
 	brrpath_type_t type = brrpath_type_none;
-#if defined(BRRPLATFORMTYPE_Windows)
-	type = (attr & FILE_ATTRIBUTE_DIRECTORY)?brrpath_type_directory:
-	       (attr & (FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY | FILE_ATTRIBUTE_VIRTUAL))?brrpath_type_other:
-	       brrpath_type_file;
-#else
+#if brrplat_unix
 	type = S_ISDIR(attr)?brrpath_type_directory:
 	       S_ISREG(attr)?brrpath_type_file:
 	       brrpath_type_other;
+#elif brrplat_dos
+	type = (attr & FILE_ATTRIBUTE_DIRECTORY)?brrpath_type_directory:
+	       (attr & (FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY | FILE_ATTRIBUTE_VIRTUAL))?brrpath_type_other:
+	       brrpath_type_file;
 #endif
 	return type;
 }
@@ -48,23 +43,7 @@ brrpath_stat(brrpath_stat_result_t *const st, const brrstringr_t *const path)
 	if (!path || !st) {
 		return -1;
 	} else {
-#if defined(BRRPLATFORMTYPE_Windows)
-		WIN32_FILE_ATTRIBUTE_DATA attr = {0};
-		if (!GetFileAttributesEx(path->cstr, GetFileExInfoStandard, &attr)) {
-			error = GetLastError();
-			if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) {
-				/* Path doesn't exist. */
-				error = 0;
-			} else {
-				error = -1;
-			}
-			*st = (brrpath_stat_result_t){0};
-		} else {
-			st->exists = 1;
-			st->type = i_determine_type(attr.dwFileAttributes);
-			st->size = _brrpath_ulrg(attr.nFileSizeLow, attr.nFileSizeHigh);
-		}
-#else
+#if brrplat_unix
 		struct stat s = {0};
 		if (stat(path->cstr, &s)) {
 			error = errno;
@@ -80,6 +59,22 @@ brrpath_stat(brrpath_stat_result_t *const st, const brrstringr_t *const path)
 			st->size = s.st_size;
 			st->type = i_determine_type(s.st_mode);
 		}
+#elif brrplat_dos
+		WIN32_FILE_ATTRIBUTE_DATA attr = {0};
+		if (!GetFileAttributesEx(path->cstr, GetFileExInfoStandard, &attr)) {
+			error = GetLastError();
+			if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) {
+				/* Path doesn't exist. */
+				error = 0;
+			} else {
+				error = -1;
+			}
+			*st = (brrpath_stat_result_t){0};
+		} else {
+			st->exists = 1;
+			st->type = i_determine_type(attr.dwFileAttributes);
+			st->size = _brrpath_ulrg(attr.nFileSizeLow, attr.nFileSizeHigh);
+		}
 #endif
 	}
 	return error;
@@ -88,7 +83,7 @@ brrpath_stat(brrpath_stat_result_t *const st, const brrstringr_t *const path)
 static brrbl BRRCALL
 i_issep(char ch)
 {
-#if defined(BRRPLATFORMTYPE_Windows)
+#if brrplat_dos
 	return ch == '/' || ch == '\\';
 #else
 	return ch == '/';
@@ -97,7 +92,7 @@ i_issep(char ch)
 static brrbl BRRCALL
 i_char_is_valid_path(char ch)
 {
-#if defined(BRRPLATFORMTYPE_Windows)
+#if brrplat_dos
 	return ch != '<' && ch != '>' &&
 	       ch != ':' && ch != '"' &&
 	       ch != '|' && ch != '?' &&
@@ -356,7 +351,60 @@ static inline int i_walk_no_filter(const brrpath_info_t *path) { return 0; }
 static brrpath_walk_filter_t s_walk_filter = i_walk_no_filter;
 static brrpath_walk_result_t *s_walk_result;
 static const brrpath_walk_options_t *s_walk_options;
-#if defined(BRRPLATFORMTYPE_Windows)
+#if brrplat_unix
+static inline int BRRCALL
+i_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
+{
+	if ((unsigned)ftw->level < s_walk_options->min_depth) {
+		return FTW_SKIP_SIBLINGS;
+	} else if ((unsigned)ftw->level > s_walk_options->max_depth) {
+		return FTW_SKIP_SUBTREE;
+	} else if (type == FTW_NS) {
+		return FTW_STOP;
+		//return 0; /* TODO should this count as an error? */
+	} else {
+		brrpath_info_t res = {0};
+		switch (type) {
+			case FTW_F: res.type = brrpath_type_file; break;
+			case FTW_D: res.type = brrpath_type_directory; break;
+			default: res.type = brrpath_type_other; break;
+		}
+		res.exists = 1;
+		res.size = sb->st_size;
+		res.depth = ftw->level;
+
+		brrstringr_t ffpath = brrstringr_cast(fpath);
+		if (brrpath_split(&res.components, &ffpath)) {
+			return FTW_STOP;
+		}
+		if (brrpath_join(&res.full_path, &res.components)) {
+			brrpath_info_free(&res);
+			return FTW_STOP;
+		}
+		if (!s_walk_result) {
+			/* Output result is unspecified; it's up to the filter deal with the given info.
+			 * inversion has no effect here. */
+			if (!s_walk_filter(&res)) {
+				brrpath_info_free(&res);
+			}
+		} else {
+			/* Output result is specified, so if the filter matches res, add it to the output. */
+			if (!s_walk_filter(&res) == !s_walk_options->invert) {
+				brrpath_info_t *new = realloc(s_walk_result->results, sizeof(*new) * (s_walk_result->n_results + 1));
+				if (!new) {
+					brrapi_sete(BRRAPI_E_MEMERR);
+					return FTW_STOP;
+				}
+				new[s_walk_result->n_results++] = res;
+				s_walk_result->results = new;
+			} else {
+				brrpath_info_free(&res);
+			}
+		}
+	}
+	return FTW_CONTINUE;
+}
+#elif brrplat_dos
 /* TODO minimize 'i_walk' and 'i_walk_filt' to be a single function? */
 /* TODO WINDOWS IS UNTESTED DEAR GOD */
 static inline int BRRCALL
@@ -450,56 +498,6 @@ i_walk(const char *const fpath, const brrpath_stat_result_t *const st)
 	return i_walk_filt(fpath, 1);
 
 }
-#elif defined(BRRPLATFORMTYPE_unix)
-static inline int BRRCALL
-i_walk_filt(const char *const fpath, const struct stat *const sb, int type, struct FTW *ftw)
-{
-	if ((unsigned)ftw->level < s_walk_options->min_depth) {
-		return FTW_SKIP_SIBLINGS;
-	} else if ((unsigned)ftw->level > s_walk_options->max_depth) {
-		return FTW_SKIP_SUBTREE;
-	} else if (type == FTW_NS) {
-		return FTW_STOP;
-		//return 0; /* TODO should this count as an error? */
-	} else {
-		brrpath_info_t res = {0};
-		switch (type) {
-			case FTW_F: res.type = brrpath_type_file; break;
-			case FTW_D: res.type = brrpath_type_directory; break;
-			default: res.type = brrpath_type_other; break;
-		}
-		res.exists = 1;
-		res.size = sb->st_size;
-		res.depth = ftw->level;
-
-		brrstringr_t ffpath = brrstringr_cast(fpath);
-		if (brrpath_split(&res.components, &ffpath)) {
-			return FTW_STOP;
-		}
-		if (brrpath_join(&res.full_path, &res.components)) {
-			brrpath_info_free(&res);
-			return FTW_STOP;
-		}
-		if (!s_walk_result) {
-			/* Output result is unspecified; it's up to the filter deal with the given info.
-			 * inversion has no effect here. */
-			if (!s_walk_filter(&res)) {
-				brrpath_info_free(&res);
-			}
-		} else {
-			/* Output result is specified, so if the filter matches res, add it to the output. */
-			if (!s_walk_filter(&res) == !s_walk_options->invert) {
-				if (brrdata_append((void**)&s_walk_result->results, &s_walk_result->n_results, sizeof(res), &res)) {
-					brrpath_info_free(&res);
-					return FTW_STOP;
-				}
-			} else {
-				brrpath_info_free(&res);
-			}
-		}
-	}
-	return FTW_CONTINUE;
-}
 #endif
 int BRRCALL
 brrpath_walk(
@@ -514,8 +512,10 @@ brrpath_walk(
 	brrpath_stat_result_t st = {0};
 	if (brrpath_stat(&st, path))
 		return -1;
-	if (!st.exists)
+	if (!st.exists) {
+		*result = (brrpath_walk_result_t){0};
 		return 0;
+	}
 
 	int error = 0;
 	brrpath_walk_result_t rs = {0};
@@ -541,11 +541,11 @@ brrpath_walk(
 	s_walk_options = &options;
 	if (options.filter)
 		s_walk_filter = options.filter;
-	#if defined(BRRPLATFORMTYPE_Windows)
-	error = i_walk(dir.cstr, &st);
-	#else
+	#if brrplat_unix
 	/* Is nftw the thing that's gnu specific? */
 	error = nftw(dir.cstr, i_walk_filt, 15, FTW_MOUNT | FTW_ACTIONRETVAL);
+	#elif brrplat_dos
+	error = i_walk(dir.cstr, &st);
 	#endif
 	s_walk_result = NULL;
 	s_walk_options = NULL;

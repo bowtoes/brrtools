@@ -14,45 +14,31 @@ override makefiles := platform.mk config.mk Makefile
 override project_major := 0
 override project_minor := 0
 override project_revis := 2
-override project_letter := d
-override project_version := $(project_major).$(project_minor).$(project_revis)/$(project_letter)
+override project_letter :=
+override project_version := $(project_major).$(project_minor).$(project_revis)$(if $(project_letter),/$(project_letter),)
 override project_date := $(shell git show -s --date=format:'%Y/%m/%d %l:%M%p' --format=%ad || echo "")
 
 src_dir := src
 #vnd_dir := vnd
 
 srcs :=\
-	brrtools/brrapi.c\
-	brrtools/brrcon.c\
-	brrtools/brrhash.c\
-	brrtools/brrdata.c\
-	brrtools/brrlib.c\
+	brrtools/_brrlib.c\
+	brrtools/brrarray.c\
 	brrtools/brrlog.c\
-	brrtools/brrnum.c\
-	brrtools/brrpath.c\
-	brrtools/brrrand.c\
 	brrtools/brrstringr.c\
-	brrtools/brrtest.c\
-	brrtools/brrtime.c\
 
 hdrs :=\
-	brrtools/_brrlog_macros.h\
 	brrtools/brrapi.h\
 	brrtools/brrcon.h\
-	brrtools/brrdebug.h\
-	brrtools/brrendian.h\
+	brrtools/brrarray.h\
+	brrtools/brrdbg.h\
 	brrtools/brrhash.h\
-	brrtools/brrdata.h\
-	brrtools/brrlib.h\
 	brrtools/brrlog.h\
 	brrtools/brrmacro.h\
-	brrtools/brrmacro_map.h\
 	brrtools/brrnum.h\
-	brrtools/brrpath.h\
-	brrtools/brrplatform.h\
+	brrtools/brrplat.h\
 	brrtools/brrrand.h\
 	brrtools/brrstringr.h\
-	brrtools/brrtest.h\
 	brrtools/brrtime.h\
 	brrtools/brrtypes.h\
 
@@ -237,8 +223,8 @@ output_ext_windows_shared ?= .dll
 output_ext_windows_static ?= .lib
 output_ext ?= $(output_ext_$(target)_$(target_mode))
 
-output_base_name ?= lib$(project)
-output_name ?= $(output_base_name)$(output_suf)$(output_ext)
+output_base_name ?= lib$(project)$(output_suf)
+output_name ?= $(output_base_name)$(output_ext)
 output_file ?= $(output_directory)/$(output_name)
 
 # windows libraries only
