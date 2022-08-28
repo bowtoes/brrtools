@@ -11,7 +11,7 @@ Full license can be found in 'license' file */
 #include <stdlib.h>
 #include <string.h>
 
-#include "brrtools/brrstringr.h"
+#include "brrtools/brrstr.h"
 
 #define CNF brrlog_config
 typedef struct i_buf
@@ -459,7 +459,7 @@ brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog
 		return 0;
 	}
 
-	brrsz ml = brrstringr_length(pfx, CNF.max_prefix);
+	brrsz ml = brrstr_len(pfx, CNF.max_prefix);
 	if (ml) {
 		brrsz xl = 0;
 		brrsz sl = i_styled_len(pfx, ml, &xl, 2 * CNF.max_prefix, p.style);
@@ -539,8 +539,8 @@ brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const st
 		.max_prefix = cfg.max_prefix,
 	};
 
-	c._sty_len = brrstringr_length(style_open, BRRLOG_MAX_STYLE_TOKEN);
-	if (!c._sty_len || !style_open || !style_close || c._sty_len != brrstringr_length(style_close, BRRLOG_MAX_STYLE_TOKEN)) {
+	c._sty_len = brrstr_len(style_open, BRRLOG_MAX_STYLE_TOKEN);
+	if (!c._sty_len || !style_open || !style_close || c._sty_len != brrstr_len(style_close, BRRLOG_MAX_STYLE_TOKEN)) {
 		c.style_enabled = 0;
 	} else {
 		if (!(c._sty_open = calloc(2 * (1 + c._sty_len), 1))) {

@@ -24,7 +24,9 @@ library is my attempt at that.
 There are various modules in this library, some small, others comparatively large; this is a list of them,
 their purpose/functionality:
 #### Main modules
- * `brrlog`: A logging utility, with built-in stylability configuration. TODO a bit of good documentation.
+ * `brrlog.h`: A logging utility, with built-in stylability configuration. TODO a bit of good documentation.
+ * `brrstr.h`: A 'light' abstraction on `char *`s, that provides basic length-checking functionality and
+   manipulations for now; will have more as I deem it convenient.
 
 #### Smaller/Miscellaneous Modules
 Ordered slightly by dependencies:
@@ -123,7 +125,6 @@ Ordered slightly by dependencies:
 
 #### Do not use these
 They're in need of major rewrite, but I'm presently too lazy to fix them.
- * `brrstringr`: Functions for manipulating strings.
  * `brrpath`: Functions for querying the file system.
 
 
