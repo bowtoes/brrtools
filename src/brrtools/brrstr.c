@@ -1,5 +1,6 @@
 #include "brrtools/brrstr.h"
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #if brrplat_unix
@@ -11,22 +12,46 @@
 # define i_strnicmp _strnicmp
 #endif
 
-BRRAPI int BRRCALL
+int BRRCALL
 brrstr_cmp(const brrstr_t *restrict const s, const brrstr_t *restrict const z)
 {
 	if (!s || !z)
 		return 0;
 	return strncmp(s->s, z->s, s->l < z->l ? s->l : z->l);
 }
-BRRAPI int BRRCALL
+int BRRCALL
 brrstr_icmp(const brrstr_t *restrict const s, const brrstr_t *restrict const z)
 {
 	if (!s || !z)
 		return 0;
 	return i_strnicmp(s->s, z->s, s->l < z->l ? s->l : z->l);
 }
+char *BRRCALL
+brrstr_ncmp(brrstr_t str, ...)
+{
+	if (!str.s)
+		return NULL;
+	va_list lptr;
+	va_start(lptr, str);
+	char *a = NULL;
+	for (brrsz i = 0; (a = va_arg(lptr, char *)) && strncmp(str.s, a, str.l); ++i);
+	va_end(lptr);
+	return a;
+}
+char *BRRCALL
+brrstr_incmp(brrstr_t str, ...)
+{
+	if (!str.s)
+		return NULL;
+	va_list lptr;
+	va_start(lptr, str);
+	char *a = NULL;
+	for (brrsz i = 0; (a = va_arg(lptr, char *)) && i_strnicmp(str.s, a, str.l); ++i);
+	va_end(lptr);
+	return a;
+}
 
-BRRAPI brrsz BRRCALL
+brrsz BRRCALL
 brrstr_len(const char *const s, brrsz max)
 {
 	if (max == -1) {
@@ -41,7 +66,7 @@ brrstr_len(const char *const s, brrsz max)
 	return max;
 }
 
-BRRAPI brrstr_t BRRCALL
+brrstr_t BRRCALL
 brrstr_new(const char *const str, brrsz max_len)
 {
 	brrstr_t s = {.l=brrstr_len(str, max_len)};
@@ -52,7 +77,7 @@ brrstr_new(const char *const str, brrsz max_len)
 	memcpy(s.s, str, s.l);
 	return s;
 }
-BRRAPI int BRRCALL
+int BRRCALL
 brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len)
 {
 	if (!str) {
@@ -65,7 +90,7 @@ brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len)
 	*str = s;
 	return 0;
 }
-BRRAPI void BRRCALL
+void BRRCALL
 brrstr_free(brrstr_t *const str)
 {
 	if (!str || str->_shallow)
@@ -75,7 +100,7 @@ brrstr_free(brrstr_t *const str)
 	memset(str, 0, sizeof(*str));
 }
 
-BRRAPI int BRRCALL
+int BRRCALL
 brrstr_copy(brrstr_t *restrict const dst, const brrstr_t *restrict const src)
 {
 	if (!dst) {
@@ -101,29 +126,45 @@ brrstr_copy(brrstr_t *restrict const dst, const brrstr_t *restrict const src)
 	return 0;
 }
 
-BRRAPI int BRRCALL
-brrstr_3join(brrstr_t *dst, const brrstr_t a, const brrstr_t b, const brrstr_t c)
+int BRRCALL
+brrstr_njoin(brrstr_t *dst, ...)
 {
 	if (!dst)
 		return -1;
-	brrstr_t s = {.l = a.l + b.l + c.l};
-	if (!s.l)
-		return brrstr_init(dst, "", 0);
-	if (!(s.s = calloc(1 + s.l, 1)))
+	brrstr_t s = {0};
+	va_list lptr;
+	va_start(lptr, dst);
+	{
+		va_list lp2;
+		va_copy(lp2, lptr);
+
+		brrstr_t a;
+		while (1) {
+			a = va_arg(lp2, brrstr_t);
+			if (!a.s)
+				break;
+			s.l += a.l;
+		}
+
+		va_end(lp2);
+	}
+	if (!(s.s = calloc(1 + s.l, 1))) {
+		va_end(lptr);
+		brrapi_sete(BRRAPI_E_MEMERR);
 		return -1;
+	}
 	brrsz w = 0;
-	if (a.l) {
-		memcpy(s.s + w, a.s, a.l);
-		w += a.l;
+	brrstr_t a;
+	while (1) {
+		a = va_arg(lptr, brrstr_t);
+		if (!a.s)
+			break;
+		if (a.l) {
+			memcpy(s.s + w, a.s, a.l);
+			w += a.l;
+		}
 	}
-	if (b.l) {
-		memcpy(s.s + w, b.s, b.l);
-		w += b.l;
-	}
-	if (c.l) {
-		memcpy(s.s + w, c.s, c.l);
-		w += c.l;
-	}
+	va_end(lptr);
 	*dst = s;
 	return 0;
 }
