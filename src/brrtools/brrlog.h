@@ -213,8 +213,17 @@ BRRAPI void BRRCALL
 brrlog_deinit(void);
 BRRAPI int BRRCALL
 brrlog_def_pri(brrlog_priority_t newpri);
+/* Sets the maximum bytes that can be logged at once; set to 0 to disable.
+ * 0 is returned on success.
+ * If an error occurs, -1 is returned.*/
 BRRAPI int BRRCALL
 brrlog_maxlog(brrsz newmax);
+/* Sets the minimum printable priority label */
+BRRAPI void BRRCALL
+brrlog_minlabel(int newmin);
+/* Sets the maximum printable priority label */
+BRRAPI void BRRCALL
+brrlog_maxlabel(int newmax);
 
 BRRAPI brrsz BRRCALL
 brrlog_priority_index(int label);

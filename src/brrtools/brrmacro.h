@@ -8,6 +8,27 @@ Full license can be found in 'license' file */
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* Repeats macro '_X_' n times, passing the current call index as the first argument */
+#define brr_repeat1(  _i_, _X_, ...) _X_(_i_ + 0, __VA_ARGS__)
+#define brr_repeat2(  _i_, _X_, ...) brr_repeat1(  _i_ + 0, _X_, __VA_ARGS__) brr_repeat1(  _i_ + 1,   _X_, __VA_ARGS__)
+#define brr_repeat4(  _i_, _X_, ...) brr_repeat2(  _i_ + 0, _X_, __VA_ARGS__) brr_repeat2(  _i_ + 2,   _X_, __VA_ARGS__)
+#define brr_repeat8(  _i_, _X_, ...) brr_repeat4(  _i_ + 0, _X_, __VA_ARGS__) brr_repeat4(  _i_ + 4,   _X_, __VA_ARGS__)
+#define brr_repeat16( _i_, _X_, ...) brr_repeat8(  _i_ + 0, _X_, __VA_ARGS__) brr_repeat8(  _i_ + 8,   _X_, __VA_ARGS__)
+#define brr_repeat32( _i_, _X_, ...) brr_repeat16( _i_ + 0, _X_, __VA_ARGS__) brr_repeat16( _i_ + 16,  _X_, __VA_ARGS__)
+#define brr_repeat64( _i_, _X_, ...) brr_repeat32( _i_ + 0, _X_, __VA_ARGS__) brr_repeat32( _i_ + 32,  _X_, __VA_ARGS__)
+#define brr_repeat128(_i_, _X_, ...) brr_repeat64( _i_ + 0, _X_, __VA_ARGS__) brr_repeat64( _i_ + 64,  _X_, __VA_ARGS__)
+#define brr_repeat256(_i_, _X_, ...) brr_repeat128(_i_ + 0, _X_, __VA_ARGS__) brr_repeat128(_i_ + 128, _X_, __VA_ARGS__)
+#define brr_repeat512(_i_, _X_, ...) brr_repeat256(_i_ + 0, _X_, __VA_ARGS__) brr_repeat256(_i_ + 256, _X_, __VA_ARGS__)
+
+#define brr_crepeat2(  _i_, _X_, ...) brr_repeat1(  _i_ + 0, _X_, __VA_ARGS__), brr_repeat1(  _i_ + 1,   _X_, __VA_ARGS__)
+#define brr_crepeat4(  _i_, _X_, ...) brr_crepeat2(  _i_ + 0, _X_, __VA_ARGS__), brr_crepeat2(  _i_ + 2,   _X_, __VA_ARGS__)
+#define brr_crepeat8(  _i_, _X_, ...) brr_crepeat4(  _i_ + 0, _X_, __VA_ARGS__), brr_crepeat4(  _i_ + 4,   _X_, __VA_ARGS__)
+#define brr_crepeat16( _i_, _X_, ...) brr_crepeat8(  _i_ + 0, _X_, __VA_ARGS__), brr_crepeat8(  _i_ + 8,   _X_, __VA_ARGS__)
+#define brr_crepeat32( _i_, _X_, ...) brr_crepeat16( _i_ + 0, _X_, __VA_ARGS__), brr_crepeat16( _i_ + 16,  _X_, __VA_ARGS__)
+#define brr_crepeat64( _i_, _X_, ...) brr_crepeat32( _i_ + 0, _X_, __VA_ARGS__), brr_crepeat32( _i_ + 32,  _X_, __VA_ARGS__)
+#define brr_crepeat128(_i_, _X_, ...) brr_crepeat64( _i_ + 0, _X_, __VA_ARGS__), brr_crepeat64( _i_ + 64,  _X_, __VA_ARGS__)
+#define brr_crepeat256(_i_, _X_, ...) brr_crepeat128(_i_ + 0, _X_, __VA_ARGS__), brr_crepeat128(_i_ + 128, _X_, __VA_ARGS__)
+#define brr_crepeat512(_i_, _X_, ...) brr_crepeat256(_i_ + 0, _X_, __VA_ARGS__), brr_crepeat256(_i_ + 256, _X_, __VA_ARGS__)
 
 #define _brr_eval0(...) __VA_ARGS__
 #define _brr_eval1(...) _brr_eval0(_brr_eval0(_brr_eval0(_brr_eval0(__VA_ARGS__))))

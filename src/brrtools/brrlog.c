@@ -12,6 +12,23 @@ Full license can be found in 'license' file */
 #include <string.h>
 
 #include "brrtools/brrstr.h"
+#include "brrtools/brrmacro.h"
+
+#if _brrlog_can_style
+/* This can probably be a bit better done */
+#define _style__s_fmt_X_(_i_, ...) "%c"
+#define _style__s_fmt brr_repeat32(0, _style__s_fmt_X_, 0)
+#define _style__s_fargs_X_(_i_, _s_) (isprint((_s_)[_i_])?(_s_)[_i_]:' ')
+#define _style__s_fargs(_s_) brr_crepeat32(0, _style__s_fargs_X_, _s_)
+#define _style_fmt "st[%i, %i, %i, %i], fg %i, bg %i, fn %i" " '"_style__s_fmt"' (%zu)"
+#define _style_fargs(_s_) (_s_).st[0], (_s_).st[1], (_s_).st[2], (_s_).st[3], (_s_).fg, (_s_).bg, (_s_).fn, _style__s_fargs((_s_)._s), (_s_)._l
+#else
+#define _style_fmt "st[%i, %i, %i, %i], fg %i, bg %i, fn %i"
+#define _style_fargs(_s_) (_s_).st[0], (_s_).st[1], (_s_).st[2], (_s_).st[3], (_s_).fg, (_s_).bg, (_s_).fn
+#endif
+#define _priority_fmt "Priority '%s' (%zu):\n\tstyle: " _style_fmt "\n\tdst: %i"
+#define _priority_fargs(_p_) (_p_).pfx, (_p_)._pfxl, _style_fargs((_p_).style), (_p_).dst.type
+#define _struct_print(_pfx_, _type_, _x_) printf(_pfx_ _##_type_##_fmt "\n", _##_type_##_fargs(_x_))
 
 #define CNF brrlog_config
 typedef struct i_buf
@@ -230,7 +247,6 @@ static inline brrsz BRRCALL i_parse_style_prefix(brrlog_style_t *const st, const
 	if(S==E)return 0;
 	while(isspace(*(E-1)))E--;
 	if(E==S)return 0;
-	//printf("\n\nNICE\n\n");
 
 	/* woo! */
 	#if _brrlog_can_style
@@ -293,6 +309,9 @@ brrlog_style_init(brrlog_style_t source)
 		if (!s)
 			p.st[i] = source.st[i];
 	}
+	if (source.fg > 0) p.fg = source.fg;
+	if (source.bg > 0) p.bg = source.bg;
+	if (source.fn > 0) p.fn = source.fn;
 #if _brrlog_can_style
 	p._l = i_style_print(p._s, p);
 #endif
@@ -622,6 +641,20 @@ brrlog_maxlog(brrsz newmax)
 	CNF._log_buf = new;
 	CNF.max_log = newmax;
 	return 0;
+}
+void BRRCALL
+brrlog_minlabel(int newmin)
+{
+	if (newmin > CNF.max_label)
+		CNF.max_label = newmin;
+	CNF.min_label = newmin;
+}
+void BRRCALL
+brrlog_maxlabel(int newmax)
+{
+	if (newmax < CNF.min_label)
+		CNF.min_label = newmax;
+	CNF.max_label = newmax;
 }
 
 brrsz BRRCALL
