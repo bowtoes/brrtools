@@ -55,6 +55,7 @@ extern "C" {
 	_X_(ARGERR,  0x20, "Invalid Argument(s)")\
 	_X_(ARRFULL, 0x21, "Array is Full")\
 	_X_(LIBC,    0x30, "C Library Errored")\
+	_X_(OSERR,   0x31, "Operating System specific error")\
 
 #define _brrapi_e_op(_n_, _i_, _D_) BRRAPI_E_##_n_ = _i_,
 typedef enum brrapi_err { _brrapi_e(_brrapi_e_op) } brrapi_err_t;

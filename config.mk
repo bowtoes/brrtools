@@ -14,7 +14,7 @@ override makefiles := platform.mk config.mk Makefile
 override project_major := 0
 override project_minor := 0
 override project_revis := 3
-override project_letter := b
+override project_letter := c
 override project_version := $(project_major).$(project_minor).$(project_revis)$(if $(project_letter),/$(project_letter),)
 override project_date := $(shell git show -s --date=format:'%Y/%m/%d %l:%M%p' --format=%ad || echo "")
 
@@ -25,17 +25,19 @@ srcs :=\
 	brrtools/_brrlib.c\
 	brrtools/brrarray.c\
 	brrtools/brrlog.c\
+	brrtools/brrpath.c\
 	brrtools/brrstr.c\
 
 hdrs :=\
 	brrtools/brrapi.h\
-	brrtools/brrcon.h\
 	brrtools/brrarray.h\
+	brrtools/brrcon.h\
 	brrtools/brrdbg.h\
 	brrtools/brrhash.h\
 	brrtools/brrlog.h\
 	brrtools/brrmacro.h\
 	brrtools/brrnum.h\
+	brrtools/brrpath.h\
 	brrtools/brrplat.h\
 	brrtools/brrrand.h\
 	brrtools/brrstr.h\
