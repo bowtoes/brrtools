@@ -79,22 +79,19 @@ extern "C" {
 	_X_(fn, 4,      4, "14") _X_(fn, 9,      9, "19")\
 
 #define _brrlog_enum_op(_t_, _n_, _i_, ...) brrlog_##_t_##_##_n_ = _i_,
-typedef enum brrlog_st
-{
+typedef enum brrlog_st {
 	brrlog_st_last         = -2,
 	brrlog_st_unset        = -1,
 	_brrlog_sts(_brrlog_enum_op)
 	brrlog_st_count,
 } brrlog_st_t;
-typedef enum brrlog_col
-{
+typedef enum brrlog_col {
 	brrlog_col_last         = -2,
 	brrlog_col_unset        = -1,
 	_brrlog_cols(_brrlog_enum_op)
 	brrlog_col_count,
 } brrlog_col_t;
-typedef enum brrlog_fn
-{
+typedef enum brrlog_fn {
 	brrlog_fn_last   = -2,
 	brrlog_fn_unset  = -1,
 	_brrlog_fns(_brrlog_enum_op)
@@ -117,8 +114,7 @@ typedef enum brrlog_fn
 #define ST_CLR ST_PFX "0" ST_SFX
 #define _brrlog_max_style ((_brrlog_max_st + 3) * 4 + sizeof(ST_PFX) - 1 + sizeof(ST_SFX) - 1)
 #endif
-typedef struct brrlog_style
-{
+typedef struct brrlog_style {
 #if _brrlog_can_style
 	char _s[_brrlog_max_style + 1];
 	brrsz _l;
@@ -135,19 +131,16 @@ brrlog_style_init(brrlog_style_t source);
 BRRAPI brrlog_style_t BRRCALL
 brrlog_style_or(brrlog_style_t a, brrlog_style_t b);
 
-typedef enum brrlog_dst_type
-{
+typedef enum brrlog_dst_type {
 	brrlog_dst_none = 0,
 	brrlog_dst_stream = 1,
 	brrlog_dst_buffer = 2,
 } brrlog_dst_type_t;
-typedef struct brrlog_dst
-{
+typedef struct brrlog_dst {
 	brrlog_dst_type_t type;
 	void *dst;
 } brrlog_dst_t;
-typedef struct brrlog_priority
-{
+typedef struct brrlog_priority {
 	const char *pfx;
 	brrlog_style_t style;
 	brrlog_dst_t dst;
@@ -159,8 +152,7 @@ brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog
 BRRAPI void BRRCALL
 brrlog_priority_free(brrlog_priority_t *const pri);
 
-typedef struct brrlog_cfg
-{
+typedef struct brrlog_cfg {
 	brru4 max_nest; /* Maximal style nest */
 	int min_label; /* Minimum label that will log. */
 	int max_label; /* Maximum label that will log. */
@@ -232,18 +224,18 @@ brrlog_priority_mod(int label, brrlog_priority_t cfg);
 BRRAPI int BRRCALL
 brrlog_priority_delete(int label);
 
-typedef struct brrlog_source
-{
+typedef struct brrlog_source {
 	const char *file;
 	int line;
 	const char *func;
 } brrlog_source_t;
-typedef struct brrlog_settings
-{
+
+typedef struct brrlog_settings {
 	int print_newline;
 	int print_prefix;
 	int verbose;
 } brrlog_settings_t;
+
 BRRAPI brrsz BRRCALL
 brrlogv_text(int label, brrlog_source_t src, brrlog_settings_t settings, const char *const fmt, va_list lptr);
 /* Logs a message according to printf-fmt 'message' and any printf-vargs passed, with additional

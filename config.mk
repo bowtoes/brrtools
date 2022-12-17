@@ -5,7 +5,7 @@ include platform.mk
 
 project ?= brrtools
 # prefix for project-specific macro defines
-uproject ?= BRR
+uproject ?= brrtools
 
 # used as a prerequisite in some recipes, to make sure that updating the makefiles
 # triggers a rebuild

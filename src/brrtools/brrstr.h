@@ -9,13 +9,17 @@ Full license can be found in 'license' file */
 extern "C" {
 #endif
 
+// TODO I don't really like the state of this api, it's a bit cumbersome if I'm honest (so is C in general,
+// tbh), primarily when it comes to comparing/casting strings. There has to be some kinda way to do string
+// views neatly, but I'm not too sure if it should be a separate struct or a separate api.
+
 #include <brrtools/brrapi.h>
 #include <brrtools/brrtypes.h>
 
 typedef struct brrstr {
 	char *s;
 	brrsz l;
-	int _shallow;
+	int _s;
 } brrstr_t;
 
 BRRAPI int BRRCALL
@@ -25,19 +29,16 @@ brrstr_icmp(const brrstr_t *restrict const s, const brrstr_t *restrict const z);
 /* Compares 'str' to a va_list of 'char *' (cstrs), and returns the first cstr that compares equal, or
  * NULL if no such cstr, terminating at the first NULL cstr. */
 BRRAPI char *BRRCALL
-brrstr_ncmp(brrstr_t str, ...);
+brrstr_ncmp(const brrstr_t str, ...);
 BRRAPI char *BRRCALL
-brrstr_incmp(brrstr_t str, ...);
+brrstr_incmp(const brrstr_t str, ...);
 
+/* Returns the length of 's', up to 'max', excluding the null character */
 BRRAPI brrsz BRRCALL
 brrstr_len(const char *const s, brrsz max);
 
-static BRR_inline brrstr_t BRRCALL
-brrstr_literal(const char *const str)
-{
-	return (brrstr_t){.s=(char*)str,.l=brrstr_len(str, -1), ._shallow=1};
-}
-#define brrstr_static(_c_) {.s=(_c_),.l=sizeof(_c_)-1, ._shallow=1}
+#define brrstr_view_char(_c_, _l_) {.s = (char*)(_c_), .l = (_l_) < 0 ? brrstr_len((_c_), -1) : (_l_), ._s = 1}
+#define brrstr_view_static(_c_, _l_) {.s = (char*)(_c_), .l = (_l_) < 0 ? sizeof(_c_) - 1 : (_l_), ._s = 1}
 
 BRRAPI brrstr_t BRRCALL
 brrstr_new(const char *const str, brrsz max_len);

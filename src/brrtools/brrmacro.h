@@ -36,11 +36,12 @@ extern "C" {
 #define _brr_eval3(...) _brr_eval2(_brr_eval2(_brr_eval2(_brr_eval2(__VA_ARGS__))))
 #define _brr_eval4(...) _brr_eval3(_brr_eval3(_brr_eval3(_brr_eval3(__VA_ARGS__))))
 #define _brr_eval5(...) _brr_eval4(_brr_eval4(_brr_eval4(_brr_eval4(__VA_ARGS__))))
-#define brr_expand(...) _brr_eval5(__VA_ARGS__)
+#define brr_eval(...) _brr_eval5(__VA_ARGS__)
 
 #define brr_stringify(_x_) #_x_
-#define brr_estringify(_x_) brr_stringify(brr_expand(_x_))
+#define brr_estringify(_x_) brr_stringify(brr_eval(_x_))
 
+/* https://github.com/swansontec/map-macro */
 #define _brr_narg1( \
 	      _01_, _02_, _03_, _04_, _05_, _06_, _07_, _08_, _09_, _0A_, _0B_, _0C_, _0D_, _0E_, _0F_, \
 	_10_, _11_, _12_, _13_, _14_, _15_, _16_, _17_, _18_, _19_, _1A_, _1B_, _1C_, _1D_, _1E_, _1F_, \
@@ -111,7 +112,7 @@ extern "C" {
 
 #define _brrjoin2(_1_, _2_) _1_ ## _2_
 #define brr_join(_1_,_2_) _brrjoin2(_1_, _2_)
-#define brr_ejoin(_1_,_2_) brr_join(brr_expand(_1_), brr_expand(_2_))
+#define brr_ejoin(_1_,_2_) brr_join(brr_eval(_1_), brr_eval(_2_))
 
 #define brr_array_length(_a_) (sizeof(_a_)/sizeof(*(_a_)))
 #define brr_array_iter(_t_, _i_, _a_) for (_t_ _i_ = 0; _i_ < brrarray_length(_a_); ++_i_)

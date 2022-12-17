@@ -68,6 +68,9 @@ BRRAPI int BRRCALL
 brrapi_gete(void);
 
 BRRAPI const char *BRRCALL
+brrapi_error_name(void);
+
+BRRAPI const char *BRRCALL
 brrapi_err(void);
 
 #ifndef _brrapi_keep_gens

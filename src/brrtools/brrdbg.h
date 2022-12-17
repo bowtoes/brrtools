@@ -5,14 +5,24 @@
 extern "C" {
 #endif
 
-#ifndef BRRDBG /* Disable all debugging unless BRRDBG is explicitly defined */
+#if defined(brrtools_debug) /* Enable all debugging if library debugging is enabled */
+# ifdef BRRDBG_NO_BREAK
+#  undef BRRDBG_NO_BREAK
+# endif
+# ifdef BRRDBG_NO_TRACE
+#  undef BRRDBG_NO_TRACE
+# endif
+# ifdef BRRDBG_NO_ASSERT
+#  undef BRRDBG_NO_ASSERT
+# endif
+#elif !defined(BRRDBG) /* Disable all debugging unless BRRDBG is explicitly defined */
 # ifndef BRRDBG_NO_BREAK
 #  define BRRBDG_NO_BREAK
 # endif
 # ifndef BRRDBG_NO_TRACE
 #  define BRRDBG_NO_TRACE
 # endif
-# ifdef BRRDBG_NO_ASSERT
+# ifndef BRRDBG_NO_ASSERT
 #  define BRRDBG_NO_ASSERT
 # endif
 #endif
@@ -21,7 +31,7 @@ extern "C" {
 #define _brrdbg_int_str(_x_) _brrdbg_int_str0(_x_)
 
 /* https://github.com/nemequ/portable-snippets debug-trap.h */
-#ifndef BRRDBG_NO_BREAK
+#ifdef BRRDBG_NO_BREAK
 # define BRRDBG_HAS_BREAK 0
 # define brrdbg_break()
 #else
@@ -54,7 +64,7 @@ extern "C" {
 # endif
 #endif
 
-#ifndef BRRDBG_NO_TRACE
+#ifdef BRRDBG_NO_TRACE
 # define BRRDBG_HAS_TRACE 0
 # define brrdbg_abort()
 #else

@@ -1,8 +1,13 @@
 /* Copyright (c), BowToes (bow.toes@mailfence.com)
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
+
+/*------------ brrapi.h */
 #define _brrapi_keep_gens
 #include "brrtools/brrapi.h"
+
+#include <errno.h>
+#include <string.h>
 
 static int i_brrapi_error = 0;
 
@@ -18,7 +23,7 @@ brrapi_gete(void)
 }
 
 const char *BRRCALL
-brrapi_err(void)
+brrapi_error_name(void)
 {
 	switch (i_brrapi_error) {
 		#define _brrapi_e_op(_n_, _i_, _D_) case BRRAPI_E_##_n_: return _D_;
@@ -27,8 +32,21 @@ brrapi_err(void)
 		default: return "Invalid Error";
 	}
 }
+const char *BRRCALL
+brrapi_err(void)
+{
+	switch (i_brrapi_error) {
+		case BRRAPI_E_MEMERR:
+		case BRRAPI_E_LIBC:
+			return strerror(errno);
+		case BRRAPI_E_OSERR: /* Only on windows */
+			return "OS Error (to replace later)";
+		default: return brrapi_error_name();
+	}
+}
 #undef _brrapi_keep_gens
 
+/*------------ brrcon.h */
 #include "brrtools/brrcon.h"
 
 #include <stdio.h>
@@ -78,6 +96,7 @@ brrcon_clear(void)
 	return 0;
 }
 
+/*------------ brrtime.h */
 #include "brrtools/brrtime.h"
 
 #if brrplat_unix
@@ -141,6 +160,7 @@ brrtime_sleep(brru8 usec)
 	}
 }
 
+/*------------ brrrand.h */
 #include "brrtools/brrrand.h"
 
 #define ROTL(_x,_k) (((_x)<<(_k)) | ((_x)>>(64-(_k))))
@@ -206,6 +226,7 @@ brrrand_trand(brru8 iter)
 	return brrrand_srand(brrtime_utime(), iter);
 }
 
+/*------------ brrnum.h */
 #include "brrtools/brrnum.h"
 
 #include <stdarg.h>
@@ -274,6 +295,7 @@ brrs8 BRRCALL brrnum_sclamp(brrs8 x, brrs8 min, brrs8 max) { return x < min ? mi
 
 int BRRCALL brrnum_bxor(int a, int b) { return a != b; }
 
+/*------------ brrhash.h */
 #include "brrtools/brrhash.h"
 
 brru8 BRRCALL
@@ -291,3 +313,8 @@ brrhash_fnv1a(const void *const data, brrsz data_size)
 	}
 	return hash.v;
 }
+
+/*------------ brrtypes.h */
+#include "brrtools/brrtypes.h"
+
+

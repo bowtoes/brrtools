@@ -46,6 +46,27 @@ typedef brrs8 brrof; // Relative byte offset.
 # define BRROF_MAX BRRS8_MAX
 # define BRROF_MIN BRRS8_MIN
 
+#define _brrtypes_exp0(_x_) _x_
+#define _brrtypes_exp(_x_) _brrtypes_exp0(_x_)
+#define _brrtypes_join0(_x_, _y_) _x_ ## _y_
+#define _brrtypes_join(_x_, _y_) _brrtypes_join(_brrtypes_exp(_x_), _brrtypes_exp(_y_))
+
+#define _brrge_def(_n_, _name_) \
+typedef struct brrge##_n_ {\
+	brr##_n_ start;\
+	brr##_n_ len;\
+} _brrtypes_exp(_name_)\
+
+#define brrge(_n_) brrge##_n_##_t
+
+_brrge_def(sz, brrge());
+_brrge_def(u1, brrge(1));
+_brrge_def(u2, brrge(2));
+_brrge_def(u4, brrge(4));
+_brrge_def(u8, brrge(8));
+
+#undef _brrge_def
+
 #ifdef __cplusplus
 }
 #endif

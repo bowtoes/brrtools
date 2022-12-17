@@ -1,6 +1,7 @@
 /* Copyright (c), BowToes (bow.toes@mailfence.com)
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
+
 #define _brrlog_keep_gens
 #include "brrtools/brrlog.h"
 #undef _brrlog_keep_gens

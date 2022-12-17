@@ -16,7 +16,7 @@ setup:
 	@$(mk_dir_tree) $(build_directories) 2>$(null) ||:
 .PHONY: all setup
 
-$(ass_out_dir)/%.s: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -S $< -o $@
+$(ass_out_dir)/%.s: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -S -fverbose-asm $< -o $@
 $(int_out_dir)/%.e: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -E $< -o $@
 $(obj_out_dir)/%.o: $(src_dir)/%.c ; $(cc_custom) $(project_cppflags) $(project_cflags) -c $< -o $@
 $(ass_out) $(int_out) $(obj_out): $(vnd_bins) $(addprefix $(src_dir)/,$(hdrs)) $(makefiles)

@@ -1,3 +1,7 @@
+/* Copyright (c), BowToes (bow.toes@mailfence.com)
+Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
+Full license can be found in 'license' file */
+
 #include "brrtools/brrstr.h"
 
 #include <stdarg.h>
@@ -27,7 +31,7 @@ brrstr_icmp(const brrstr_t *restrict const s, const brrstr_t *restrict const z)
 	return i_strnicmp(s->s, z->s, s->l < z->l ? s->l : z->l);
 }
 char *BRRCALL
-brrstr_ncmp(brrstr_t str, ...)
+brrstr_ncmp(const brrstr_t str, ...)
 {
 	if (!str.s)
 		return NULL;
@@ -39,7 +43,7 @@ brrstr_ncmp(brrstr_t str, ...)
 	return a;
 }
 char *BRRCALL
-brrstr_incmp(brrstr_t str, ...)
+brrstr_incmp(const brrstr_t str, ...)
 {
 	if (!str.s)
 		return NULL;
@@ -93,7 +97,7 @@ brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len)
 void BRRCALL
 brrstr_free(brrstr_t *const str)
 {
-	if (!str || str->_shallow)
+	if (!str || str->_s)
 		return;
 	if (str->s)
 		free(str->s);
@@ -109,7 +113,7 @@ brrstr_copy(brrstr_t *restrict const dst, const brrstr_t *restrict const src)
 	} else if (!src) {
 		return 0;
 	}
-	if (dst->_shallow) {
+	if (dst->_s) {
 		brrstr_t s = brrstr_new(src->s, src->l);
 		if (!s.s)
 			return -1;
