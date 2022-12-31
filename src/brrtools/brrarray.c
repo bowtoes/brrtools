@@ -7,6 +7,25 @@ Full license can be found in 'license' file */
 #include <stdlib.h>
 #include <string.h>
 
+#define _check_narray(_array_, _elsize_, _name_) do {\
+	if (!(_array_)) {\
+		brrapi_error(BRRAPI_E_ARGERR, "%s given NULL " _name_, __func__);\
+		return -1;\
+	} else if (!(_elsize_)) {\
+		brrapi_error(BRRAPI_E_ARGERR, "%s given invalid element size", __func__);\
+		return -1;\
+	}\
+} while (0)
+#define _check_array(_array_, _name_) do {\
+	if (!(_array_)) {\
+		brrapi_error(BRRAPI_E_ARGERR, "%s given NULL " _name_, __func__);\
+		return -1;\
+	} else if (!(_array_)->size) {\
+		brrapi_error(BRRAPI_E_ARGERR, "%s given invalid " _name_, __func__);\
+		return -1;\
+	}\
+} while (0)
+
 static BRR_inline int BRRCALL
 i_resize_array(brrarray_t *const array, brrsz new_count)
 {
@@ -23,7 +42,7 @@ i_resize_array(brrarray_t *const array, brrsz new_count)
 		*array = n;
 		return 0;
 	} else if (!(n.data = realloc(array->data, new_count * n.size))) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR, "Failed to resize array to %zu bytes (%zu + 1 elements of %zu bytes)", new_count * n.size, n.count, n.size);
 		return -1;
 	}
 	return 0;
@@ -38,7 +57,7 @@ i_new_array(brrarray_t *const arr, brrsz size, brrsz count, const void *const da
 	};
 	if (n._bytes) {
 		if (!(n.data = malloc(n._bytes))) {
-			brrapi_sete(BRRAPI_E_MEMERR);
+			brrapi_error(BRRAPI_E_MEMERR, "Failed to allocate space for new array of %zu bytes (%zu elements of %zu bytes)", n._bytes, count, size);
 			return -1;
 		}
 		if (data) {
@@ -52,21 +71,13 @@ i_new_array(brrarray_t *const arr, brrsz size, brrsz count, const void *const da
 int BRRCALL
 brrarray_new(brrarray_t *array, const void *const elements, brrsz element_size, brrsz n_elements)
 {
-	if (!array || !element_size) {
-		brrapi_sete(BRRAPI_E_ARGERR);
-		return -1;
-	}
-	if (i_new_array(array, element_size, n_elements, elements))
-		return -1;
-	return 0;
+	_check_narray(array, element_size, "destination array");
+	return i_new_array(array, element_size, n_elements, elements);
 }
 int BRRCALL
 brrarray_new_data(brrarray_t *array, const void *const data, brrsz data_size, brrsz element_size)
 {
-	if (!array || !element_size) {
-		brrapi_sete(BRRAPI_E_ARGERR);
-		return -1;
-	}
+	_check_narray(array, element_size, "destination array");
 	return i_new_array(array, element_size, data_size / element_size, data);
 }
 void BRRCALL
@@ -89,10 +100,7 @@ brrarray_free(brrarray_t *const array, brrarray_freer_t freer)
 int BRRCALL
 brrarray_resize(brrarray_t *const array, brrsz new_count)
 {
-	if (brrarray_check(array)) {
-		brrapi_sete(BRRAPI_E_ARGERR);
-		return -1;
-	}
+	_check_array(array, "array");
 	brrarray_t old = *array;
 	if (i_resize_array(array, new_count))
 		return -1;
@@ -104,10 +112,7 @@ brrarray_resize(brrarray_t *const array, brrsz new_count)
 int BRRCALL
 brrarray_append(brrarray_t *const array, const void *const elements, brrsz count)
 {
-	if (brrarray_check(array)) {
-		brrapi_sete(BRRAPI_E_ARGERR);
-		return -1;
-	}
+	_check_array(array, "array");
 	if (!elements || !count)
 		return 0;
 	brrarray_t old = *array;
@@ -120,10 +125,7 @@ brrarray_append(brrarray_t *const array, const void *const elements, brrsz count
 int BRRCALL
 brrarray_prepend(brrarray_t *const array, const void *const elements, brrsz count)
 {
-	if (brrarray_check(array)) {
-		brrapi_sete(BRRAPI_E_ARGERR);
-		return -1;
-	}
+	_check_array(array, "array");
 	if (!elements || !count)
 		return 0;
 	brrarray_t old = *array;
@@ -138,60 +140,60 @@ brrarray_prepend(brrarray_t *const array, const void *const elements, brrsz coun
 int BRRCALL
 brrarray_split(const brrarray_t *const array, brrsz split, brrarray_t *const a, brrarray_t *const b)
 {
-	if (brrarray_check(array) || split >= array->count) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "source array");
+	if (split >= array->count) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_split given split location %zu out of range for array of %zu elements", split, array->count);
 		return -1;
 	}
-	if (!a) {
-		if (b)
-			return -1;
+	if (!a && !b)
 		return 0;
-	} else if (!b) {
-		return -1;
-	}
 
 	brrsz s = array->size;
 	char *d = array->data;
+
 	brrarray_t A = {
 		.size = s,
 		.count = split + 1,
 	};
 	A._bytes = A.count * s;
-	if (!(A.data = malloc(A._bytes))) {
-		brrapi_sete(BRRAPI_E_MEMERR);
-		return -1;
+	if (a) {
+		if (!(A.data = malloc(A._bytes))) {
+			brrapi_error(BRRAPI_E_MEMERR, "Failed to allocate space for array split A");
+			return -1;
+		}
+		memcpy(A.data, d, A._bytes);
 	}
-	memcpy(A.data, d, A._bytes);
+
 	brrarray_t B = {
 		.size = s,
 		.count = array->count - A.count,
 	};
 	B._bytes = B.count * s;
-	if (!(B.data = malloc(B._bytes))) {
-		free(A.data);
-		brrapi_sete(BRRAPI_E_MEMERR);
-		return -1;
+	if (b) {
+		if (!(B.data = malloc(B._bytes))) {
+			if (A.data)
+				free(A.data);
+			brrapi_error(BRRAPI_E_MEMERR, "Failed to allocate space for array split B");
+			return -1;
+		}
+		memcpy(B.data, d + A._bytes, B._bytes);
+		*b = B;
 	}
-	memcpy(B.data, d + A._bytes, B._bytes);
+	if (a)
+		*a = A;
 
-	*a = A, *b = B;
 	return 0;
 }
 int BRRCALL
 brrarray_partition(const brrarray_t *const array, brrsz part, brrarray_t *const a, brrarray_t *const b)
 {
-	if (brrarray_check(array) || part >= array->count) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "source array");
+	if (part >= array->count) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_partition given partition location %zu out of range for array of %zu elements", part, array->count);
 		return -1;
 	}
-	if (!a) {
-		if (b)
-			*b = *array;
+	if (!a && !b)
 		return 0;
-	} else if (!b) {
-		*a = *array;
-		return 0;
-	}
 
 	brrsz s = array->size;
 	char *d = array->data;
@@ -206,17 +208,22 @@ brrarray_partition(const brrarray_t *const array, brrsz part, brrarray_t *const 
 		.count = array->count - A.count,
 	};
 	B._bytes = B.count * s;
-	B.data = d + A._bytes,
+	B.data = d + A._bytes;
 
-	*a = A, *b = B;
+	if (a)
+		*a = A;
+	if (b)
+		*b = B;
 	return 0;
 }
 
 int BRRCALL
 brrarray_insert(brrarray_t *const array, const brrarray_t new, brrsz start)
 {
-	if (brrarray_check(array) || brrarray_check(&new) || start > array->count){
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "array");
+	_check_array(&new, "new array");
+	if (start > array->count){
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_insert given insert position %zu out of range for array of %zu elements", start, array->count);
 		return -1;
 	}
 	if (!new.count)
@@ -234,15 +241,15 @@ brrarray_insert(brrarray_t *const array, const brrarray_t new, brrsz start)
 int BRRCALL
 brrarray_remove(brrarray_t *const array, brrsz count, brrsz start, brrarray_freer_t freer)
 {
-	if (brrarray_check(array) || start > array->count) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "array");
+	if (start > array->count) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_remove given start position %zu out of range for array of %zu elements", start, array->count);
+		return -1;
+	} else if (count > array->count - start) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_remove given more elements to remove %zu than are available in the rest of array %zu", count, array->count - start);
 		return -1;
 	}
-	if (start == array->count)
-		return 0;
-	if (count > array->count - start)
-		return -1;
-	if (!count)
+	if (!count || start == array->count)
 		return 0;
 
 	brrarray_t n = {
@@ -251,7 +258,7 @@ brrarray_remove(brrarray_t *const array, brrsz count, brrsz start, brrarray_free
 	};
 	n._bytes = n.count * n.size;
 	if (!(n.data = malloc(n._bytes))) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR, "Failed to allocate shrunken space for array when removing %zu elements (%zu bytes)", count, array->size);
 		return -1;
 	}
 	char *beforedata = array->data;
@@ -276,10 +283,26 @@ brrarray_remove(brrarray_t *const array, brrsz count, brrsz start, brrarray_free
 int BRRCALL
 brrarray_swap(brrarray_t *const array, brrsz count, brrsz region_a, brrsz region_b)
 {
-	if (brrarray_check(array) ||
-		region_a > array->count || region_b > array->count ||
-		region_a + count > array->count || region_b + count > array->count) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "array");
+	if (region_a > array->count) {
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "brrarray_swap Region A start %zu is out of bounds in array with %zu elements",
+		    region_a, array->count);
+		return -1;
+	} else if (region_b > array->count) {
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "brrarray_swap Region B start %zu is out of bounds in array with %zu elements",
+		    region_b, array->count);
+		return -1;
+	} else if (region_a + count > array->count) {
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "brrarray_swap Region A %zu of %zu elements is out of bounds in array with %zu elements",
+		    region_a, count, array->count);
+		return -1;
+	} else if (region_b + count > array->count) {
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "brrarray_swap Region B %zu of %zu elements is out of bounds in array with %zu elements",
+		    region_b, count, array->count);
 		return -1;
 	}
 	if (!count || region_a == region_b)
@@ -310,31 +333,32 @@ brrarray_swap(brrarray_t *const array, brrsz count, brrsz region_a, brrsz region
 int BRRCALL
 brrarray_read(const brrarray_t *const array, brrsz element, void *const dst)
 {
-	if (brrarray_check(array) || element >= array->count) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "source array");
+	if (element >= array->count) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_read element %zu is out of bounds in array with %zu elements", array->count);
 		return -1;
 	}
-	memcpy(dst, (char*)array->data + element * array->size, array->size);
+	if (dst)
+		memcpy(dst, (char*)array->data + element * array->size, array->size);
 	return 0;
 }
 int BRRCALL
 brrarray_write(brrarray_t *const array, brrsz element, const void *const src)
 {
-	if (brrarray_check(array) || element >= array->count) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+	_check_array(array, "destination array");
+	if (element >= array->count) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrarray_write element %zu is out of bounds in array with %zu elements", array->count);
 		return -1;
 	}
 	memcpy((char*)array->data + element * array->size, src, array->size);
 	return 0;
 }
 
-int BRRCALL
+void BRRCALL
 brrarray_sort(brrarray_t *const array, brrdata_comparer_t compare, void *parameter)
 {
-	if (brrarray_check(array) || !compare)
-		return -1;
-	if (array->count < 2)
-		return 0;
+	if (brrarray_check(array) || !compare || array->count < 2)
+		return;
 
 	char *d = array->data;
 	char *e = d + array->_bytes;
@@ -351,7 +375,6 @@ brrarray_sort(brrarray_t *const array, brrdata_comparer_t compare, void *paramet
 			min[b] = t;
 		}
 	}
-	return 0;
 }
 
 void BRRCALL

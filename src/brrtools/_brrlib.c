@@ -8,42 +8,134 @@ Full license can be found in 'license' file */
 
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
+#if brrplat_dos
+#include <windows.h>
+#endif
 
-static int i_brrapi_error = 0;
+#include "_util.h"
+
+#define brrerr_msg_len 4096
+#define brrerr_filename_limit 256
+#define brrerr_funcname_limit 256
+typedef struct {
+	int code;
+	char sysmsg[brrerr_msg_len];
+	int syslen;
+	char msg[brrerr_msg_len];
+	int len;
+	char function[brrerr_funcname_limit];
+	char file[brrerr_filename_limit];
+	int line;
+} i_err_t;
+static i_err_t _err = {0};
 
 void BRRCALL
-brrapi_sete(int e)
+(brrapi_error)(const char *const file, const char *const function, int line, int code, const char *const message, ...)
 {
-	i_brrapi_error = e;
+	static char format [4096] = {0};
+	va_list lptr;
+	va_start(lptr, message);
+	_err.len = vsnprintf(_err.msg, brrerr_msg_len, message, lptr);
+	va_end(lptr);
+	brrapi_error_set_position(file, function, line);
+	switch (code) {
+		case BRRAPI_E_OSERR:
+		#if brrplat_dos
+		{ DWORD r = FormatMessage(
+			/* flags, the type of message to format, and optional parameters on where to look for it/how to format it */
+			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+
+			/* source, where the message is defined; NULL for 'FORMAT_MESSAGE_FROM_SYSTEM' (i.e. os-generated) messages */
+			NULL,
+
+			/* messageId, what is the message to format? */
+			GetLastError(),
+
+			/* langid, 0 = do a search for a valid language */
+			0,
+
+			/* buffer to write the formatted message to */
+			_err.sysmsg,
+
+			/* maximum size of the output buffer */
+			sizeof(_err.sysmsg),
+
+			/* Optional arguments */
+			NULL);
+			if (r) {
+				_err.syslen = r - 1;
+			} else {
+				/* error printing the error, egad, someone do something! nah, just forget it */
+				_err.syslen = 0;
+			}
+			_err.sysmsg[_err.syslen - 1] = 0;
+		} break;
+		#endif // unix falls through
+		case BRRAPI_E_MEMERR:
+		case BRRAPI_E_LIBC: {
+			const char *errstr = strerror(errno);
+			_err.syslen = strlen(errstr) - 1;
+			if (_err.syslen > sizeof(_err.sysmsg) - 1)
+				_err.syslen = sizeof(_err.sysmsg) - 1;
+			memcpy(_err.sysmsg, errstr, _err.syslen);
+		} break;
+		default:
+			break;
+	}
+	_err.code = (code < 0 || code > BRRAPI_E_INVALID_CODE) ? BRRAPI_E_INVALID_CODE : code;
 }
+
 int BRRCALL
-brrapi_gete(void)
+brrapi_error_code(void)
 {
-	return i_brrapi_error;
+	return _err.code;
 }
 
 const char *BRRCALL
-brrapi_error_name(void)
+brrapi_error_name(int code)
 {
-	switch (i_brrapi_error) {
-		#define _brrapi_e_op(_n_, _i_, _D_) case BRRAPI_E_##_n_: return _D_;
+	switch (code) {
+		#define _brrapi_e_op(_n_, _D_) case BRRAPI_E_##_n_: return _D_;
 		_brrapi_e(_brrapi_e_op)
 		#undef _brrapi_e_op
 		default: return "Invalid Error";
 	}
 }
-const char *BRRCALL
-brrapi_err(void)
+char *BRRCALL
+brrapi_error_message(char *const dst, int max_size)
 {
-	switch (i_brrapi_error) {
-		case BRRAPI_E_MEMERR:
-		case BRRAPI_E_LIBC:
-			return strerror(errno);
-		case BRRAPI_E_OSERR: /* Only on windows */
-			return "OS Error (to replace later)";
-		default: return brrapi_error_name();
+	if (dst && max_size) {
+		snprintf(dst, max_size, "%s: %s (in '%s'"
+#ifdef brrtools_debug
+		" from %s:%i"
+#endif
+		")", _err.msg, _err.sysmsg, _err.function
+#ifdef brrtools_debug
+		, _err.file, _err.line
+#endif
+		);
 	}
+	return dst;
 }
+
+void BRRCALL
+brrapi_error_set_position(const char *const file, const char *const function, int line)
+{
+#define _min_(_a_, _b_) ((_a_) < (_b_) ? (_a_) : (_b_))
+	int funclen = _min_(sizeof(_err.function) - 1, strlen(function));
+	memcpy(_err.function, function, funclen);
+	_err.function[funclen] = 0;
+#ifdef brrtools_debug
+	funclen = _min_(sizeof(_err.file) - 1, strlen(file));
+	memcpy(_err.file, file, funclen);
+	_err.file[funclen] = 0;
+	_err.line = line;
+#endif
+#undef _min_
+}
+
 #undef _brrapi_keep_gens
 
 /*------------ brrcon.h */

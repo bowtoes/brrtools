@@ -75,7 +75,7 @@ brrstr_new(const char *const str, brrsz max_len)
 {
 	brrstr_t s = {.l=brrstr_len(str, max_len)};
 	if (!(s.s = calloc(1 + s.l, 1))) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR, "Failed to allocate %zu bytes for new brrstr", s.l);
 		return (brrstr_t){0};
 	}
 	memcpy(s.s, str, s.l);
@@ -85,7 +85,7 @@ int BRRCALL
 brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len)
 {
 	if (!str) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+		brrapi_error(BRRAPI_E_ARGERR, "Can't initialize brrstr to null 'brrstr_t *str'");
 		return -1;
 	}
 	brrstr_t s = brrstr_new(cstr, max_len);
@@ -108,7 +108,7 @@ int BRRCALL
 brrstr_copy(brrstr_t *restrict const dst, const brrstr_t *restrict const src)
 {
 	if (!dst) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+		brrapi_error(BRRAPI_E_ARGERR, "Can't copy brrstr to null 'brrstr_t *dst'");
 		return -1;
 	} else if (!src) {
 		return 0;
@@ -138,24 +138,24 @@ brrstr_njoin(brrstr_t *dst, ...)
 	brrstr_t s = {0};
 	va_list lptr;
 	va_start(lptr, dst);
-	{
+	{ brrsz i = 0;
 		va_list lp2;
 		va_copy(lp2, lptr);
-
 		brrstr_t a;
 		while (1) {
 			a = va_arg(lp2, brrstr_t);
 			if (!a.s)
 				break;
 			s.l += a.l;
+			++i;
 		}
-
 		va_end(lp2);
-	}
-	if (!(s.s = calloc(1 + s.l, 1))) {
-		va_end(lptr);
-		brrapi_sete(BRRAPI_E_MEMERR);
-		return -1;
+
+		if (!(s.s = calloc(1 + s.l, 1))) {
+			va_end(lptr);
+			brrapi_error(BRRAPI_E_MEMERR, "Failed to allocate %zu bytes for %zu joined brrstrs", i);
+			return -1;
+		}
 	}
 	brrsz w = 0;
 	brrstr_t a;

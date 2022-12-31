@@ -50,28 +50,35 @@ extern "C" {
 #endif
 
 #define _brrapi_e(_X_)\
-	_X_(SUCCESS, 0x00, "Success")\
-	_X_(MEMERR,  0x10, "Memory Allocation Failure")\
-	_X_(ARGERR,  0x20, "Invalid Argument(s)")\
-	_X_(ARRFULL, 0x21, "Array is Full")\
-	_X_(LIBC,    0x30, "C Library Errored")\
-	_X_(OSERR,   0x31, "Operating System specific error")\
+	_X_(SUCCESS,      "Success")\
+	_X_(MEMERR,       "Memory Allocation Failure")\
+	_X_(ARGERR,       "Invalid Argument(s)")\
+	_X_(ARRFULL,      "Array is Full")\
+	_X_(LIBC,         "libc Error")\
+	_X_(OSERR,        "OS Error")\
+	_X_(INVALID_CODE, "brrapi Invalid Code")\
 
-#define _brrapi_e_op(_n_, _i_, _D_) BRRAPI_E_##_n_ = _i_,
+#define _brrapi_e_op(_n_, _D_) BRRAPI_E_##_n_,
 typedef enum brrapi_err { _brrapi_e(_brrapi_e_op) } brrapi_err_t;
 #undef _brrapi_e_op
 
 BRRAPI void BRRCALL
-brrapi_sete(int e);
+brrapi_error(const char *const file, const char *const function, int line, int code, const char *const message, ...);
+
+#define brrapi_error(_code_, ...) brrapi_error(__FILE__, __func__, __LINE__, _code_, __VA_ARGS__)
+#define brrapi_error_update() brrapi_error_set_position(__FILE__, __func__, __LINE__)
 
 BRRAPI int BRRCALL
-brrapi_gete(void);
+brrapi_error_code(void);
 
 BRRAPI const char *BRRCALL
-brrapi_error_name(void);
+brrapi_error_name(int code);
 
-BRRAPI const char *BRRCALL
-brrapi_err(void);
+BRRAPI char *BRRCALL
+brrapi_error_message(char *const dst, int max_size);
+
+BRRAPI void BRRCALL
+brrapi_error_set_position(const char *const file, const char *const function, int line);
 
 #ifndef _brrapi_keep_gens
 #undef _brrapi_e

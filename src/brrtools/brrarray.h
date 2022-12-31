@@ -91,11 +91,12 @@ brrarray_append(brrarray_t *const array, const void *const elements, brrsz count
  * */
 BRRAPI int BRRCALL
 brrarray_prepend(brrarray_t *const array, const void *const elements, brrsz count);
-/* Splits 'array' into 'a' and 'b', where the elements before and including 'split' are copied into 'a', and
- * the elements after are copied into 'b'.
+/* Splits 'array' into copies 'a' and 'b', where the elements before and including 'split' are copied into
+ * 'a', and the elements after are copied into 'b'.
  * Returns 0 on success.
  * If 'a' and 'b' are NULL, nothing is done and 0 is returned.
- * If one of 'a' or 'b' is NULL, nothing is done and -1 is returned.
+ * If one of 'a' or 'b' is NULL, the one which is non-NULL will point to its corresponding partition of the
+ *   source
  * If 'split' is greater than 'array.count - 1', nothing is done and -1 is returned, even if 'array' is empty.
  * If 'split' is 0, 'a' will consist of only the first element of 'array', and b will consist of the rest.
  * If an error occurs or 'array' is invalid, 'a' & 'b' are unaffected and -1 is returned.
@@ -103,19 +104,20 @@ brrarray_prepend(brrarray_t *const array, const void *const elements, brrsz coun
 BRRAPI int BRRCALL
 brrarray_split(const brrarray_t *const array, brrsz split, brrarray_t *const a, brrarray_t *const b);
 /* Partitions 'array' into 'a' and 'b', where 'a' contains the elements up to and including 'part', and b
- * contains the rest; 'a' and 'b' are not copies, they point to data in 'array'.
+ * contains the rest; 'a' and 'b' are not copies, they point to the original data in 'array'.
  * Returns 0 on success.
  * If 'a' and 'b' are NULL, nothing is done and 0 is returned.
- * If one of 'a' or 'b' is NULL, the one which is non-NULL will be identical to 'array'.
+ * If one of 'a' or 'b' is NULL, the one which is non-NULL will point to its corresponding partition of the
+ *   source
  * If 'part' is greater than or equal 'array.count', nothing is done and -1 is returned, even if 'array' is
- * empty.
+ *   empty.
  * If 'part' is 0, 'a' will consist of only the first element of 'array', and b will consist of the rest.
  * If an error occurs or 'array' is NULL, 'a' & 'b' are unaffected and -1 is returned.
  * */
 BRRAPI int BRRCALL
 brrarray_partition(const brrarray_t *const array, brrsz part, brrarray_t *const a, brrarray_t *const b);
-/* Inserts 'new' into 'array' before 'start', shifting 'start' and all elements past it forward.
- * Returns 0 on success.
+/* Inserts array 'new' into the original 'array' just before 'start', shifting 'start' and all elements past
+ * it forward. Returns 0 on success.
  * If 'new' is an empty array, nothing is done and 0 is returned.
  * If 'start' is greater than 'array.count', 'array' is unaffected and -1 is returned.
  * If an error occurs or 'array' is invalid or 'new' is invalid or 'array' is unaffected and -1 is returned.
@@ -162,11 +164,10 @@ typedef int (*brrdata_comparer_t)(const void *, const void *, void*);
 
 /* Sorts elements of 'array', using 'compare' to determine the relative order of two elements.
  * 'compare' is given 'parameter'.
- * Returns 0 on success.
- * If 'array' has less than 2 elements, there is nothing to sort and 0 is returned.
- * If 'array' is invalid or 'compare' is NULL, nothing is done and -1 is returned.
+ * If 'array' has less than 2 elements, there is nothing to sort
+ * If 'array' is invalid or 'compare' is NULL, nothing is done
  * */
-BRRAPI int BRRCALL
+BRRAPI void BRRCALL
 brrarray_sort(brrarray_t *const array, brrdata_comparer_t compare, void *parameter);
 
 /* Reverses 'count' elements of 'array' starting at 'start'.

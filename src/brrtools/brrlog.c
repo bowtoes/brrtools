@@ -462,7 +462,8 @@ int BRRCALL
 brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog_style_t style, brrlog_dst_t dst)
 {
 	if (!pri) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "Tried to initialize NULL destination priority, can't continue");
 		return 1;
 	}
 
@@ -484,7 +485,8 @@ brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog
 		brrsz xl = 0;
 		brrsz sl = i_styled_len(pfx, ml, &xl, 2 * CNF.max_prefix, p.style);
 		if (!(p.pfx = calloc(1 + sl, 1))) {
-			brrapi_sete(BRRAPI_E_ARGERR);
+			brrapi_error(BRRAPI_E_MEMERR,
+			    "Failed to allocate space for styled priority prefix '%s'", pfx);
 			return 1;
 		}
 		p._pfxl = sl;
@@ -564,7 +566,9 @@ brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const st
 		c.style_enabled = 0;
 	} else {
 		if (!(c._sty_open = calloc(2 * (1 + c._sty_len), 1))) {
-			brrapi_sete(BRRAPI_E_MEMERR);
+			brrapi_error(BRRAPI_E_MEMERR,
+			    "Failed to allocate space for brrlog style delimeters '%*.*s' and '%*.*s'",
+			    c._sty_len, c._sty_len, style_open, c._sty_len, c._sty_len, style_close);
 			return 1;
 		}
 		c._sty_close = c._sty_open + c._sty_len + 1;
@@ -590,7 +594,8 @@ brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const st
 			if (c._sty_open)
 				free((char*)c._sty_open);
 			brrlog_priority_free(&c.def_pri);
-			brrapi_sete(BRRAPI_E_MEMERR);
+			brrapi_error(BRRAPI_E_MEMERR,
+			    "Failed to allocate space for brrlog internal buffer");
 			return 1;
 		}
 	}
@@ -636,7 +641,8 @@ brrlog_maxlog(brrsz newmax)
 	}
 	char *new = realloc(CNF._log_buf, newmax);
 	if (!new) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR,
+		    "Failed to resize brrlog internal buffer");
 		return 1;
 	}
 	CNF._log_buf = new;
@@ -668,7 +674,10 @@ brrlog_priority_mod(int label, brrlog_priority_t new)
 {
 	brrsz i = i_pri_index(label);
 	if (i == CNF.max_priorities) {
-		brrapi_sete(BRRAPI_E_ARRFULL);
+		/* This can only happen if we are full on priorities and 'label' isn't one of them; if we aren't
+		 * full, we add 'label' to the list */
+		brrapi_error(BRRAPI_E_ARRFULL,
+		    "Priority Label %i not present in brrlog, and brrlog priority list is full; can't add", label);
 		return 1;
 	}
 
@@ -686,7 +695,8 @@ brrlog_priority_mod(int label, brrlog_priority_t new)
 		int *L = malloc((sizeof(*L) + sizeof(*P)) * (CNF._npri + 1));
 		if (!L) {
 			brrlog_priority_free(&p);
-			brrapi_sete(BRRAPI_E_MEMERR);
+			brrapi_error(BRRAPI_E_MEMERR,
+			    "Failed to allocate space for new brrlog Priority Label %i", label);
 			return 1;
 		}
 		memcpy(L, CNF._lbl, sizeof(*L) * CNF._npri);
@@ -722,7 +732,8 @@ brrlog_priority_delete(int label)
 	const brrsz new_size = (sizeof(*CNF._lbl) + sizeof(*CNF._pri)) * (CNF._npri - 1);
 	brru1 *new = malloc(new_size); /* only point of error */
 	if (!new) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR,
+		    "Failed to reallocate space after deleting brrlog Priority Label %i", label);
 		return 1;
 	}
 	brrlog_priority_free(&CNF._pri[i]); /* could be returned to the user instead of freed */
@@ -750,15 +761,31 @@ brrlog_priority_delete(int label)
 
 #define _print(_D_, _type_, ...) do {\
 	int _t = _type_##printf(_D_,  __VA_ARGS__);\
-	if (_t < 0) { brrapi_sete(BRRAPI_E_LIBC); return BRRSZ_MAX; }\
+	if (_t < 0) { \
+		brrapi_error(BRRAPI_E_LIBC, \
+		    #_type_ "printf failed during brrlog styling"); \
+		return BRRSZ_MAX; \
+	}\
 	W += _t;\
 } while (0)
 #define _write(_D_, _S_, _SL_) do {\
 	int _t = fwrite(_S_, _SL_, 1, _D_);\
-	if (_t < 1) { brrapi_sete(BRRAPI_E_LIBC); return BRRSZ_MAX; }\
+	if (_t < 1) { \
+		brrapi_error(BRRAPI_E_LIBC, \
+		    "fwrite failed during brrlog execution"); \
+		return BRRSZ_MAX; \
+	}\
 	W += _t;\
 } while (0)
-#define _put(_D_, _C_) do { int t = fputc(_C_, _D_); if (t == EOF) { brrapi_sete(BRRAPI_E_LIBC); return BRRSZ_MAX; } W++; } while (0)
+#define _put(_D_, _C_) do { \
+	int t = fputc(_C_, _D_); \
+	if (t == EOF) { \
+		brrapi_error(BRRAPI_E_LIBC, \
+		    "fputc failed during brrlog execution"); \
+		return BRRSZ_MAX; \
+	} \
+	W++; \
+} while (0)
 
 #define VBS_FMT "(%s,%s@%3i)", src.func, src.file, src.line
 static BRR_inline brrlog_priority_t i_select_pri(int label)
@@ -845,7 +872,8 @@ brrlogv_text(int label, brrlog_source_t src, brrlog_settings_t settings, const c
 {
 	const brrsz fmtl = strlen(fmt);
 	if (!fmt) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "Tried to format NULL format string, can't continue");
 		return BRRSZ_MAX;
 	} else if (!fmtl || (!CNF.debug && (label < CNF.min_label || label > CNF.max_label))) {
 		return 0;
@@ -867,7 +895,8 @@ brrlogv_text(int label, brrlog_source_t src, brrlog_settings_t settings, const c
 	}
 #endif
 	if (i_buf_resize(&_F, sl)) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR,
+		    "Failed to resize brrlog internal buffer");
 		return BRRSZ_MAX;
 	}
 	i_styled(_F.d, fmt, fmtl, pri.style);
@@ -919,7 +948,8 @@ brrlog_bits(int label,
 	char bit_separator)
 {
 	if (!bytes) {
-		brrapi_sete(BRRAPI_E_ARGERR);
+		brrapi_error(BRRAPI_E_ARGERR,
+		    "Tried to log NULL bytes buffer, can't continue");
 		return BRRSZ_MAX;
 	} else if (!n_bits) {
 		return 0;
@@ -935,7 +965,8 @@ brrlog_bits(int label,
 		return i_min_len(pri, src, settings) + olen;
 
 	if (i_buf_resize(&_F, olen)) {
-		brrapi_sete(BRRAPI_E_MEMERR);
+		brrapi_error(BRRAPI_E_MEMERR,
+		    "Failed to resize brrlog internal buffer");
 		return BRRSZ_MAX;
 	}
 
