@@ -153,9 +153,16 @@ extern "C" {
 #define _brr_map_list0(f, x, peek, ...) f(x) _brr_map_list_next(peek, _brr_map_list1)(f, peek, __VA_ARGS__)
 #define _brr_map_list1(f, x, peek, ...) f(x) _brr_map_list_next(peek, _brr_map_list0)(f, peek, __VA_ARGS__)
 
+
 /* Applies the macro 'X' to each of the following arguments and inserts commas between the output.
  * */
 #define brr_map_list(X, ...) _brr_map_eval(_brr_map_list1(X, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+
+#define brr_bit(_i_, _mask_) (((_i_) & (_mask_)) != 0)
+#define brr_bits(_i_, _mask_) (((_i_) & (_mask_)) == (_mask_))
+
+#define brr_bit_mask_set(_i_, _mask_, _value_) ((_i_) = ((_i_) & ~(_mask_)) | ((_value_) & (_mask_)))
+#define brr_bit_mask(_i_, _mask_) ((_i_) & (_mask_))
 
 #ifdef __cplusplus
 }

@@ -43,7 +43,7 @@ brrstr_len(const char *const s, brrsz max);
 BRRAPI brrstr_t BRRCALL
 brrstr_new(const char *const str, brrsz max_len);
 BRRAPI int BRRCALL
-brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len);
+brrstr_init(brrstr_t *restrict const str, const char *restrict const cstr, brrsz max_len);
 BRRAPI void BRRCALL
 brrstr_free(brrstr_t *const str);
 

@@ -613,6 +613,7 @@ brrlog_deinit(void)
 			brrlog_priority_free(&CNF._pri[i]);
 		free(CNF._lbl);
 	}
+	brrlog_priority_free(&CNF.def_pri);
 	if (CNF._log_buf)
 		free(CNF._log_buf);
 	i_buf_free(&_F);
@@ -639,7 +640,7 @@ brrlog_maxlog(brrsz newmax)
 			free(CNF._log_buf);
 		CNF._log_buf = NULL;
 	}
-	char *new = realloc(CNF._log_buf, newmax);
+	char *new = realloc(CNF._log_buf, 1 + newmax);
 	if (!new) {
 		brrapi_error(BRRAPI_E_MEMERR,
 		    "Failed to resize brrlog internal buffer");

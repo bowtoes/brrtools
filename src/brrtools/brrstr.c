@@ -82,7 +82,7 @@ brrstr_new(const char *const str, brrsz max_len)
 	return s;
 }
 int BRRCALL
-brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len)
+brrstr_init(brrstr_t *restrict const str, const char *restrict const cstr, brrsz max_len)
 {
 	if (!str) {
 		brrapi_error(BRRAPI_E_ARGERR, "Can't initialize brrstr to null 'brrstr_t *str'");
@@ -94,6 +94,7 @@ brrstr_init(brrstr_t *const str, const char *const cstr, brrsz max_len)
 	*str = s;
 	return 0;
 }
+
 void BRRCALL
 brrstr_free(brrstr_t *const str)
 {
