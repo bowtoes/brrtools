@@ -13,10 +13,13 @@ extern "C" {
 #include <brrtools/brrtypes.h>
 
 /* Counts the number of digits of 'number' when written in base 'base', excluding sign.
- * If 'is_signed' is true, 'number' is cast as a signed integer before the digits are counted.
  * If 'base' is less than 2, 0 is returned.
  * */
-BRRAPI int BRRCALL brrnum_ndigits(brru8 x, int base);
+BRRAPI int BRRCALL brrnum_udigits(brru8 x, int base);
+/* Counts the number of digits of 'number' when written in base 'base', excluding sign.
+ * If 'base' is less than 2, 0 is returned.
+ * */
+BRRAPI int BRRCALL brrnum_sdigits(brrs8 x, int base);
 /* Performs 'correct' (citation needed) signed % unsigned modulo operation, with an optional 'offset' that does... something.
  * */
 BRRAPI brrs8 BRRCALL brrnum_wrap(brrs8 x, brru8 modulus, brrs8 offset);

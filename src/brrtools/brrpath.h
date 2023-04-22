@@ -45,10 +45,10 @@ typedef struct stat brrpath_stat_t;
 typedef WIN32_FIND_DATA brrpath_stat_t;
 #endif
 
-/* TERMS:
-	 Canonicalize: Clean the logical path, removing redundant separators and path elements; does not in any
-	   way query the filesystem and instead cleans up a path according to the rules of the OS. Further details follow
-	 Follow links: Remove all symlinks from a path
+/* Terminology:
+     Canonicalize: Clean the logical path, removing redundant separators and path elements; does not in any
+       way query the filesystem and instead cleans up a path according to the rules of the OS. Further details follow
+     Follow links: Remove all symlinks from a path
      Realize: Canonicalize and simplify the path; follows all symlinks, simplifies the path, etc. etc. If a
        component doesn't exist, realization stops at that component and a code is returned. Or maybe it's an
        error only optionally.
@@ -101,17 +101,20 @@ typedef enum brrpath_flag {
 #define brrpath_inf \
 union {\
 	struct {\
-		brru1 ext_valid:1; /* If there is a valid extension, this is set */ \
-		brru1 abs:1;       /* Whether the path is absolutely referenced */ \
-		brru1 exists:1;    /* Whether the path exists */ \
-		brru1 type:3;      /* The type of the path */ \
-		brru1 flags:6;     /* Specific flags of the filesystem */ \
-		/* 4 more bits to spare */\
-		brru1 size[6];     /* 48-bit size should be big enough, I would think */\
+		brru1 ext_exists : 1; /* If there is a valid extension, this is set */ \
+		brru1 abs       : 1; /* Whether the path is absolutely referenced */ \
+		brru1 exists    : 1; /* Whether the path exists */ \
+		brru1 type      : 3; /* The type of the path */ \
+		brru1 _stat     : 1; /* Whether the path has been statted, if 0 then the other fields here are invalid. */ \
+		brru1 _err      : 1; /* Currently unused */ \
+		/* 1 byte */ \
+		brru1 flags     : 6; /* Specific flags of the filesystem */ \
+		/* 2 bits to spare */\
+		brru1 size[6];     /* 48-bit size should be big enough, I would think; max of 256 TiB file */\
 	};\
 	struct {\
-	brru4 _;\
-	brru4 __;\
+		brru4 _;\
+		brru4 __;\
 	};\
 }
 typedef brrpath_inf brrpath_inf_t;
@@ -140,35 +143,63 @@ A 'logical dot' is a dot in the name that separates the basename from the extens
   * The terminating dot in 'this_ends_with_a_dot.' IS a logical separator, with the extension being an
     empty string.
 A name can have multiple extensions, each separated by a logical dot; the minimal extension is the last such
-  extension in a name, and the maximal extension starts at the first logical dot and takes up the rest of the
+  extension in a name, and the maximal extension starts 1 after the first logical dot and takes up the rest of the
   name.
 A name that consists only of dots has no logical dots; it's the same logic that would be applied to something
   like '....this_file_starts_with_a_lot_of_dots'; they are part of the basename.
 */
-	char *full;
 	brrpath_path_len_t len;
-	brrpath_path_len_t dir_len;
-	brrpath_name_len_t base_len; /* Length of the basename component of 'full', excluding any extension */
-	brrpath_name_len_t ext_len;  /* Length of the maximal extension; everything after the first logical dot */
+	brrpath_path_len_t dir_len; /* Length of the directory component of 'full'; <= the last logical separator */
+	brrpath_name_len_t base_len; /* Length of the basename component of 'full'; > the last logical separator and before the first logical dot. */
+	brrpath_name_len_t ext_len;  /* Length of the maximal extension; > the first logical dot */
 	union {
 		brrpath_inf;
 		brrpath_inf_t inf;
 	};
+	char *full;
 } brrpath_t;
 
+static BRR_inline const char *BRRCALL brrpath_dir_start(const brrpath_t *const p)
+{ return p ? p->full : NULL; }
+/* Returns the start of the basename of the path, just after the last logical separator.
+ * If 'p' is NULL, NULL is returned.
+ * */
+static BRR_inline const char *BRRCALL brrpath_base_start(const brrpath_t *const p)
+{ return p && p->full ? p->full + p->dir_len : NULL; }
+/* Returns the start of the full extension of the path, just after the first logical dot.
+ * If 'p' is NULL or has no extension, NULL is returned.
+ * */
+static BRR_inline const char *BRRCALL brrpath_ext_start(const brrpath_t *const p)
+{ return p && p->full && p->ext_exists ? p->full + p->len - 1 - p->ext_len : NULL; }
+/* Returns the end of the path, just before the null terminator.
+ * If 'p' is NULL or of 0 length, NULL is returned.
+ * */
+static BRR_inline const char *BRRCALL brrpath_end(const brrpath_t *const p)
+{ return p && p->full && p->len ? p->full + p->len - 1 : NULL; }
+/* Returns the start of the minimal extension of the path, just after the last logical dot.
+ * If 'p' is NULL or has no extension, NULL is returned.
+ * */
+static BRR_inline const char *BRRCALL brrpath_short_ext_start(const brrpath_t *const p)
+{
+	const char *const short_min = brrpath_ext_start(p);
+	if (!short_min)
+		return NULL;
+	const char *short_start = brrpath_end(p) + 1;
+	while (short_start > short_min && short_start[-1] != '.') --short_start;
+	return short_start;
+}
+
+/* TODO doc */
 static BRR_inline int BRRCALL
 brrpath_cmp(const char *const a, const char *const b, brrsz len)
 {
-	if (!a) {
-		if (!b) {
-			return 0;
-		}
-		return 1;
-	} else if (!b) {
-		return 1;
-	} else if (!len) {
+	if (!a)
+		return b != NULL;
+	else if (!b)
+	  return 1;
+	else if (!len)
 		return 0;
-	}
+
 	for (brrsz i = 0; i < len; ++i) {
 		if (!(
 			a[i] == b[i]
@@ -189,57 +220,85 @@ brrpath_free(brrpath_t *const view);
 static BRR_inline void BRRCALL
 brrpath_update_lengths(brrpath_t *const path)
 {
-	#define _dirlen(_l_, _b_, _e_, _ev_) ((_l_) - (_b_) - ((_b_) != (_l_)) - (_e_) - (_ev_))
-	if (path) {
-		if (!path->len || brrpath_issep(path->full[path->len - 1])) {
-			path->base_len = path->ext_len = 0;
-			path->dir_len = path->len;
-		} else {
-			brrpath_path_len_t dir_len = 0;
-			brrpath_name_len_t base_len = 0, ext_len = 0;
-
-			/* Grabbing the name component */
-			brrsz dirlen = path->len;
-			while (dirlen && !brrpath_issep(path->full[dirlen - 1])) --dirlen;
-			path->dir_len = dirlen;
-			char *name = path->full + dirlen;
-			dirlen = path->len - dirlen; /* Length of the whole last component */
-
-			/* Measuring the base name */
-			while (base_len < dirlen && name[base_len] == '.') ++base_len; // leading dots are not logical
-			while (base_len < dirlen && name[base_len] != '.') ++base_len; // count non-dots until the first dot
-			if (base_len != dirlen) {
-				/* We have reached a logical dot */
-				ext_len = dirlen - base_len - 1;
-				path->ext_valid = 1;
-			} else {
-				/* No logical dots */
-				path->ext_valid = 0;
-			}
-			path->base_len = base_len;
-			path->ext_len = ext_len;
-		}
+	if (!path) return;
+	if (!path->full) {
+		path->base_len = path->ext_len = path->len = path->dir_len = path->ext_exists = 0;
+		return;
 	}
-	#undef _dirlen
+	if (!path->len || brrpath_issep(path->full[path->len - 1])) {
+		path->base_len = path->ext_len = 0;
+		path->dir_len = path->len;
+		return;
+	}
+	brrpath_path_len_t dir_len = 0;
+	brrpath_name_len_t base_len = 0, ext_len = 0;
+
+	/* Grabbing the name component */
+	brrsz dirlen = path->len;
+	while (dirlen && !brrpath_issep(path->full[dirlen - 1])) --dirlen;
+	path->dir_len = dirlen;
+	char *name = path->full + dirlen;
+	dirlen = path->len - dirlen; /* Length of the whole last component */
+
+	/* Measuring the base name */
+	while (base_len < dirlen && name[base_len] == '.') ++base_len; // leading dots are not logical
+	while (base_len < dirlen && name[base_len] != '.') ++base_len; // count non-dots until the first dot
+	if (base_len == dirlen) {
+		/* No logical dots */
+		path->ext_exists = 0;
+	} else {
+		/* We have reached a logical dot */
+		ext_len = dirlen - base_len - 1;
+		path->ext_exists = 1;
+	}
+	path->base_len = base_len;
+	path->ext_len = ext_len;
 }
-static BRR_inline char *BRRCALL
-brrpath_extension(const brrpath_t *const path)
-{
-	if (!path || !path->full || !path->ext_valid)
-		return NULL;
-	return path->full + path->dir_len + path->base_len + 1;
-}
+
+/* Given a NULL-terminated list of strings, compares each one against the extension of 'path'.
+ * Each extension to match for should not include the leading dot.
+ * If a match is found, the index of the match is returned and if 'matched' is not NULL, '*matched' is set to
+ * point to the matched string.
+ * If no match is found, -1 is returned and '*matched' is set to NULL.
+ * */
+BRRAPI int BRRCALL
+brrpath_match_extension(const brrpath_t *const path, int short_extension, int case_sensitive, const char **const matched, ...);
+
+/* Changes either the minimal extension or the maximal extension of 'path' to 'new'.
+ * Returns 0 on success.
+ * If reallocation fails, 'path' is unaffected and -1 is returned.
+ * Does not change the previous statted information or the filesystem.
+ * If 'len' is 0, the extension's length is set to 0, but the logical dot remains.
+ * If 'new' is NULL, the extension is removed entirely.
+ * */
+BRRAPI int BRRCALL
+brrpath_set_extension(brrpath_t *const path, int short_extension, const char *const new, brrsz len);
+
+/* 'Same' means this file points to the same physical data on disk.
+ * TODO currently only does a string comparison on the presumably canonical paths of a and b.
+ * */
+BRRAPI int BRRCALL
+brrpath_same(const brrpath_t *const a, const brrpath_t *const b);
 
 BRRAPI brrpath_t BRRCALL
 brrpath_canonicalize(const char *const source, brrsz length);
 
 BRRAPI int BRRCALL
-brrpath_stat(brrpath_t *const path);
+brrpath_stat(brrpath_inf_t *const inf, const char *const path);
 
 /* Returns an absolute path representing the current working directory; return value is NULL in case of error.
  * */
 BRRAPI const brrpath_t *BRRCALL
 brrpath_cwd(void);
+
+/* Initializes 'path' with 'arg', canonicalizing 'arg' and stating the file on disk.
+ * Returns 0 on success.
+ * If an error occurs, -1 is returned and 'path' is unaffected
+ * 'len' is the length of 'arg' (minus null terminator); when 'len' == BRRSZ_MAX, the function computes the
+ * length of 'arg' using 'brrstr_len' with an os-dependent max length.
+ * */
+BRRAPI int BRRCALL
+brrpath_init(brrpath_t *const path, const char *const arg, brrsz len);
 
 typedef enum brrpath_walk_code {
 	brrpath_walk_flag_consumed      = 0x01, /* The current path was consumed by the walker, do not free it before continuing to the next */

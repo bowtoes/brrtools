@@ -32,8 +32,7 @@ Full license can be found in 'license' file */
 #define _struct_print(_pfx_, _type_, _x_) printf(_pfx_ _##_type_##_fmt "\n", _##_type_##_fargs(_x_))
 
 #define CNF brrlog_config
-typedef struct i_buf
-{
+typedef struct i_buf {
 	brrsz alloc;
 	char *d;
 	float factor;
@@ -87,8 +86,7 @@ static FILE *i_last_stream = NULL;
 
 static brrlog_style_t i_last_st = I_CLEAR;
 
-typedef struct i_sf
-{
+typedef struct i_sf {
 	const char *s;
 	brrsz l;
 } i_sf_t;
@@ -295,9 +293,12 @@ static inline brrsz BRRCALL i_parse_style_prefix(brrlog_style_t *const st, const
 	return 1;
 }
 
-brrlog_style_t BRRCALL
-brrlog_style_init(brrlog_style_t source)
+void BRRCALL
+brrlog_style_init(brrlog_style_t *const s)
 {
+	if (!s)
+		return;
+	brrlog_style_t source = *s;
 	brrlog_style_t p = I_UNSET;
 	for (int i = 0; i < _brrlog_max_st; ++i) {
 		int s = 0;
@@ -316,7 +317,7 @@ brrlog_style_init(brrlog_style_t source)
 #if _brrlog_can_style
 	p._l = i_style_print(p._s, p);
 #endif
-	return p;
+	*s = p;
 }
 brrlog_style_t BRRCALL
 brrlog_style_or(brrlog_style_t a, brrlog_style_t b)
@@ -345,8 +346,7 @@ brrlog_style_or(brrlog_style_t a, brrlog_style_t b)
 	if (_SL) { memcpy(_D_, _S_, _SL); W += _SL; }\
 } while (0)
 
-typedef struct i_stylable
-{
+typedef struct i_stylable {
 	const char *pfx;
 	brrsz pfxl;
 	const char *cnt;
@@ -467,7 +467,8 @@ brrlog_priority_init(brrlog_priority_t *const pri, const char *const pfx, brrlog
 		return 1;
 	}
 
-	brrlog_priority_t p = {.style = brrlog_style_init(style), .dst = dst};
+	brrlog_priority_t p = {.dst = dst};
+	brrlog_style_init(&p.style);
 	if (!dst.dst || (dst.type != brrlog_dst_stream && dst.type != brrlog_dst_buffer)) {
 		if (dst.type == brrlog_dst_stream) {
 			p.dst = (brrlog_dst_t){.dst = stderr, .type = brrlog_dst_stream};
@@ -792,10 +793,7 @@ brrlog_priority_delete(int label)
 static BRR_inline brrlog_priority_t i_select_pri(int label)
 {
 	brrsz i = i_pri_index(label);
-	if (i == CNF._npri)
-		return CNF.def_pri;
-	else
-		return CNF._pri[i];
+	return i == CNF._npri ? CNF.def_pri : CNF._pri[i];
 }
 static BRR_inline brrsz i_min_len(brrlog_priority_t pri, brrlog_source_t src, brrlog_settings_t settings)
 {
@@ -881,8 +879,9 @@ brrlogv_text(int label, brrlog_source_t src, brrlog_settings_t settings, const c
 	}
 
 	brrlog_priority_t pri = i_select_pri(label);
+	brrlog_style_t style = settings.style_override ? *settings.style_override : pri.style;
 	brrsz ml = 0;
-	brrsz sl = i_styled_len(fmt, fmtl, &ml, 2048, pri.style);
+	brrsz sl = i_styled_len(fmt, fmtl, &ml, 2048, style);
 	/* TODO
 	if (sl > some maximum allocatable) {
 
@@ -900,7 +899,7 @@ brrlogv_text(int label, brrlog_source_t src, brrlog_settings_t settings, const c
 		    "Failed to resize brrlog internal buffer");
 		return BRRSZ_MAX;
 	}
-	i_styled(_F.d, fmt, fmtl, pri.style);
+	i_styled(_F.d, fmt, fmtl, style);
 	return i_vtext(pri, src, settings, _F.d, args);
 }
 brrsz BRRCALL
@@ -937,6 +936,8 @@ brrlog_text(int label, brrlog_source_t src, brrlog_settings_t settings, const ch
 	for (brrsz byte = div.quot; byte > 0; --byte)\
 		_bits_(_setter_, byte - 1, BYTE);\
 } while (0)
+
+/* Does this even do styling? */
 brrsz BRRCALL
 brrlog_bits(int label,
 	brrlog_source_t src,
@@ -949,8 +950,7 @@ brrlog_bits(int label,
 	char bit_separator)
 {
 	if (!bytes) {
-		brrapi_error(BRRAPI_E_ARGERR,
-		    "Tried to log NULL bytes buffer, can't continue");
+		brrapi_error(BRRAPI_E_ARGERR, "Tried to log NULL bytes buffer, can't continue");
 		return BRRSZ_MAX;
 	} else if (!n_bits) {
 		return 0;
@@ -966,8 +966,7 @@ brrlog_bits(int label,
 		return i_min_len(pri, src, settings) + olen;
 
 	if (i_buf_resize(&_F, olen)) {
-		brrapi_error(BRRAPI_E_MEMERR,
-		    "Failed to resize brrlog internal buffer");
+		brrapi_error(BRRAPI_E_MEMERR, "Failed to resize brrlog internal buffer");
 		return BRRSZ_MAX;
 	}
 

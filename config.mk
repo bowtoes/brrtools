@@ -24,6 +24,7 @@ src_dir := src
 srcs :=\
 	brrtools/_brrlib.c\
 	brrtools/brrarray.c\
+	brrtools/brrfile.c\
 	brrtools/brrlog.c\
 	brrtools/brrpath.c\
 	brrtools/brrstr.c\
@@ -31,8 +32,10 @@ srcs :=\
 hdrs :=\
 	brrtools/brrapi.h\
 	brrtools/brrarray.h\
+	brrtools/brrchr.h\
 	brrtools/brrcon.h\
 	brrtools/brrdbg.h\
+	brrtools/brrfile.h\
 	brrtools/brrhash.h\
 	brrtools/brrlog.h\
 	brrtools/brrmacro.h\

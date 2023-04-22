@@ -2,6 +2,15 @@
 Apache 2.0 license, http://www.apache.org/licenses/LICENSE-2.0
 Full license can be found in 'license' file */
 
+/*------------ brrplat.h */
+#include "brrtools/brrplat.h"
+
+const char *const brrplat_endian_str[3] = {
+	"unknown",
+	"little",
+	"big"
+};
+
 /*------------ brrapi.h */
 #define _brrapi_keep_gens
 #include "brrtools/brrapi.h"
@@ -34,6 +43,10 @@ static i_err_t _err = {0};
 void BRRCALL
 (brrapi_error)(const char *const file, const char *const function, int line, int code, const char *const message, ...)
 {
+	if (code == BRRAPI_E_APPEND_CODE)
+		/* just do nothing for now, TODO append message to the error (maybe there should be an error stack,
+		 * idk) */
+		return;
 	static char format [4096] = {0};
 	va_list lptr;
 	va_start(lptr, message);
@@ -81,6 +94,10 @@ void BRRCALL
 				_err.syslen = sizeof(_err.sysmsg) - 1;
 			memcpy(_err.sysmsg, errstr, _err.syslen);
 		} break;
+		case BRRAPI_E_APPEND_CODE: {
+			/* TODO: append 'message' to the previous */
+			break;
+		}
 		default:
 			break;
 	}
@@ -324,7 +341,18 @@ brrrand_trand(brru8 iter)
 #include <stdarg.h>
 
 int BRRCALL
-brrnum_ndigits(brru8 x, int base)
+brrnum_udigits(brru8 x, int base)
+{
+	if (base < 2)
+		return 0;
+	else if (!x)
+		return 1;
+	brrsz c = 1;
+	while (x/=base) c++;
+	return c;
+}
+int BRRCALL
+brrnum_sdigits(brrs8 x, int base)
 {
 	if (base < 2)
 		return 0;
@@ -409,4 +437,19 @@ brrhash_fnv1a(const void *const data, brrsz data_size)
 /*------------ brrtypes.h */
 #include "brrtools/brrtypes.h"
 
+/*------------ brrchr.h */
+#include "brrtools/brrchr.h"
+
+const brrchr_cmp_t brrchr_cmp = strcmp;
+const brrchr_ncmp_t brrchr_ncmp = strncmp;
+#if brrplat_dos != 0
+const brrchr_cmp_t  brrchr_case_cmp = _stricmp;
+const brrchr_ncmp_t brrchr_case_ncmp = _strnicmp;
+#elif brrplat_unix != 0
+const brrchr_cmp_t  brrchr_case_cmp = strcasecmp;
+const brrchr_ncmp_t brrchr_case_ncmp = strncasecmp;
+#else
+const brrchr_cmp_t  brrchr_case_cmp = brrchr_cmp
+const brrchr_cmp_t  brrchr_case_ncmp = brrchr_ncmp
+#endif
 

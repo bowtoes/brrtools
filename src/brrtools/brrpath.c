@@ -5,6 +5,7 @@ Full license can be found in 'license' file */
 #include "brrtools/brrpath.h"
 
 #include <errno.h>
+#include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #if brrtools_debug
@@ -19,7 +20,8 @@ Full license can be found in 'license' file */
 # define _win_ulrg(_hi_, _lo_) (((ULARGE_INTEGER){.u={.LowPart=(_lo_),.HighPart=(_hi_)}}).QuadPart)
 #endif
 
-#include "brrmacro.h"
+#include "brrtools/brrmacro.h"
+#include "brrtools/brrchr.h"
 #include "_util.h"
 
 typedef struct i_pfx {
@@ -101,10 +103,11 @@ i_canon(const char *restrict const source, brrsz length,
 	#if brrplat_dos
 	{ const i_pfx_t pfx = i_get_pfx_type(source, length);
 		if (pfx.pfx_type == pfx_none) {
-			/* Need not concern ourselves with the prefix-less case. */
+			/* No prefix to copy */
 		} else if (pfx.pfx_type == pfx_drive || pfx.pfx_type == pfx_global) {
+			/* Regular path, copy the prefix verbatim, then canonicalize the rest */
 			if (u_cpy_limit(dst, max_len, &o, source, length, &i, pfx.l))
-				goto _E;
+				goto _dos_err;
 		} else if (pfx.pfx_type == pfx_unc || pfx.pfx_type == pfx_namespace) {
 			/* No processing is needed for unc/namespace paths, they are parsed verbatim */
 			u_cpy_limit(dst, max_len, &o, source, length, &i, length);
@@ -118,6 +121,7 @@ i_canon(const char *restrict const source, brrsz length,
 	/* Dos-specific prefixes taken care of, now to consume the path proper */
 	if (brrpath_issep(source[i])) {
 		f.abs = 1;
+		/* Skip duplicate separators */
 		while (i < length && brrpath_issep(source[i])) ++i;
 		if (o < max_len)
 			dst[o++] = brrpath_separator;
@@ -196,11 +200,10 @@ i_canon(const char *restrict const source, brrsz length,
 		}
 	}
 #if brrplat_dos
-_E:
+_dos_err:
 #endif
 	if (o > 1 && brrpath_issep(dst[o-1])) {
-		/* If the last char is a separator, remove it, but only if it's not the only character (i.e. the root
-		 * dir) */
+		/* If the last char is a separator, remove it, but only if it's not the only character (i.e. the root dir) */
 		o--;
 	}
 	dst[o] = 0;
@@ -216,6 +219,100 @@ brrpath_free(brrpath_t *const path)
 	if (path->full)
 		free(path->full);
 	memset(path, 0, sizeof(*path));
+}
+
+int BRRCALL
+brrpath_match_extension(const brrpath_t *const path, int short_extension, int case_sensitive, const char **const matched, ...)
+{
+	if (!path || !path->full || !path->ext_exists) {
+		if (matched) *matched = NULL;
+		return -1;
+	}
+
+	const char *ext = short_extension ? brrpath_short_ext_start(path) : brrpath_ext_start(path);
+	if (!ext || ext[0] == 0) {
+		if (matched) *matched = NULL;
+		return -1;
+	}
+
+	const brrchr_cmp_t cmp = case_sensitive ? brrchr_case_cmp : brrchr_cmp;
+	const char *lmatch = NULL;
+	int idx = -1;
+	{
+		va_list lptr;
+		va_start(lptr, matched);
+		int i = 0;
+		const char *a;
+		while ((a = va_arg(lptr, const char *))) {
+			if (!cmp(ext, a)) {
+				lmatch = a;
+				idx = i;
+				break;
+			}
+			++i;
+		}
+	}
+	if (matched) *matched = lmatch;
+	return idx;
+}
+
+int BRRCALL
+brrpath_set_extension(brrpath_t *const path, int short_extension, const char *const new, brrsz len)
+{
+	/* TODO this needs testing */
+	if (!path || !path->full) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrpath_set_extension given NULL 'path' argument.");
+		return -1;
+	}
+
+	const char *pe = brrpath_end(path);
+	const char *e = short_extension ? brrpath_short_ext_start(path) : brrpath_ext_start(path);
+	const brrsz el = (brrsz)pe - (brrsz)e; /* Length of the extension that is being removed */
+	brrsz bl = path->len - el; /* Length of all that before the extension dot, the start of where the new extension will be placed*/
+	brrsz nl;
+	int d = 0;
+	if (!e) { /* Extension does not exist, add it and the dot. */
+		if (!new) return 0;
+		nl = path->len + 1 + len;
+		d = 1;
+		bl++;
+	} else if (e == pe) {
+		if (!new) { /* remove dot */
+			nl = path->len - 1;
+		} else {
+			if (!len) return 0;
+			nl = path->len + len; /* append extension */
+		}
+	} else if (!new) { /* Remove extension and dot */
+		nl = path->len - 1 - el;
+	} else { /* Replace extension */
+		nl = path->len - el + len;
+	}
+	char *n = realloc(path->full, nl + 1);
+	if (!n) {
+		brrapi_error(BRRAPI_E_MEMERR, "Failed to reallocate path for new path");
+		return -1;
+	}
+	if (d) n[path->len] = '.';
+	if (new && len) memcpy(n + bl, new, len);
+	n[nl] = 0;
+	path->len = nl;
+	path->full = n;
+	brrpath_update_lengths(path);
+	return 0;
+}
+
+int BRRCALL
+brrpath_same(const brrpath_t *const a, const brrpath_t *const b)
+{
+	if (a == b || a->full == b->full)
+		return 1;
+	if (!a || !b || !a->full || !b->full)
+		return 0;
+	/* TODO this needs to be more sophisticated to be actually correct */
+	if (a->_stat && b->_stat && (a->size != b->size || a->type != b->type || a->exists != b->exists))
+		return 0;
+	return a->len == b->len && 0 == brrpath_cmp(a->full, b->full, b->len);
 }
 
 brrpath_t BRRCALL
@@ -269,8 +366,7 @@ i_inf_from_st(brrpath_inf_t *const inf, brrpath_stat_t st)
 		i.type = brrpath_type_device;
 	else if (_s_flag(st.st_mode, S_IFIFO) || _s_flag(st.st_mode, S_IFSOCK))
 		i.type = brrpath_type_other;
-	else
-		i.type = brrpath_type_invalid;
+	else i.type = brrpath_type_invalid;
 	/* TODO can any flags be gotten from st_mode? */
 	brrpath_set_size(i.size, st.st_size);
 #elif brrplat_dos
@@ -282,8 +378,7 @@ i_inf_from_st(brrpath_inf_t *const inf, brrpath_stat_t st)
 		i.type = brrpath_type_device;
 	else if (at & FILE_ATTRIBUTE_DIRECTORY)
 		i.type = brrpath_type_dir;
-	else if ((at & FILE_ATTRIBUTE_READONLY) || brr_bits(at, FILE_ATTRIBUTE_NORMAL) ||
-		!brr_bit(at, FILE_ATTRIBUTE_VIRTUAL))
+	else if ((at & FILE_ATTRIBUTE_READONLY) || brr_bits(at, FILE_ATTRIBUTE_NORMAL) || !brr_bit(at, FILE_ATTRIBUTE_VIRTUAL))
 		i.type = brrpath_type_file;
 	else
 		i.type = brrpath_type_other;
@@ -306,58 +401,56 @@ i_inf_from_st(brrpath_inf_t *const inf, brrpath_stat_t st)
 	*inf = i;
 }
 
+/* Returns 0 on success, else returns -1 and sets brrapi_error */
 int BRRCALL
-brrpath_stat(brrpath_t *const path)
+brrpath_stat(brrpath_inf_t *const inf, const char *const path)
 {
-	if (!path || !path->full) {
+	if (!path) {
 		brrapi_error(BRRAPI_E_ARGERR, "brrpath_stat given NULL path");
 		return -1;
 	}
-	brrpath_inf_t i = path->inf;
+	brrpath_inf_t i = *inf;
 #if brrplat_unix
 {	struct stat st = {0};
-	if (lstat(path->full, &st)) {
+	if (lstat(path, &st)) {
 		if (errno != ENOENT) {
-			brrapi_error(BRRAPI_E_OSERR, "Failed to stat path '%s'", path->full);
+			brrapi_error(BRRAPI_E_OSERR, "Failed to stat path '%s'", path);
 			return -1;
 		}
 		i.exists = 0;
 	} else {
-		i.exists = 1;
 		if (_s_flag(st.st_mode, S_IFLNK)) {
 			i.flags |= brrpath_flag_symlink;
 
-			/* Stat the target to determine the filetype; question is, what if we stat a symlink to a
-			 * symlink? Does 'stat' go all the way down, or just to the next?
-			 * For now, I'll just assume 'stat' stats the actual file that exists, unless it's a broken
-			 * symlink
-			 * */
-			if (stat(path->full, &st)) {
+			/* Stat the target to determine the filetype; question is, what if we stat a symlink to a symlink? Does 'stat' go all the way down, or just to the next?
+			 * For now, I'll just assume 'stat' stats the actual file that exists, unless it's a broken symlink */
+			if (stat(path, &st)) {
 				if (errno != ENOENT) {
-					brrapi_error(BRRAPI_E_OSERR, "Failed to stat symbolic link '%s'", path->full);
+					brrapi_error(BRRAPI_E_OSERR, "Failed to stat symbolic link '%s'", path);
 					return -1;
 				}
 				i.flags |= brrpath_flag_broken;
 			}
 		}
+		i.exists = 1;
 		i_inf_from_st(&i, st);
 	}
 }
 #elif brrplat_dos
 {	WIN32_FIND_DATA st = {0}; HANDLE h;
 	i.exists = 1;
-	if (INVALID_HANDLE_VALUE == (h = FindFirstFile(path->full, &st))) {
+	if (INVALID_HANDLE_VALUE == (h = FindFirstFile(path, &st))) {
 		int e = GetLastError();
 		if (e != ERROR_FILE_NOT_FOUND) {
-			brrapi_error(BRRAPI_E_OSERR, "Failed to stat path '%s'", path->full);
+			brrapi_error(BRRAPI_E_OSERR, "Failed to stat path '%s'", path);
 			return -1;
 		}
 
-		if (!GetFileAttributesEx(path->full, GetFileExInfoStandard, &st)) {
+		if (!GetFileAttributesEx(path, GetFileExInfoStandard, &st)) {
 			e = GetLastError();
 			if (e != ERROR_FILE_NOT_FOUND && e != ERROR_PATH_NOT_FOUND) {
 				FindClose(h);
-				brrapi_error(BRRAPI_E_OSERR, "Failed to stat symbolic link '%s'", path->full);
+				brrapi_error(BRRAPI_E_OSERR, "Failed to stat symbolic link '%s'", path);
 				return -1;
 			}
 			i.exists = 0;
@@ -368,17 +461,17 @@ brrpath_stat(brrpath_t *const path)
 	FindClose(h);
 }
 #endif
-	path->inf = i;
+	i._stat = 1;
+	*inf = i;
 	return 0;
 }
 
+/* Stats the current working directory, and returns a const pointer to the result (stored internally) */
 const brrpath_t *BRRCALL
 brrpath_cwd(void)
 {
 	static char dir[brrpath_max_path + 1];
-	static brrpath_t path = {
-		.full = dir,
-	};
+	static brrpath_t path = { .full = dir };
 #if brrplat_unix
 	if (!getcwd(dir, sizeof(dir))) {
 		brrapi_error(BRRAPI_E_OSERR, "Couldn't get the current working directory");
@@ -396,9 +489,36 @@ brrpath_cwd(void)
 		dir[path.len] = 0;
 	}
 #endif
-	if (brrpath_stat(&path))
+	if (brrpath_stat(&path.inf, path.full))
 		return NULL;
 	return &path;
+}
+
+int BRRCALL
+brrpath_init(brrpath_t *const path, const char *const arg, brrsz len)
+{
+	if (!path) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrpath_init given NULL destination path");
+		return -1;
+	} else if (!arg) {
+		brrapi_error(BRRAPI_E_ARGERR, "brrpath_init given NULL source argument");
+		return -1;
+	}
+
+	if (len == BRRSZ_MAX)
+		len = brrstr_len(arg, brrpath_max_path);
+
+	brrpath_t p = brrpath_canonicalize(arg, len);;
+	if (!p.full)
+		return -1;
+
+	if (brrpath_stat(&p.inf, arg)) {
+		brrpath_free(&p);
+		return -1;
+	}
+
+	*path = p;
+	return 0;
 }
 
 /* Whether or not an error occurred during walk */
@@ -421,7 +541,7 @@ static int i_nftw_walk(const char *restrict const path, const struct stat *restr
 	brrpath_t P = brrpath_canonicalize(path, strlen(path));
 	/* I know it's stupid to stat again, when nftw does it for me already, but doing it again allows me to
 	 * check for symlinks */
-	if (!P.full || brrpath_stat(&P)) {
+	if (!P.full || brrpath_stat(&P.inf, P.full)) {
 		i_walk_code = 1;
 		brrpath_free(&P);
 		return FTW_STOP;
@@ -477,7 +597,7 @@ static int i_dos_walk(char *restrict const path, brrpath_path_len_t len, WIN32_F
 
 		brrpath_t P = brrpath_canonicalize(path, len);
 		brrpath_walk_code_t code = 0;
-		if (!P.full || brrpath_stat(&P)) {
+		if (!P.full || brrpath_stat(&P.inf, P.full)) {
 			i_walk_code = 1;
 			brrpath_free(&P);
 			break;
@@ -556,7 +676,7 @@ brrpath_walk(const brrpath_t *const start, brrpath_walk_settings_t settings)
 #elif brrplat_dos
 	WIN32_FIND_DATA fd;
 	brrpath_t pp = brrpath_canonicalize(start->full, start->len);
-	if (!pp.full || brrpath_stat(&pp)) {
+	if (!pp.full || brrpath_stat(&pp.inf, pp.full)) {
 		i_walk_code = 1;
 		brrpath_free(&pp);
 		return -1;

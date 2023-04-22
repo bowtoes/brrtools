@@ -56,6 +56,7 @@ extern "C" {
 	_X_(ARRFULL,      "Array is Full")\
 	_X_(LIBC,         "libc Error")\
 	_X_(OSERR,        "OS Error")\
+	_X_(APPEND_CODE,  "brrapi error appending code")\
 	_X_(INVALID_CODE, "brrapi Invalid Code")\
 
 #define _brrapi_e_op(_n_, _D_) BRRAPI_E_##_n_,

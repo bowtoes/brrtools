@@ -107,7 +107,7 @@ typedef enum brrlog_fn {
 # undef _brrlog_max_sts
 #endif
 #if !_brrlog_can_style
-#define _brrlog_max_style 0;
+#define _brrlog_max_style 0
 #else
 #define ST_PFX "\x1b["
 #define ST_SFX "m"
@@ -125,9 +125,10 @@ typedef struct brrlog_style {
 	brrlog_fn_t fn;
 } brrlog_style_t;
 
+BRRAPI void BRRCALL
+brrlog_style_init(brrlog_style_t *const source);
+
 /* Copies values from 'b' that are unset in 'a' */
-BRRAPI brrlog_style_t BRRCALL
-brrlog_style_init(brrlog_style_t source);
 BRRAPI brrlog_style_t BRRCALL
 brrlog_style_or(brrlog_style_t a, brrlog_style_t b);
 
@@ -156,7 +157,7 @@ typedef struct brrlog_cfg {
 	brru4 max_nest; /* Maximal style nest */
 	int min_label; /* Minimum label that will log. */
 	int max_label; /* Maximum label that will log. */
-	brru2 max_priorities;
+	brru2 max_priorities; /* Default is 20 */
 	brru2 _npri;
 
 	union {
@@ -190,8 +191,8 @@ typedef struct brrlog_cfg {
 
 	const char *_sty_open;
 	const char *_sty_close;
-	int *_lbl;
-	brrlog_priority_t *_pri;
+	int *_lbl; /* Private list of priority labels, in order of addition, that correspond to the priority at the same position in '_pri'. */
+	brrlog_priority_t *_pri; /* Private list of priorities. */
 	char *_log_buf;
 	brru4 _sty_len;
 	int _init;
@@ -203,9 +204,13 @@ BRRAPI int BRRCALL
 brrlog_init(brrlog_cfg_t cfg, const char *const style_open, const char *const style_close);
 BRRAPI void BRRCALL
 brrlog_deinit(void);
+/* Sets the default priority of the logging mechanism to 'newpri'.
+ * Returns 0 on success.
+ * Returns 1 on error.
+ * */
 BRRAPI int BRRCALL
 brrlog_def_pri(brrlog_priority_t newpri);
-/* Sets the maximum bytes that can be logged at once; set to 0 to disable.
+/* Sets the maximum bytes that can be logged at once; set to 0 to have no maximum.
  * 0 is returned on success.
  * If an error occurs, -1 is returned.*/
 BRRAPI int BRRCALL
@@ -234,6 +239,7 @@ typedef struct brrlog_settings {
 	int print_newline;
 	int print_prefix;
 	int verbose;
+	const brrlog_style_t *style_override;
 } brrlog_settings_t;
 
 BRRAPI brrsz BRRCALL
@@ -255,36 +261,21 @@ brrlog_bits(int label,
 	int reverse_bytes,
 	char bit_separator);
 
-#define _brrlog_int(_t_, _l_, _n_, _p_, _v_, ...)\
+#define _brrlog_int(_t_, _l_, _n_, _p_, _v_, _s_, ...)\
 	brrlog##_t_((_l_), (brrlog_source_t){.file=__FILE__,.line=__LINE__,.func=__func__},\
-	    (brrlog_settings_t){.print_newline=(_n_),.print_prefix=(_p_),.verbose=(_v_)}, __VA_ARGS__)
+	    (brrlog_settings_t){.print_newline=(_n_),.print_prefix=(_p_),.verbose=(_v_),.style_override=(_s_)}, __VA_ARGS__)
 
-#define  brrlog(    _label_, ...) _brrlog_int(_text,  _label_, 1, 1, 0, __VA_ARGS__)
-#define  brrlogn(   _label_, ...) _brrlog_int(_text,  _label_, 0, 1, 0, __VA_ARGS__)
-#define  brrlogp(   _label_, ...) _brrlog_int(_text,  _label_, 1, 0, 0, __VA_ARGS__)
-#define  brrlognp(  _label_, ...) _brrlog_int(_text,  _label_, 0, 0, 0, __VA_ARGS__)
-#define  brrlogv(   _label_, ...) _brrlog_int(_text,  _label_, 1, 1, 1, __VA_ARGS__)
-#define  brrlogvn(  _label_, ...) _brrlog_int(_text,  _label_, 0, 1, 1, __VA_ARGS__)
-#define  brrlogvp(  _label_, ...) _brrlog_int(_text,  _label_, 1, 0, 1, __VA_ARGS__)
-#define  brrlogvnp( _label_, ...) _brrlog_int(_text,  _label_, 0, 0, 1, __VA_ARGS__)
+#define _brrlog(   _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 1, 1, 0, _s_, __VA_ARGS__)
+#define _brrlogn(  _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 0, 1, 0, _s_, __VA_ARGS__)
+#define _brrlogp(  _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 1, 0, 0, _s_, __VA_ARGS__)
+#define _brrlognp( _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 0, 0, 0, _s_, __VA_ARGS__)
+#define _brrlogv(  _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 1, 1, 1, _s_, __VA_ARGS__)
+#define _brrlognv( _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 0, 1, 1, _s_, __VA_ARGS__)
+#define _brrlogpv( _t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 1, 0, 1, _s_, __VA_ARGS__)
+#define _brrlognpv(_t_, _l_, _s_, ...) _brrlog_int(_t_, _l_, 0, 0, 1, _s_, __VA_ARGS__)
 
-#define vbrrlog(    _label_, ...) _brrlog_int(v_text, _label_, 1, 1, 0, __VA_ARGS__)
-#define vbrrlogn(   _label_, ...) _brrlog_int(v_text, _label_, 0, 1, 0, __VA_ARGS__)
-#define vbrrlogp(   _label_, ...) _brrlog_int(v_text, _label_, 1, 0, 0, __VA_ARGS__)
-#define vbrrlognp(  _label_, ...) _brrlog_int(v_text, _label_, 0, 0, 0, __VA_ARGS__)
-#define vbrrlogv(   _label_, ...) _brrlog_int(v_text, _label_, 1, 1, 1, __VA_ARGS__)
-#define vbrrlogvn(  _label_, ...) _brrlog_int(v_text, _label_, 0, 1, 1, __VA_ARGS__)
-#define vbrrlogvp(  _label_, ...) _brrlog_int(v_text, _label_, 1, 0, 1, __VA_ARGS__)
-#define vbrrlogvnp( _label_, ...) _brrlog_int(v_text, _label_, 0, 0, 1, __VA_ARGS__)
-
-#define  brrlogb(   _label_, ...) _brrlog_int(_bits,  _label_, 1, 1, 0, __VA_ARGS__)
-#define  brrlogbn(  _label_, ...) _brrlog_int(_bits,  _label_, 0, 1, 0, __VA_ARGS__)
-#define  brrlogbp(  _label_, ...) _brrlog_int(_bits,  _label_, 1, 0, 0, __VA_ARGS__)
-#define  brrlogbnp( _label_, ...) _brrlog_int(_bits,  _label_, 0, 0, 0, __VA_ARGS__)
-#define  brrlogbv(  _label_, ...) _brrlog_int(_bits,  _label_, 1, 1, 1, __VA_ARGS__)
-#define  brrlogbvn( _label_, ...) _brrlog_int(_bits,  _label_, 0, 1, 1, __VA_ARGS__)
-#define  brrlogbvp( _label_, ...) _brrlog_int(_bits,  _label_, 1, 0, 1, __VA_ARGS__)
-#define  brrlogbvnp(_label_, ...) _brrlog_int(_bits,  _label_, 0, 0, 1, __VA_ARGS__)
+#define brrlog(_t_, _l_, ...) _brrlog##_t_(_text, _l_, NULL, __VA_ARGS__)
+#define brrlogs(_t_, _l_, _s_, ...) _brrlog##_t_(_text, _l_, _s_, __VA_ARGS__)
 
 #ifndef _brrlog_keep_gens
 # undef _brrlog_sts

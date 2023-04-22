@@ -73,6 +73,26 @@ extern "C" {
 #define brrplat_c99 brrplat_c11
 #endif
 
+#define brrplat_endian_unknown -1
+#define brrplat_endian_little 0
+#define brrplat_endian_big 1
+#ifndef brrplat_endian
+# if brrplat_gnuc
+#  if (__BYTE_ORDER__) == (__ORDER_BIG_ENDIAN__)
+#   define brrplat_endian brrplat_endian_big
+#  elif (__BYTE_ORDER__) == (__ORDER_LITTLE_ENDIAN__)
+#   define brrplat_endian brrplat_endian_little
+#  else
+#   define brrplat_endian brrplat_endian_unknown
+#  endif
+# else
+    /* I don't really know about this one */
+#   define brrplat_endian (*(short *)("\x12\x34") == 0x12)
+# endif
+#endif
+
+extern const char *const brrplat_endian_str[3];
+
 #ifdef __cplusplus
 }
 #endif
