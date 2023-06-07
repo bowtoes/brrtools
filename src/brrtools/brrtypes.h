@@ -5,6 +5,11 @@ Full license can be found in 'license' file */
 #ifndef brrtools_brrtypes_h
 #define brrtools_brrtypes_h
 
+/* I'll be honest, I'm very tempted to completely remove brrtypes, I really see no point in it
+ * Maybe if I wanted to be *SUPER* portable, but I have no use case for such a thing and I don't anybody
+ * looking for a maximally portable library would even glance at this one.
+ * */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +51,7 @@ typedef brrs8 brrof; // Relative byte offset.
 # define BRROF_MAX BRRS8_MAX
 # define BRROF_MIN BRRS8_MIN
 
+/* I don't remember what this is */
 #define _brrtypes_exp0(_x_) _x_
 #define _brrtypes_exp(_x_) _brrtypes_exp0(_x_)
 #define _brrtypes_join0(_x_, _y_) _x_ ## _y_

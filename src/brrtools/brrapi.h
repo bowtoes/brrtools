@@ -5,6 +5,16 @@
 extern "C" {
 #endif
 
+#ifndef BRRAPI_ALLOC
+#define BRRAPI_ALLOC malloc
+#endif
+#ifndef BRRAPI_FREE
+#define BRRAPI_FREE free
+#endif
+#ifndef BRRAPI_REALLOC
+#define BRRAPI_REALLOC realloc
+#endif
+
 #include <brrtools/brrplat.h>
 /* NOTE calling convention will be different for different architectures, something to consider in future */
 
@@ -55,7 +65,9 @@ extern "C" {
 	_X_(ARGERR,       "Invalid Argument(s)")\
 	_X_(ARRFULL,      "Array is Full")\
 	_X_(LIBC,         "libc Error")\
+	_X_(SYSLIB,       "System Library Error")\
 	_X_(OSERR,        "OS Error")\
+	_X_(IOERR,        "I/O Error")\
 	_X_(APPEND_CODE,  "brrapi error appending code")\
 	_X_(INVALID_CODE, "brrapi Invalid Code")\
 

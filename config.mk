@@ -14,7 +14,7 @@ override makefiles := platform.mk config.mk Makefile
 override project_major := 0
 override project_minor := 0
 override project_revis := 3
-override project_letter := e
+override project_letter := g
 override project_version := $(project_major).$(project_minor).$(project_revis)$(if $(project_letter),/$(project_letter),)
 override project_date := $(shell git show -s --date=format:'%Y/%m/%d %l:%M%p' --format=%ad || echo "")
 
@@ -26,7 +26,7 @@ srcs :=\
 	brrtools/brrarray.c\
 	brrtools/brrfile.c\
 	brrtools/brrlog.c\
-	brrtools/brrpath.c\
+	brrtools/brrstat.c\
 	brrtools/brrstr.c\
 
 hdrs :=\
@@ -40,9 +40,9 @@ hdrs :=\
 	brrtools/brrlog.h\
 	brrtools/brrmacro.h\
 	brrtools/brrnum.h\
-	brrtools/brrpath.h\
 	brrtools/brrplat.h\
 	brrtools/brrrand.h\
+	brrtools/brrstat.h\
 	brrtools/brrstr.h\
 	brrtools/brrtime.h\
 	brrtools/brrtypes.h\
@@ -97,7 +97,7 @@ c_defines := \
 ifeq ($(target),unix)
  # yeah yeah, gnu isn't portable I get it
  # todo have to reimplement dirtree walking manually, with opendir or something like that
- c_defines := -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L -D_GNU_SOURCE $(c_defines)
+ c_defines := -D_FILE_OFFSET_BITS=64 -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L -D_GNU_SOURCE $(c_defines)
 else
  c_defines := -DWIN32_LEAN_AND_MEAN $(c_defines)
 endif

@@ -54,6 +54,7 @@ void BRRCALL
 	va_end(lptr);
 	brrapi_error_set_position(file, function, line);
 	switch (code) {
+		case BRRAPI_E_IOERR:
 		case BRRAPI_E_OSERR:
 		#if brrplat_dos
 		{ DWORD r = FormatMessage(
@@ -87,6 +88,7 @@ void BRRCALL
 		} break;
 		#endif // unix falls through
 		case BRRAPI_E_MEMERR:
+		case BRRAPI_E_SYSLIB:
 		case BRRAPI_E_LIBC: {
 			const char *errstr = strerror(errno);
 			_err.syslen = strlen(errstr) - 1;
@@ -442,10 +444,10 @@ brrhash_fnv1a(const void *const data, brrsz data_size)
 
 const brrchr_cmp_t brrchr_cmp = strcmp;
 const brrchr_ncmp_t brrchr_ncmp = strncmp;
-#if brrplat_dos != 0
+#if brrplat_dos
 const brrchr_cmp_t  brrchr_case_cmp = _stricmp;
 const brrchr_ncmp_t brrchr_case_ncmp = _strnicmp;
-#elif brrplat_unix != 0
+#elif brrplat_unix
 const brrchr_cmp_t  brrchr_case_cmp = strcasecmp;
 const brrchr_ncmp_t brrchr_case_ncmp = strncasecmp;
 #else

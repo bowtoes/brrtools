@@ -5,32 +5,58 @@ Full license can be found in 'license' file */
 #ifndef brrfile_h
 #define brrfile_h
 
-#include <brrtools/brrpath.h>
+#include <stdint.h>
 
-/* This interface isn't very complicated or densely functional, I'm thinking about doing some kind of
- * buffering thing at some point? Problem is I don't really see a massive use case for that in any of the
- * stuff I do.
- * Maybe a generic de/serializer system? Give it a pointer to data, a de/serialization function, and an
- * output buffer? The tough part's the output buffer though.
- * Idk, todo eventually
- * */
+#include <brrtools/brrstat.h>
 
-/* Reads all of 'path' into the buffer pointed to by 'buffer'.
- * Returns the number of bytes read on success.
- * If an error occurs or 'path' is not a file, BRRSZ_MAX is returned and 'buffer' is unaffected.
- * If 'inf' is NULL, 'path' will be statted to determine type and size.
- * */
-brrsz
-brrfile_read(const char *const path, const brrpath_inf_t *const inf, void **const buffer);
+typedef enum brrfd_mode {
+	brrfdf_r        = 0x01, /* Open for reading exclusively */
+	brrfdf_w        = 0x02, /* Open for writing exclusively */
+	brrfdf_rw       = 0x03,
 
-/* Returns number of bytes written on success (will usually be input 'size').
- * Returns BRRSZ_MAX on error.
- * The only real error conditiions are a non-existing path/bad permissions/destination not a file.
- * 'inf' is optional; if not NULL, type-checking is done and incorrect destination path types are reported
- * and not tried.
- * 'path' is not automatically statted after writing; i.e. 'inf' is not updated automatically.
- * */
-brrsz
-brrfile_write(const char *const path, const brrpath_inf_t *const inf, const void *const buffer, brrsz size);
+	brrfdf_truncate = 0x04, /* When opening for writing, don't trunctate the contents of the given file. */
+	brrfdf_append   = 0x08, /* When opening for writing, seek to the end of the file when openening. */
+} brrfd_mode_t;
+
+#define brrfd_mode2(_1_, _2_) ((brrfd_mode_##_1_) | (brrfd_mode_##_2_))
+#define brrfd_mode3(_1_, _2_, _3_) (brrfd_mode2(_1_, _2_) | (brrfd_mode_##_3_))
+
+typedef struct brrfd brrfd_t;
+
+int
+brrfd_check(const brrfd_t *const fd);
+
+void
+brrfd_close(brrfd_t *const fd);
+
+brrfd_t *
+brrfd_open(const char *const path, brrfd_mode_t mode, brrfpos_t pos_offset, brrbsize_t buffer_size);
+
+brrstat_t
+brrfd_stat(const brrfd_t *const fd);
+
+const char *
+brrfd_path(const brrfd_t *const fd);
+
+brrfpos_t
+brrfd_pos(const brrfd_t *const fd);
+
+brrfpos_t
+brrfd_read(brrfd_t *restrict const fd, void *restrict const dst, brrfsize_t size);
+
+brrfpos_t
+brrfd_write(brrfd_t *const fd, const void *const src, brrfsize_t size);
+
+typedef enum brrfd_side {
+	brrfd_side_start = 0,
+	brrfd_side_current = 1,
+	brrfd_side_end = 2
+} brrfd_side_t;
+
+int
+brrfd_seek(brrfd_t *const fd, brrfd_side_t side, brrfpos_t ofs);
+
+int
+brrfd_invalidate(brrfd_t *const fd);
 
 #endif /* brrfile_h */
